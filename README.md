@@ -62,37 +62,28 @@ Desenvolvido no **LaBiOmicS / UMC** sob coordenação do **Prof. Dr. Fabiano Bez
   - `pandoc` (recomendado para DOCX, LaTeX e HTML).
   - `pdftotext` (pacote `poppler-utils`, para extração otimizada de PDFs).
 
-#### Opção A: Instalação via Antigravity Marketplace / CLI
+#### Opção A: Instalação Automatizada com uv (Recomendada)
+O instalador automatizado verifica o `uv`, sincroniza as dependências em ambiente isolado (SciPy, ReportLab) e registra o plugin no Antigravity CLI:
 ```bash
-# Validar e instalar localmente
-agy plugin install /caminho/para/gemini-peer-review
+git clone https://github.com/LaBiOmicS/gemini-peer-review.git
+cd gemini-peer-review
+./install.sh
+```
 
-# Ou ativar se já estiver clonado no diretório de plugins
+#### Opção B: Instalação Direta via Antigravity CLI
+```bash
+# Validar e instalar diretamente a pasta do plugin
+agy plugin install /caminho/para/gemini-peer-review
 agy plugin enable gemini-peer-review
 ```
 
-#### Opção B: Instalação Manual
-Copie o diretório do plugin para a pasta de extensões da Antigravity:
-```bash
-mkdir -p ~/.gemini/antigravity-cli/plugins ~/.gemini/extensions
-cp -r /home/dayhoff/workdir/informatics/mcp/gemini-paper-review/gemini-peer-review ~/.gemini/antigravity-cli/plugins/
-cp -r /home/dayhoff/workdir/informatics/mcp/gemini-paper-review/gemini-peer-review ~/.gemini/extensions/
-
-# Verificar se a instalação passou na validação estrita
-agy plugin validate ~/.gemini/antigravity-cli/plugins/gemini-peer-review --strict
-```
-
-#### Opção C: Ambiente Isolado e Execução via `uv` (Astral)
-O projeto inclui suporte nativo a [`uv`](https://github.com/astral-sh/uv) via `pyproject.toml` (PEP 621):
+#### Opção C: Instalação Manual e Sincronização via `uv` (Astral)
 ```bash
 # Sincroniza ambiente virtual e dependências científicas em milissegundos
 uv sync
 
 # Executa scripts diretamente com SciPy em ambiente isolado
 uv run skills/paper-review/scripts/stat_and_integrity_audit.py --help
-
-# Ou instale em modo editável no seu ambiente
-uv pip install -e .
 ```
 
 ---
@@ -262,14 +253,21 @@ Developed at **LaBiOmicS / UMC** under the leadership of **Prof. Dr. Fabiano Bez
 - **Antigravity CLI (`agy`)**: Installed and authenticated.
 - **Optional Tools**: `pandoc` (for DOCX/LaTeX) and `pdftotext` (for fast PDF extraction).
 
+#### Option A: One-Command Automated Setup with uv (Recommended)
+The automated setup verifies `uv`, synchronizes dependencies in an isolated virtual environment (SciPy, ReportLab), and registers the plugin in Antigravity:
 ```bash
-# Install and enable the plugin via the Antigravity CLI
+git clone https://github.com/LaBiOmicS/gemini-peer-review.git
+cd gemini-peer-review
+./install.sh
+```
+
+#### Option B: Direct Antigravity CLI Installation
+```bash
 agy plugin install /path/to/gemini-peer-review
 agy plugin validate /path/to/gemini-peer-review --strict
 ```
 
-#### Fast Isolated Python Environment via `uv` (Optional)
-This repository includes a standard `pyproject.toml` (PEP 621) with full [`uv`](https://github.com/astral-sh/uv) support:
+#### Option C: Manual Setup with `uv`
 ```bash
 # Sync isolated environment with SciPy and dependencies in milliseconds
 uv sync

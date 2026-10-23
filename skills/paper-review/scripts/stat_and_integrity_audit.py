@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "scipy>=1.10.0",
+# ]
+# ///
 """3-Axis (Area × Article Type × Research Approach) statistical, methodological, and citation auditor.
 
 Adapts its diagnostic checks across all 3 orthogonal dimensions:

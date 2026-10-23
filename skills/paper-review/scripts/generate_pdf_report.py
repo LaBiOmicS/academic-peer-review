@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "reportlab>=4.0.0",
+# ]
+# ///
 """Standardized PDF Report Generator for gemini-peer-review.
 
 Assembles an authoritative, publication-grade Editorial Peer Review PDF report

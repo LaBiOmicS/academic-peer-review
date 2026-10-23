@@ -122,12 +122,18 @@ python3 {skill_dir}/scripts/spawn_reviewers.py \
 
 Read all `<output_dir>/review_<codename>.md` files, `<output_dir>/pre_review_audit.md`, and [metareview.md](./prompts/metareview.md), then write the synthesized editorial meta-review to `<output_dir>/meta_review.md`.
 
-### Step 5. Compile Final Bundle & Concerns Matrix
+### Step 5. Compile Final Bundle, Concerns Matrix & Standardized PDF Report
+
+Run `compile_results.py` (via `uv run` or `python3`) to parse reviewer outputs, verify external citations live, assemble the CSV concerns matrix, and render `editorial_peer_review_report.pdf`:
 
 ```bash
-python3 {skill_dir}/scripts/compile_results.py --output-dir "<output_dir>"
+uv run {skill_dir}/scripts/compile_results.py --output-dir "<output_dir>" || python3 {skill_dir}/scripts/compile_results.py --output-dir "<output_dir>"
 ```
 
 ### Step 6. Present Results & Verdict Table to the User
 
-State the detected **Major Scientific Area**, **Article Type**, and **Research Approach**, display the compact per-reviewer verdict table (`alfa`, `beta`, `gamma`, `delta`, …), and link to all generated artifacts.
+State the detected **Major Scientific Area**, **Article Type**, and **Research Approach**, display the compact per-reviewer verdict table (`alfa`, `beta`, `gamma`, `delta`, …), and provide clickable links to:
+- Official PDF Report: `<output_dir>/editorial_peer_review_report.pdf`
+- Editorial Meta-Review: `<output_dir>/meta_review.md`
+- Pre-Review Diagnostic: `<output_dir>/pre_review_audit.md`
+- Concerns Matrix: `<output_dir>/concerns_table.csv`
