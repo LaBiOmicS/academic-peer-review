@@ -180,13 +180,15 @@ Após a conclusão da revisão, os seguintes arquivos estruturados estarão disp
 
 | Arquivo | Descrição |
 |---|---|
+| `editorial_peer_review_report.pdf` | **Relatório Consolidado Oficial em PDF** diagramado em padrão de publicação (Editorial + Pareceres Cegos + Matriz + Diagnóstico). |
+| `consolidated_editorial_report.md` | Documento Markdown consolidado completo com metadados e frontmatter. |
+| `meta_review.md` | Parecer editorial conclusivo (Consenso, Divergências e Roteiro Prioritário de Correções). |
 | `pre_review_audit.md` | Diagnóstico determinístico (`statcheck`, integridade FAIR, proveniência de IA e DOIs). |
+| `concerns_table.csv` | Matriz booleana tabular de preocupações levantadas por revisor (pronta para Excel/R/Pandas). |
 | `review_alfa.md` | Parecer detalhado do Revisor Alfa (Metodologia e Estatística). |
 | `review_beta.md` | Parecer detalhado do Revisor Beta (Reprodutibilidade, Ética e FAIR). |
 | `review_gamma.md` | Parecer detalhado do Revisor Gama (Crítica Red-Team Epistêmica). |
 | `review_delta.md` | Parecer detalhado do Revisor Delta (Especialista da Área Temática). |
-| `meta_review.md` | Parecer editorial conclusivo (Consenso, Divergências e Roteiro Prioritário de Correções). |
-| `concerns_table.csv` | Matriz booleana tabular de preocupações levantadas por revisor (pronta para Excel/R/Pandas). |
 | `results.json` | Pacote consolidado em JSON contendo metadados, vereditos e auditoria reversa de citações. |
 
 ---
@@ -195,6 +197,8 @@ Após a conclusão da revisão, os seguintes arquivos estruturados estarão disp
 
 ```text
 gemini-peer-review/
+├── pyproject.toml                                  # Configuração PEP 621 e suporte nativo a uv
+├── uv.lock                                         # Lockfile determinístico de dependências
 ├── plugin.json                                     # Manifesto do plugin (v2.1.0)
 ├── assets/
 │   ├── logo.jpg                                    # Logotipo oficial LaBiOmicS / UMC
@@ -219,7 +223,8 @@ gemini-peer-review/
         │   ├── literature_search.py                # Busca multi-base HTTPS (OpenAlex, PubMed, Crossref, arXiv)
         │   ├── arxiv_search.py                     # Busca rápida via arXiv API
         │   ├── spawn_reviewers.py                  # Orquestrador paralelo seguro dos revisores
-        │   └── compile_results.py                  # Compilador com auditoria reversa de citações e proteção CSV
+        │   ├── compile_results.py                  # Compilador com auditoria reversa de citações e proteção CSV
+        │   └── generate_pdf_report.py              # Gerador do relatório oficial em PDF (Pandoc/ReportLab)
         └── references/
             └── panel_and_audit_guide.md            # Manual de taxonomia e calibração metodológica
 ```
@@ -328,13 +333,15 @@ python3 $SKILL_DIR/scripts/compile_results.py --output-dir "$OUT_DIR"
 
 | File | Description |
 |---|---|
+| `editorial_peer_review_report.pdf` | **Official Publication-Grade PDF Report** (Editorial Summary, Blind Referee Reports, Concerns Matrix, Diagnostic). |
+| `consolidated_editorial_report.md` | Consolidated Markdown master document ready for publishing or conversion. |
+| `meta_review.md` | Senior Editorial Meta-Review (Consensus, Divergence, and Actionable Revision Roadmap). |
 | `pre_review_audit.md` | Deterministic diagnostic report (`statcheck`, FAIR data checks, AI provenance, and retractions). |
+| `concerns_table.csv` | Boolean matrix of distinct major concerns cross-tabulated across reviewers. |
 | `review_alfa.md` | Report from Reviewer Alfa (Methodology, Statistics, and Causal Inference). |
 | `review_beta.md` | Report from Reviewer Beta (Reproducibility, Ethics, and FAIR Standards). |
 | `review_gamma.md` | Report from Reviewer Gamma (Epistemic Red-Team Critic). |
 | `review_delta.md` | Report from Reviewer Delta (Domain Subject-Matter Specialist). |
-| `meta_review.md` | Senior Editorial Meta-Review (Consensus, Divergence, and Actionable Revision Roadmap). |
-| `concerns_table.csv` | Boolean matrix of distinct major concerns cross-tabulated across reviewers. |
 | `results.json` | Consolidated JSON payload with metadata, verdicts, and reverse citation audit. |
 
 ---

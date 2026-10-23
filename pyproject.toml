@@ -41,8 +41,12 @@ dependencies = []
 stats = [
     "scipy>=1.10.0",
 ]
+pdf = [
+    "reportlab>=4.0.0",
+]
 all = [
     "scipy>=1.10.0",
+    "reportlab>=4.0.0",
 ]
 
 [project.urls]

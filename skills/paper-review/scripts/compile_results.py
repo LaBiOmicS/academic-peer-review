@@ -26,6 +26,14 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+try:
+    from generate_pdf_report import generate_pdf_report
+except ImportError:
+    try:
+        from skills.paper_review.scripts.generate_pdf_report import generate_pdf_report
+    except ImportError:
+        generate_pdf_report = None
+
 
 GREEK_ORDER = ["alfa", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta"]
 
@@ -233,6 +241,7 @@ def compute_consensus_verdict(verdicts: list[str]) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Compile peer review outputs into CSV and results.json.")
     parser.add_argument("--output-dir", required=True, help="Directory containing review_*.md and meta_review.md.")
+    parser.add_argument("--skip-pdf", action="store_true", help="Skip compiling the standardized PDF report.")
     args = parser.parse_args()
 
     out_dir = Path(args.output_dir).resolve()
@@ -323,6 +332,12 @@ def main() -> int:
         print("\n⚠️  CITATION HALLUCINATION ALERT:")
         for r_code, h_dois in reviewer_citation_audit["flagged_reviewers"].items():
             print(f"  - Reviewer '{r_code}' cited unresolvable/hallucinated DOI(s): {', '.join(h_dois)}")
+
+    if not args.skip_pdf and generate_pdf_report:
+        try:
+            generate_pdf_report(out_dir)
+        except Exception as e:
+            print(f"Notice: Automatic PDF generation encountered: {e}", file=sys.stderr)
 
     return 0
 
