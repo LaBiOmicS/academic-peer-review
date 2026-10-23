@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# gemini-peer-review: Script de Instalação e Sincronização via uv
+# academic-peer-review: Script de Instalação e Sincronização via uv
 # LaBiOmicS / UMC - Prof. Dr. Fabiano Bezerra Menegidio
 # ==============================================================================
 set -e
 
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-echo "==> [1/3] Verificando ambiente e instalador uv..."
+echo "==> [1/4] Verificando ambiente e instalador uv..."
 
 if ! command -v uv &> /dev/null; then
     echo "Aviso: 'uv' não encontrado no PATH. Instalando via script oficial Astral..."
@@ -16,9 +16,20 @@ fi
 
 echo "✔ uv detectado: $(uv --version)"
 
-echo "==> [2/3] Sincronizando dependências Python via uv (PEP 621)..."
+echo "==> [2/4] Sincronizando dependências Python via uv (PEP 621)..."
 cd "$PLUGIN_DIR"
 uv sync
+
+copy_plugin_files() {
+    local target_dir="$1"
+    mkdir -p "$target_dir"
+    if command -v rsync &> /dev/null; then
+        rsync -a --delete --exclude='.git' --exclude='.venv' "$PLUGIN_DIR/" "$target_dir/"
+    else
+        rm -rf "${target_dir:?}"/*
+        find "$PLUGIN_DIR" -maxdepth 1 ! -name '.git' ! -name '.venv' ! -name "$(basename "$PLUGIN_DIR")" -exec cp -r {} "$target_dir/" \;
+    fi
+}
 
 echo "==> [3/4] Instalando e ativando no Antigravity CLI (Gemini)..."
 if command -v agy &> /dev/null; then
@@ -28,15 +39,13 @@ if command -v agy &> /dev/null; then
     agy plugin validate "$PLUGIN_DIR" --strict
 else
     echo "Aviso: 'agy' CLI não encontrado no PATH. Copiando para diretórios padrão de plugins..."
-    mkdir -p "$HOME/.gemini/antigravity-cli/plugins" "$HOME/.gemini/extensions"
-    cp -r "$PLUGIN_DIR" "$HOME/.gemini/antigravity-cli/plugins/academic-peer-review"
-    cp -r "$PLUGIN_DIR" "$HOME/.gemini/extensions/academic-peer-review"
+    copy_plugin_files "$HOME/.gemini/antigravity-cli/plugins/academic-peer-review"
+    copy_plugin_files "$HOME/.gemini/extensions/academic-peer-review"
 fi
 
 echo "==> [4/4] Verificando integração com Claude Code..."
 if command -v claude &> /dev/null; then
-    mkdir -p "$HOME/.claude/plugins"
-    cp -r "$PLUGIN_DIR" "$HOME/.claude/plugins/academic-peer-review"
+    copy_plugin_files "$HOME/.claude/plugins/academic-peer-review"
     echo "✔ Plugin validado no Claude Code:"
     claude plugin validate "$PLUGIN_DIR"
 fi
