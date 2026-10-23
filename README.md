@@ -1,4 +1,5 @@
-# gemini-peer-review (Revisão Acadêmica por Pares / Academic Peer Review)
+# gemini-peer-review 
+## Revisão Acadêmica por Pares / Academic Peer Review
 
 [![Antigravity Plugin](https://img.shields.io/badge/Antigravity-Plugin-blue.svg)](https://github.com/google-deepmind)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
