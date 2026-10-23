@@ -1,0 +1,12 @@
+{
+  "name": "gemini-peer-review",
+  "displayName": "Gemini Academic Peer Review",
+  "version": "2.1.0",
+  "description": "Multi-reviewer academic peer review (Alfa, Beta, Gamma, Delta) with 3-Axis Composable Classification (5 Scientific Areas × 15 Article Types × 12 Research Approaches), deterministic statcheck & OpenAlex citation/retraction auditing, prompt-injection defense, and editorial meta-review synthesis. Developed by Prof. Dr. Fabiano Bezerra Menegidio (LaBiOmicS / UMC).",
+  "logo": "assets/logo.jpg",
+  "suggestedPrompts": [
+    "Peer-review this manuscript PDF with 4 independent reviewers and a statistical/citation audit",
+    "Run a 3-axis classification, statistical consistency (statcheck), and OpenAlex citation/retraction audit on this paper",
+    "Synthesize an editorial meta-review and actionable revision roadmap for this manuscript"
+  ]
+}
