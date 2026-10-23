@@ -20,23 +20,31 @@ echo "==> [2/3] Sincronizando dependências Python via uv (PEP 621)..."
 cd "$PLUGIN_DIR"
 uv sync
 
-echo "==> [3/3] Instalando e ativando o plugin no Antigravity CLI (agy)..."
+echo "==> [3/4] Instalando e ativando no Antigravity CLI (Gemini)..."
 if command -v agy &> /dev/null; then
     agy plugin install "$PLUGIN_DIR"
-    agy plugin enable gemini-peer-review || true
+    agy plugin enable academic-peer-review || true
     echo "✔ Plugin validado no Antigravity CLI:"
     agy plugin validate "$PLUGIN_DIR" --strict
 else
     echo "Aviso: 'agy' CLI não encontrado no PATH. Copiando para diretórios padrão de plugins..."
     mkdir -p "$HOME/.gemini/antigravity-cli/plugins" "$HOME/.gemini/extensions"
-    cp -r "$PLUGIN_DIR" "$HOME/.gemini/antigravity-cli/plugins/"
-    cp -r "$PLUGIN_DIR" "$HOME/.gemini/extensions/"
+    cp -r "$PLUGIN_DIR" "$HOME/.gemini/antigravity-cli/plugins/academic-peer-review"
+    cp -r "$PLUGIN_DIR" "$HOME/.gemini/extensions/academic-peer-review"
+fi
+
+echo "==> [4/4] Verificando integração com Claude Code..."
+if command -v claude &> /dev/null; then
+    mkdir -p "$HOME/.claude/plugins"
+    cp -r "$PLUGIN_DIR" "$HOME/.claude/plugins/academic-peer-review"
+    echo "✔ Plugin validado no Claude Code:"
+    claude plugin validate "$PLUGIN_DIR"
 fi
 
 echo ""
 echo "================================================================================"
-echo "✔ Instalação concluída com sucesso!"
-echo "  - Plugin registrado: gemini-peer-review"
+echo "✔ Instalação concluída com sucesso para Antigravity (Gemini) e Claude Code!"
+echo "  - Plugin registrado: academic-peer-review"
 echo "  - Ambiente virtual uv: $PLUGIN_DIR/.venv"
 echo "  - Para testar: uv run skills/paper-review/scripts/stat_and_integrity_audit.py --help"
 echo "================================================================================"

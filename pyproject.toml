@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "gemini-peer-review"
+name = "academic-peer-review"
 version = "2.1.0"
-description = "Academic Peer Review, FAIR Data & Scientific Integrity Plugin for Gemini and Antigravity (agy)"
+description = "Multi-platform Academic Peer Review, FAIR Data & Scientific Integrity System for Gemini, Claude, and Codex"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

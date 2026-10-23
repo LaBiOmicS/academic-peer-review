@@ -1,9 +1,10 @@
-# gemini-peer-review 
-## Revisão Acadêmica por Pares / Academic Peer Review
+# academic-peer-review (Revisão Acadêmica por Pares & Integridade Científica)
 
 [![Antigravity Plugin](https://img.shields.io/badge/Antigravity-Plugin-blue.svg)](https://github.com/google-deepmind)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-purple.svg)](https://anthropic.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg)](https://python.org)
+[![uv](https://img.shields.io/badge/uv-Astral-blueviolet.svg)](https://github.com/astral-sh/uv)
 
 **[Português](#versão-em-português) | [English](#english-version)**
 
@@ -11,7 +12,7 @@
 
 ## Versão em Português
 
-Plugin oficial para **Gemini / Antigravity (`agy`)** voltado para revisão acadêmica por pares independente, comitês de múltiplos revisores especializados sob codinomes gregos (`Alfa`, `Beta`, `Gama`, `Delta`, …), classificação tridimensional (**5 Grandes Áreas × 15 Tipologias de Artigo × 12 Abordagens de Pesquisa = 900 perfis**), auditoria estatística determinística (`statcheck`), integridade de dados FAIR, proveniência de IA generativa e síntese editorial de meta-revisão.
+Plugin oficial multiplataforma para **Gemini / Antigravity (`agy`)** e **Anthropic Claude Code (`claude`)** voltado para revisão acadêmica por pares independente, comitês de múltiplos revisores especializados sob codinomes gregos (`Alfa`, `Beta`, `Gama`, `Delta`, …), classificação tridimensional (**5 Grandes Áreas × 15 Tipologias de Artigo × 12 Abordagens de Pesquisa = 900 perfis**), auditoria estatística determinística (`statcheck`), integridade de dados FAIR, proveniência de IA generativa e síntese editorial com relatório oficial em PDF.
 
 Desenvolvido no **LaBiOmicS / UMC** sob coordenação do **Prof. Dr. Fabiano Bezerra Menegidio**.
 
@@ -224,7 +225,7 @@ gemini-peer-review/
 
 ## English Version
 
-Official **Gemini / Antigravity (`agy`) Plugin** for multi-reviewer independent academic peer review, specialized reviewer panels under Greek letter codenames (`Alfa`, `Beta`, `Gamma`, `Delta`, …), 3-axis classification (**5 Major Areas × 15 Article Types × 12 Research Approaches = 900 profiles**), deterministic statistical auditing (`statcheck`), FAIR data integrity, generative AI provenance auditing, and editorial meta-review synthesis.
+Official multi-platform plugin for **Google Gemini / Antigravity (`agy`)** and **Anthropic Claude Code (`claude`)** for multi-reviewer independent academic peer review, specialized reviewer panels under Greek letter codenames (`Alfa`, `Beta`, `Gamma`, `Delta`, …), 3-axis classification (**5 Major Areas × 15 Article Types × 12 Research Approaches = 900 profiles**), deterministic statistical auditing (`statcheck`), FAIR data integrity, generative AI provenance auditing, and editorial meta-review synthesis with publication-grade PDF report generation.
 
 Developed at **LaBiOmicS / UMC** under the leadership of **Prof. Dr. Fabiano Bezerra Menegidio**.
 
