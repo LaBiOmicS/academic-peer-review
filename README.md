@@ -1,4 +1,5 @@
-# academic-peer-review (Revisão Acadêmica por Pares & Integridade Científica)
+# academic-peer-review 
+## Revisão Acadêmica por Pares & Integridade Científica
 
 [![Antigravity Plugin](https://img.shields.io/badge/Antigravity-Plugin-blue.svg)](https://github.com/google-deepmind)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-purple.svg)](https://anthropic.com)
