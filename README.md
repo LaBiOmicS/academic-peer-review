@@ -81,6 +81,19 @@ cp -r /home/dayhoff/workdir/informatics/mcp/gemini-paper-review/gemini-peer-revi
 agy plugin validate ~/.gemini/antigravity-cli/plugins/gemini-peer-review --strict
 ```
 
+#### Opção C: Ambiente Isolado e Execução via `uv` (Astral)
+O projeto inclui suporte nativo a [`uv`](https://github.com/astral-sh/uv) via `pyproject.toml` (PEP 621):
+```bash
+# Sincroniza ambiente virtual e dependências científicas em milissegundos
+uv sync
+
+# Executa scripts diretamente com SciPy em ambiente isolado
+uv run skills/paper-review/scripts/stat_and_integrity_audit.py --help
+
+# Ou instale em modo editável no seu ambiente
+uv pip install -e .
+```
+
 ---
 
 ### Tutorial de Uso
@@ -247,6 +260,16 @@ Developed at **LaBiOmicS / UMC** under the leadership of **Prof. Dr. Fabiano Bez
 # Install and enable the plugin via the Antigravity CLI
 agy plugin install /path/to/gemini-peer-review
 agy plugin validate /path/to/gemini-peer-review --strict
+```
+
+#### Fast Isolated Python Environment via `uv` (Optional)
+This repository includes a standard `pyproject.toml` (PEP 621) with full [`uv`](https://github.com/astral-sh/uv) support:
+```bash
+# Sync isolated environment with SciPy and dependencies in milliseconds
+uv sync
+
+# Run any audit script directly in isolation
+uv run skills/paper-review/scripts/stat_and_integrity_audit.py --help
 ```
 
 ---
