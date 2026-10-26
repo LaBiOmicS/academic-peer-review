@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "academic-peer-review"
-version = "2.1.0"
+version = "2.2.0"
 description = "Multi-platform Academic Peer Review, FAIR Data & Scientific Integrity System for Gemini, Claude, and Codex"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -38,21 +38,24 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-stats = [
-    "scipy>=1.10.0",
+# Text extraction from PDF / DOCX manuscripts (pdftotext / pandoc are used as fallbacks).
+extract = [
+    "pypdf>=4.0.0",
+    "python-docx>=1.1.0",
 ]
 pdf = [
     "reportlab>=4.0.0",
 ]
 all = [
-    "scipy>=1.10.0",
+    "pypdf>=4.0.0",
+    "python-docx>=1.1.0",
     "reportlab>=4.0.0",
 ]
 
 [project.urls]
-Homepage = "https://github.com/LaBiOmicS/gemini-peer-review"
-Repository = "https://github.com/LaBiOmicS/gemini-peer-review.git"
-Issues = "https://github.com/LaBiOmicS/gemini-peer-review/issues"
+Homepage = "https://github.com/LaBiOmicS/academic-peer-review"
+Repository = "https://github.com/LaBiOmicS/academic-peer-review.git"
+Issues = "https://github.com/LaBiOmicS/academic-peer-review/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["skills"]
@@ -60,5 +63,7 @@ packages = ["skills"]
 [dependency-groups]
 dev = [
     "pytest>=7.0.0",
+    # Reference implementation used only by the tests to validate the pure-Python p-values.
     "scipy>=1.10.0",
+    "reportlab>=4.0.0",
 ]

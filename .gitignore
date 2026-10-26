@@ -6,3 +6,4 @@ papers/
 *.tmp
 .env
 .venv/
+.pytest_cache/

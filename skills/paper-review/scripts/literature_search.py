@@ -35,7 +35,7 @@ from area_profiles import (  # noqa: E402
 
 
 USER_AGENT = (
-    "gemini-peer-review/2.1 (LaBiOmicS - Universidade de Mogi das Cruzes; "
+    "academic-peer-review/2.2.0 (LaBiOmicS - Universidade de Mogi das Cruzes; "
     "Prof. Dr. Fabiano Bezerra Menegidio; mailto:fabianomenegidio@umc.br)"
 )
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024  # 4 MB cap per HTTP response
@@ -292,7 +292,6 @@ def main() -> int:
     args = parser.parse_args()
 
     max_papers = max(1, min(25, args.max_papers))
-    items: list[dict[str, Any]] = []
     if args.source != "all":
         sources = [args.source]
     else:
@@ -304,20 +303,35 @@ def main() -> int:
 
     per_source = max(3, (max_papers + len(sources) - 1) // len(sources))
 
+    per_source_items: list[list[dict[str, Any]]] = []
+    failures: list[str] = []
     for src in sources:
         try:
             if src == "arxiv":
-                items.extend(search_arxiv_api(args.query, max_papers=per_source, sort=args.sort))
+                found = search_arxiv_api(args.query, max_papers=per_source, sort=args.sort)
             elif src == "openalex":
-                items.extend(search_openalex(args.query, max_papers=per_source, sort=args.sort))
+                found = search_openalex(args.query, max_papers=per_source, sort=args.sort)
             elif src == "pubmed":
-                items.extend(search_europepmc(args.query, max_papers=per_source))
+                found = search_europepmc(args.query, max_papers=per_source)
             elif src == "crossref":
-                items.extend(search_crossref(args.query, max_papers=per_source))
-        except Exception as e:
-            if len(sources) == 1:
-                print(f"Error querying {src}: {e}")
-                return 0
+                found = search_crossref(args.query, max_papers=per_source)
+            else:
+                continue
+            per_source_items.append(found)
+        except Exception as e:  # noqa: BLE001 - one failing database must not abort the others
+            failures.append(src)
+            print(f"Warning: querying {src} failed: {type(e).__name__}: {e}", file=sys.stderr)
+
+    if failures and len(failures) == len(sources):
+        print(f"Error: all sources failed ({', '.join(failures)}).", file=sys.stderr)
+        return 1
+
+    # Round-robin across sources so the first database does not crowd out the others.
+    items: list[dict[str, Any]] = []
+    for rank in range(max((len(lst) for lst in per_source_items), default=0)):
+        for lst in per_source_items:
+            if rank < len(lst):
+                items.append(lst[rank])
 
     deduped: list[dict[str, Any]] = []
     seen_titles: set[str] = set()

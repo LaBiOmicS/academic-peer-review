@@ -18,7 +18,11 @@ description: >-
 
 # Academic Paper Peer Review (`gemini-peer-review`)
 
-Multi-reviewer, 3-axis composable peer review and methodological audit system for **Gemini / Antigravity (`agy`)**.
+Multi-reviewer, 3-axis composable peer review and methodological audit system for **Gemini / Antigravity (`agy`)** and **Claude Code**.
+
+`{skill_dir}` below is this skill's directory: in Claude Code it is the base directory shown when the skill loads (`${CLAUDE_PLUGIN_ROOT}/skills/paper-review`); in Antigravity it is the installed plugin's `skills/paper-review` folder.
+
+> **AI-assistance & confidentiality.** The output is an AI-assisted draft that a human referee or editor must verify and sign off on; the PDF report carries an AI-assistance disclosure. Before reviewing a confidential, unpublished manuscript, remind the user to confirm that the journal's peer-review policy allows uploading it to an AI service (many publishers, COPE and ICMJE restrict this and require disclosure).
 Automatically detects three orthogonal dimensions of the manuscript and injects a compact (~12-line) micro-rubric into each reviewer prompt:
 1. **Axis 1 — Major Scientific Area (`--area` — 5 options)**: `biologicas`, `saude`, `exatas`, `engenharias`, `humanas`.
 2. **Axis 2 — Academic Article Type (`--article-type` — 15 options)**: `original_research`, `systematic_review`, `meta_analysis`, `umbrella_review`, `scoping_review`, `integrative_review`, `narrative_review`, `bibliometric_review`, `consensus_or_guideline`, `case_study`, `data_paper`, `software_paper`, `methods_or_protocol_paper`, `theoretical_essay_perspective`, `short_communication`.
@@ -36,6 +40,7 @@ For detailed notes on the 3-Axis Matrix, String Seed of Thought (SSoT), and audi
 | `article_type` | no | `auto` | Article Type (`auto` or any of the 15 article type codes). |
 | `research_approach` | no | `auto` | Research Approach (`auto` or any of the 12 research approach codes). |
 | `domain` | no | inferred | Specific scientific field (e.g. `"bioinformatics and genomics"`, `"constitutional law"`). |
+| `target_journal` | no | `""` | Target academic journal name (e.g. `"Bioinformatics"`, `"The Lancet"`) for aims & scope validation, author guidelines compliance, and desk-reject risk evaluation. If empty, a `Submitted to: <journal>` line in the manuscript is used (via `--paper-meta`). |
 | `num_reviewers` | no | `4` | Number of independent reviewers (`alfa`, `beta`, `gamma`, `delta`, …) to spawn (`3` to `8`). |
 | `output_dir` | no | `./papers/<paper-stem>/` | Directory where all review artifacts are written. |
 | `alignment_critic` | no | `true` | Includes an Area- and Genre-Adapted Epistemic Red-Team Critic in the panel. |
@@ -44,6 +49,7 @@ For detailed notes on the 3-Axis Matrix, String Seed of Thought (SSoT), and audi
 | `execution_mode` | no | `auto` | `subagents` (native Antigravity `invoke_subagent` parallel execution) or `cli` (`spawn_reviewers.py` parallel `agy -p` / `gemini -p` subprocesses). |
 | `skip_meta` | no | `false` | If `true`, produces individual reviews and audit only. |
 | `overwrite` | no | `false` | If `false`, reuses valid existing `review_<codename>.md` files. |
+| `tool_permissions` | no | `sandboxed` | CLI path only: `sandboxed` (auto-approve inside the runner sandbox), `none` (no auto-approval), or `unsafe` (no sandbox — trusted manuscripts only). |
 
 ---
 
@@ -51,7 +57,7 @@ For detailed notes on the 3-Axis Matrix, String Seed of Thought (SSoT), and audi
 
 ### Step 1. Extract Manuscript Text, Structural Metadata & 3-Axis Classification
 
-Run [extract_paper.py](./scripts/extract_paper.py) to extract clean text, section coverage, figure/table captions, bibliography/accession identifiers, and automatic **Area × Article Type × Research Approach** classification:
+Run [extract_paper.py](./scripts/extract_paper.py) to extract clean text, section coverage, figure/table captions, bibliography/accession identifiers, the target journal (given or inferred from a `Submitted to:` line), and automatic **Area × Article Type × Research Approach** classification:
 
 ```bash
 python3 {skill_dir}/scripts/extract_paper.py \
@@ -61,12 +67,13 @@ python3 {skill_dir}/scripts/extract_paper.py \
   --area "<area>" \
   --article-type "<article_type>" \
   --research-approach "<research_approach>" \
-  --domain "<domain>"
+  --domain "<domain>" \
+  --journal "<target_journal>"
 ```
 
-### Step 2. Run 3-Axis Pre-Review Audit (`statcheck` + Normative & Citation Integrity)
+### Step 2. Run 3-Axis Pre-Review Audit (`statcheck` + Normative, Citation & Journal Scope Integrity)
 
-Run [stat_and_integrity_audit.py](./scripts/stat_and_integrity_audit.py) to execute statistical test consistency checks ($t, F, r, \chi^2, z$ vs reported $p$-values), article-type checks (`PRISMA`, `PRISMA-ScR`, `PRIOR/AMSTAR-2`, `SANRA`, `BIBLIO`, `AGREE II/ACCORD`, `CARE`, `FAIR`, `JOSS/FAIR4RS`, `SPIRIT`), research-approach checks (`CONSORT`, `STARD/TRIPOD/REMARK`, `STROBE`, `ARRIVE`, `COREQ/SRQR`, `GRAMMS`), area-specific checks, and live DOI/retraction verification:
+Run [stat_and_integrity_audit.py](./scripts/stat_and_integrity_audit.py) to execute statistical test consistency checks ($t, F, r, \chi^2, z$ vs reported $p$-values), article-type checks (`PRISMA`, `PRISMA-ScR`, `PRIOR/AMSTAR-2`, `SANRA`, `BIBLIO`, `AGREE II/ACCORD`, `CARE`, `FAIR`, `JOSS/FAIR4RS`, `SPIRIT`), research-approach checks (`CONSORT`, `STARD/TRIPOD/REMARK`, `STROBE`, `ARRIVE`, `COREQ/SRQR`, `GRAMMS`), area-specific checks, target journal scope & desk-reject risk evaluation, and live DOI/retraction verification:
 
 ```bash
 python3 {skill_dir}/scripts/stat_and_integrity_audit.py \
@@ -77,6 +84,8 @@ python3 {skill_dir}/scripts/stat_and_integrity_audit.py \
   --article-type "<article_type>" \
   --research-approach "<research_approach>" \
   --domain "<domain>" \
+  --journal "<target_journal>" \
+  --paper-meta "<output_dir>/paper_structure.json" \
   --verify-citations
 ```
 
@@ -95,9 +104,13 @@ python3 {skill_dir}/scripts/stat_and_integrity_audit.py \
      --article-type "<article_type>" \
      --research-approach "<research_approach>" \
      --domain "<domain>" \
+     --journal "<target_journal>" \
+     --paper-meta "<output_dir>/paper_structure.json" \
      --prepare-only
    ```
-2. For each Greek letter codename (`alfa`, `beta`, `gamma`, `delta`, …) in `<output_dir>/.prompts/panel_manifest.json`, call `invoke_subagent` **in a single parallel tool turn** (`TypeName="peer-reviewer"` — or `"self"` — with `Model="inherit"`).
+2. For each Greek letter codename (`alfa`, `beta`, `gamma`, `delta`, …) in `<output_dir>/.prompts/panel_manifest.json`, launch one `peer-reviewer` subagent **in a single parallel tool turn**, passing its `prompt_file` and `output_file` from the manifest:
+   - **Claude Code**: one `Agent` tool call per reviewer (`subagent_type="peer-reviewer"`), all in the same message.
+   - **Antigravity**: `invoke_subagent` with `TypeName="peer-reviewer"` (or `"self"`) and `Model="inherit"`.
 
 #### Path B (Headless CLI / Subprocess Parallelism): Direct OS Subprocesses via `spawn_reviewers.py`
 ```bash
@@ -111,8 +124,11 @@ python3 {skill_dir}/scripts/spawn_reviewers.py \
   --article-type "<article_type>" \
   --research-approach "<research_approach>" \
   --domain "<domain>" \
+  --journal "<target_journal>" \
+  --paper-meta "<output_dir>/paper_structure.json" \
   --runner auto \
   --effort high \
+  --tool-permissions "<tool_permissions>" \
   $([ "<alignment_critic>" = "false" ] && echo --no-alignment-critic) \
   $([ "<specialist_panel>" = "false" ] && echo --no-specialist-panel) \
   $([ "<overwrite>" = "true" ] && echo --overwrite)
@@ -124,7 +140,7 @@ Read all `<output_dir>/review_<codename>.md` files, `<output_dir>/pre_review_aud
 
 ### Step 5. Compile Final Bundle, Concerns Matrix & Standardized PDF Report
 
-Run `compile_results.py` (via `uv run` or `python3`) to parse reviewer outputs, verify external citations live, assemble the CSV concerns matrix, and render `editorial_peer_review_report.pdf`:
+Run `compile_results.py` (via `uv run` or `python3`) to parse reviewer outputs, verify external citations live, assemble the CSV concerns matrix, and render `editorial_peer_review_report.pdf`. It is safe to re-run (the concerns matrix is kept in `concerns_matrix.json`):
 
 ```bash
 uv run {skill_dir}/scripts/compile_results.py --output-dir "<output_dir>" || python3 {skill_dir}/scripts/compile_results.py --output-dir "<output_dir>"
@@ -132,7 +148,7 @@ uv run {skill_dir}/scripts/compile_results.py --output-dir "<output_dir>" || pyt
 
 ### Step 6. Present Results & Verdict Table to the User
 
-State the detected **Major Scientific Area**, **Article Type**, and **Research Approach**, display the compact per-reviewer verdict table (`alfa`, `beta`, `gamma`, `delta`, …), and provide clickable links to:
+State the detected **Major Scientific Area**, **Article Type**, and **Research Approach**, display the compact per-reviewer verdict table (`alfa`, `beta`, `gamma`, `delta`, …), remind the user that the reports are AI-assisted drafts to be verified before use, and provide clickable links to:
 - Official PDF Report: `<output_dir>/editorial_peer_review_report.pdf`
 - Editorial Meta-Review: `<output_dir>/meta_review.md`
 - Pre-Review Diagnostic: `<output_dir>/pre_review_audit.md`

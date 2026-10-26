@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""3-Axis Scientific Classification & Composable Micro-Rubric Engine for gemini-peer-review.
+"""3-Axis Scientific Classification & Composable Micro-Rubric Engine for academic-peer-review.
 
 Classifies any academic manuscript across three orthogonal dimensions:
 - Axis 1 — 5 Major Scientific Areas (`--area`):
@@ -947,7 +947,7 @@ def sanitize_and_scan_manuscript(text: str) -> tuple[str, dict[str, Any]]:
 
     # Neutralize any attempt to break out of the untrusted manuscript XML delimiter
     cleaned = re.sub(
-        r"</?UNTRUSTED_MANUSCRIPT_CONTENT>",
+        r"<\s*/?\s*UNTRUSTED_MANUSCRIPT_CONTENT\s*/?\s*>",
         "[REDACTED_DELIMITER_TAG]",
         cleaned,
         flags=re.IGNORECASE,

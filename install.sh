@@ -18,7 +18,8 @@ echo "✔ uv detectado: $(uv --version)"
 
 echo "==> [2/4] Sincronizando dependências Python via uv (PEP 621)..."
 cd "$PLUGIN_DIR"
-uv sync
+# --all-extras: pypdf/python-docx (extração de PDF/DOCX) e reportlab (PDF fallback)
+uv sync --all-extras
 
 copy_plugin_files() {
     local target_dir="$1"
@@ -43,11 +44,16 @@ else
     copy_plugin_files "$HOME/.gemini/extensions/academic-peer-review"
 fi
 
-echo "==> [4/4] Verificando integração com Claude Code..."
+echo "==> [4/4] Instalando no Claude Code (marketplace local 'labiomics')..."
 if command -v claude &> /dev/null; then
-    copy_plugin_files "$HOME/.claude/plugins/academic-peer-review"
-    echo "✔ Plugin validado no Claude Code:"
+    # Copiar arquivos para ~/.claude/plugins não registra o plugin; o caminho suportado é
+    # registrar este diretório como marketplace e instalar a partir dele.
     claude plugin validate "$PLUGIN_DIR"
+    claude plugin marketplace add "$PLUGIN_DIR" 2>/dev/null || claude plugin marketplace update labiomics
+    claude plugin install academic-peer-review@labiomics
+    echo "✔ Plugin instalado no Claude Code (reinicie a sessão para carregá-lo)."
+else
+    echo "Aviso: 'claude' CLI não encontrado no PATH. Pulando integração com Claude Code."
 fi
 
 echo ""

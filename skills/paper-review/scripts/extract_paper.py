@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "pypdf>=4.0.0",
+#     "python-docx>=1.1.0",
+# ]
+# ///
 """Multi-format academic paper extractor, structural analyzer, 3-Axis Classifier & Security Sanitizer.
 
 Classifies manuscripts across:
@@ -9,6 +16,7 @@ Classifies manuscripts across:
 Information Security Hardening:
 - Validates regular file type and maximum file size (`--max-file-mb`, default 100 MB).
 - Uses `--` option-termination and `timeout=60` on external subprocesses (`pdftotext`, `pandoc --sandbox`).
+  Pandoc is only ever run with `--sandbox` (pandoc >= 2.15); there is no unsandboxed fallback.
 - Strips invisible/bidirectional Unicode control characters and scans for embedded prompt-injection patterns.
 """
 
@@ -30,6 +38,7 @@ from area_profiles import (  # noqa: E402
     classify_manuscript,
     sanitize_and_scan_manuscript,
 )
+from journal_scope import clean_journal_name  # noqa: E402
 
 
 SECTION_PATTERNS = {
@@ -159,24 +168,20 @@ def extract_docx(path: Path) -> tuple[str, dict[str, Any]]:
         pass
 
     if shutil.which("pandoc"):
-        for cmd in (
-            ["pandoc", "--sandbox", "-t", "markdown", "--", str(path)],
-            ["pandoc", "-t", "markdown", "--", str(path)],
-        ):
-            try:
-                proc = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                    timeout=60,
-                )
-                meta["backend"] = "pandoc"
-                return proc.stdout, meta
-            except Exception:
-                continue
+        try:
+            proc = subprocess.run(
+                ["pandoc", "--sandbox", "-t", "markdown", "--", str(path)],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=60,
+            )
+            meta["backend"] = "pandoc"
+            return proc.stdout, meta
+        except Exception:
+            pass
 
-    raise RuntimeError(f"Failed to extract DOCX {path}. Install python-docx or pandoc.")
+    raise RuntimeError(f"Failed to extract DOCX {path}. Install python-docx or pandoc >= 2.15 (needs --sandbox).")
 
 
 def analyze_structure(
@@ -189,6 +194,7 @@ def analyze_structure(
     explicit_area: str = "auto",
     explicit_article_type: str = "auto",
     explicit_research_approach: str = "auto",
+    target_journal: str = "",
 ) -> dict[str, Any]:
     lines = text.splitlines()
     words = re.findall(r"\S+", text)
@@ -219,6 +225,19 @@ def analyze_structure(
     ]
     inferred_title = non_empty[0] if non_empty else source_path.stem
 
+    # The inferred name comes from untrusted manuscript text: it is reduced to inert
+    # journal-title characters and only accepted from an explicit "submitted to:"-style line.
+    inferred_journal = clean_journal_name(target_journal)
+    journal_source = "user" if inferred_journal else None
+    if not inferred_journal:
+        j_match = re.search(
+            r"(?im)^\s*(?:submitted\s+to|target\s+journal|intended\s+for|submetido\s+(?:a|à|ao)|revista\s+alvo)\s*[:—\-]\s*([^\n\r]{3,80})$",
+            text[:3000],
+        )
+        if j_match:
+            inferred_journal = clean_journal_name(j_match.group(1))
+            journal_source = "manuscript" if inferred_journal else None
+
     is_likely_academic = (
         len(words) >= 400
         and sum(1 for k in ("abstract", "introduction", "methods", "results", "discussion", "references") if detected_sections.get(k)) >= 2
@@ -236,6 +255,8 @@ def analyze_structure(
         "source_file": str(source_path.resolve()),
         "format": source_path.suffix.lower(),
         "inferred_title": inferred_title[:300],
+        "target_journal": inferred_journal or None,
+        "target_journal_source": journal_source,
         "char_count": len(text),
         "word_count": len(words),
         "line_count": len(lines),
@@ -281,6 +302,7 @@ def main() -> int:
         help="Research Approach override or auto-detect (default: auto).",
     )
     parser.add_argument("--domain", default="", help="Optional specific domain hint.")
+    parser.add_argument("--journal", "--target-journal", dest="journal", default="", help="Optional target journal name.")
     parser.add_argument("--max-file-mb", type=float, default=100.0, help="Maximum allowed input file size in MB (default: 100).")
     args = parser.parse_args()
 
@@ -321,6 +343,7 @@ def main() -> int:
         explicit_area=args.area,
         explicit_article_type=args.article_type,
         explicit_research_approach=args.research_approach,
+        target_journal=args.journal,
     )
     if args.output_meta:
         out_meta = Path(args.output_meta).resolve()
@@ -334,6 +357,8 @@ def main() -> int:
         "pages": structure.get("pages", 0),
         "backend": structure.get("backend"),
         "is_likely_academic_paper": structure["is_likely_academic_paper"],
+        "target_journal": structure["target_journal"],
+        "target_journal_source": structure["target_journal_source"],
         "security_scan": security_scan,
         "classification": {
             "area_code": structure["scientific_area"]["area_code"],

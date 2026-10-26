@@ -1,0 +1,13 @@
+{
+  "name": "academic-peer-review",
+  "version": "2.2.0",
+  "description": "Multi-reviewer academic peer review panel (Alfa, Beta, Gamma, Delta) with 3-axis classification (5 areas × 15 article types × 12 research approaches), statcheck p-value recalculation, OpenAlex citation/retraction audit, target-journal scope check, FAIR data integrity, prompt-injection defense, and PDF report synthesis. Output is an AI-assisted draft for human referees.",
+  "author": {
+    "name": "Prof. Dr. Fabiano Bezerra Menegidio (LaBiOmicS / UMC)",
+    "email": "fabianomenegidio@umc.br"
+  },
+  "homepage": "https://github.com/LaBiOmicS/academic-peer-review",
+  "repository": "https://github.com/LaBiOmicS/academic-peer-review",
+  "license": "MIT",
+  "keywords": ["peer-review", "academic-publishing", "scientific-integrity", "statcheck", "fair-data", "openalex"]
+}

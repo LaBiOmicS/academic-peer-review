@@ -1,0 +1,15 @@
+{
+  "name": "labiomics",
+  "owner": {
+    "name": "LaBiOmicS / UMC",
+    "email": "fabianomenegidio@umc.br"
+  },
+  "description": "LaBiOmicS / UMC plugins for academic peer review and scientific integrity.",
+  "plugins": [
+    {
+      "name": "academic-peer-review",
+      "source": "./",
+      "description": "Multi-reviewer academic peer review panel with statistical, citation, journal-scope and FAIR audits, and PDF report synthesis."
+    }
+  ]
+}

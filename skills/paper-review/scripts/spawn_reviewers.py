@@ -11,6 +11,8 @@ Designed for Gemini / Antigravity (`agy`):
    - Manuscript sanitization (`sanitize_and_scan_manuscript`) & `<UNTRUSTED_MANUSCRIPT_CONTENT>` sandboxing.
    - Subprocess timeout enforcement (`--timeout-seconds`, default 600s) and secret environment variable scrubbing.
    - Restrictive `0o700` permissions on `.prompts/` directory.
+   - Reviewer CLIs run sandboxed by default (`--tool-permissions sandboxed`); the manuscript is untrusted
+     input, so unsandboxed auto-approval (`unsafe`) must be requested explicitly.
 """
 
 from __future__ import annotations
@@ -28,6 +30,7 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from journal_scope import clean_journal_name  # noqa: E402
 from area_profiles import (  # noqa: E402
     ARTICLE_TYPE_DEFINITIONS,
     RESEARCH_APPROACH_DEFINITIONS,
@@ -56,6 +59,17 @@ SCRUBBED_ENV_VARS = {
     "MYSQL_PWD",
     "SLACK_BOT_TOKEN",
     "STRIPE_SECRET_KEY",
+    "SSH_AUTH_SOCK",
+}
+# Any variable whose name looks like a credential is removed, except the ones the runners need.
+SECRET_NAME_REGEX = re.compile(r"(TOKEN|SECRET|PASSWORD|PASSWD|API_KEY|APIKEY|PRIVATE_KEY|ACCESS_KEY|CREDENTIAL)", re.I)
+RUNNER_ENV_ALLOWLIST = {
+    "GEMINI_API_KEY",
+    "GOOGLE_API_KEY",
+    "GOOGLE_APPLICATION_CREDENTIALS",
+    "GOOGLE_CLOUD_PROJECT",
+    "GOOGLE_CLOUD_LOCATION",
+    "GOOGLE_GENAI_USE_VERTEXAI",
 }
 
 
@@ -70,16 +84,35 @@ def detect_runner(requested: str) -> str:
     raise RuntimeError("No supported CLI runner ('agy' or 'gemini') found in PATH.")
 
 
-def build_cli_cmd(runner: str, model: str | None, effort: str | None) -> list[str]:
+def build_cli_cmd(
+    runner: str, model: str | None, effort: str | None, tool_permissions: str = "sandboxed"
+) -> list[str]:
+    """Build the reviewer CLI command.
+
+    tool_permissions:
+      - "sandboxed" (default): auto-approve tools, but inside the runner's terminal sandbox.
+      - "none": no auto-approval; tools needing permission are not run (literature search may be skipped).
+      - "unsafe": auto-approve tools without a sandbox (only for trusted manuscripts).
+    """
     if runner == "agy":
-        cmd = ["agy", "--dangerously-skip-permissions", "-p"]
+        cmd = ["agy"]
+        if tool_permissions == "sandboxed":
+            cmd.extend(["--sandbox", "--dangerously-skip-permissions"])
+        elif tool_permissions == "unsafe":
+            cmd.append("--dangerously-skip-permissions")
+        cmd.append("-p")
         if model and model not in ("auto", "default", "inherit"):
             cmd.extend(["--model", model])
         if effort:
             cmd.extend(["--effort", effort])
         return cmd
     if runner == "gemini":
-        cmd = ["gemini", "-y", "-p", ""]
+        cmd = ["gemini"]
+        if tool_permissions == "sandboxed":
+            cmd.extend(["--sandbox", "-y"])
+        elif tool_permissions == "unsafe":
+            cmd.append("-y")
+        cmd.extend(["-p", ""])
         if model and model not in ("auto", "default", "inherit"):
             cmd.extend(["-m", model])
         return cmd
@@ -89,7 +122,9 @@ def build_cli_cmd(runner: str, model: str | None, effort: str | None) -> list[st
 def build_sanitized_env() -> dict[str, str]:
     env = os.environ.copy()
     for k in list(env.keys()):
-        if k in SCRUBBED_ENV_VARS or k.endswith(("_SECRET_KEY", "_PRIVATE_KEY", "_PASSWORD")):
+        if k in RUNNER_ENV_ALLOWLIST:
+            continue
+        if k in SCRUBBED_ENV_VARS or SECRET_NAME_REGEX.search(k):
             env.pop(k, None)
     return env
 
@@ -133,6 +168,7 @@ def build_prompt(
     area_info: dict[str, Any],
     audit_text: str,
     entropy_hint: str,
+    target_journal: str = "",
 ) -> str:
     area_profile = get_area_profile(area_info["area_code"])
     type_code = area_info["article_type"]["type_code"]
@@ -148,10 +184,22 @@ def build_prompt(
         f"Article Type: {type_profile['name']} [{type_code}]"
     )
 
+    journal_scope_directive = ""
+    if target_journal:
+        journal_scope_directive = (
+            f"- **Target Journal & Scope Directive (`{target_journal}`)**: "
+            f"Specifically evaluate whether this manuscript fits the editorial aims, scope, and technical depth of **{target_journal}**. "
+            f"Explicitly note in your evaluation if the paper faces risk of editorial desk-rejection due to scope mismatch, "
+            f"insufficient novelty for this specific outlet, or violation of key journal submission policies.\n"
+        )
+        composed_rubric = composed_rubric + "\n" + journal_scope_directive
+
     replacements = {
         "reviewer_id": reviewer_id,
         "skill_dir": skill_dir,
         "domain": domain,
+        "target_journal": target_journal,
+        "target_journal_scope_directive": journal_scope_directive,
         "area_code": area_info["area_code"],
         "area_name": area_info["area_name"],
         "study_design": study_design_label,
@@ -212,6 +260,17 @@ def main() -> int:
         help="Research Approach override or auto-detect (default: auto).",
     )
     p.add_argument("--domain", default="", help="Specific scientific domain (inferred from area/text if omitted).")
+    p.add_argument("--journal", "--target-journal", dest="journal", default="", help="Target journal name for aims & scope validation.")
+    p.add_argument(
+        "--paper-meta",
+        help="Optional paper_structure.json from extract_paper.py; its inferred target_journal is used when --journal is empty.",
+    )
+    p.add_argument(
+        "--tool-permissions",
+        choices=["sandboxed", "none", "unsafe"],
+        default="sandboxed",
+        help="Tool approval policy for reviewer CLIs (default: sandboxed). 'unsafe' disables the sandbox.",
+    )
     p.add_argument("--runner", choices=["auto", "agy", "gemini"], default="auto")
     p.add_argument("--model", default="auto", help="Model override (default: auto/inherit).")
     p.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], default="high")
@@ -259,6 +318,14 @@ def main() -> int:
         else f"{area_info['area_name']} — {area_info['article_type']['type_name']} ({area_info['research_approach']['approach_name']})"
     )
 
+    target_journal = clean_journal_name(args.journal)
+    if not target_journal and args.paper_meta and Path(args.paper_meta).is_file():
+        try:
+            meta = json.loads(Path(args.paper_meta).read_text(encoding="utf-8"))
+            target_journal = clean_journal_name(meta.get("target_journal"))
+        except (OSError, ValueError):
+            pass
+
     audit_text = "No pre-review automated audit was supplied."
     if args.audit_file and Path(args.audit_file).exists():
         audit_text = Path(args.audit_file).resolve().read_text(encoding="utf-8", errors="replace")
@@ -272,6 +339,7 @@ def main() -> int:
 
     manifest: dict[str, Any] = {
         "domain": effective_domain,
+        "target_journal": target_journal or None,
         "security_scan": security_scan,
         "scientific_area": area_info,
         "num_reviewers": n,
@@ -292,6 +360,7 @@ def main() -> int:
             area_info=area_info,
             audit_text=audit_text,
             entropy_hint=entropy_hint,
+            target_journal=target_journal,
         )
         prompt_file = prompts_out_dir / f"prompt_{code}.md"
         prompt_file.write_text(prompt, encoding="utf-8")
@@ -322,9 +391,16 @@ def main() -> int:
         return 0
 
     runner = detect_runner(args.runner)
-    cmd_base = build_cli_cmd(runner, args.model, args.effort)
+    cmd_base = build_cli_cmd(runner, args.model, args.effort, args.tool_permissions)
+    if args.tool_permissions == "unsafe":
+        print(
+            "[spawn_reviewers] WARNING: --tool-permissions unsafe auto-approves tools without a sandbox; "
+            "a prompt injection in the manuscript could run commands on this machine.",
+            file=sys.stderr,
+            flush=True,
+        )
     print(
-        f"[spawn_reviewers] Area='{area_info['area_code']}' | Type='{type_code}' | Approach='{approach_code}' | runner='{runner}'",
+        f"[spawn_reviewers] Area='{area_info['area_code']}' | Type='{type_code}' | Approach='{approach_code}' | runner='{runner}' | tools='{args.tool_permissions}'",
         file=sys.stderr,
         flush=True,
     )
@@ -333,7 +409,7 @@ def main() -> int:
     clean_env = build_sanitized_env()
 
     def launch_batch(target_codes: list[str], attempt: int = 1) -> list[str]:
-        procs: list[tuple[str, subprocess.Popen[str], Any, Path]] = []
+        procs: list[tuple[str, subprocess.Popen[str], Any, Any, Path]] = []
         spawn_count = 0
         for code in target_codes:
             out_path = output_dir / f"review_{code}.md"
@@ -347,17 +423,22 @@ def main() -> int:
                 time.sleep(args.stagger_seconds)
             spawn_count += 1
             out_fh = open(out_path, "w", encoding="utf-8")
+            # stderr goes to a file, not a PIPE: an unread pipe fills up (~64 KB) and deadlocks the child.
+            err_fh = open(prompts_out_dir / f"stderr_{code}.log", "w+", encoding="utf-8")
             proc = subprocess.Popen(
                 cmd_base,
                 stdin=subprocess.PIPE,
                 stdout=out_fh,
-                stderr=subprocess.PIPE,
+                stderr=err_fh,
                 text=True,
                 env=clean_env,
             )
             assert proc.stdin is not None
-            proc.stdin.write(rendered_prompts[code])
-            proc.stdin.close()
+            try:
+                proc.stdin.write(rendered_prompts[code])
+                proc.stdin.close()
+            except BrokenPipeError:
+                pass  # child exited early; reported below via its return code
             elapsed = time.time() - start
             t_name = manifest["reviewers"][code]["template"]
             print(
@@ -365,16 +446,20 @@ def main() -> int:
                 file=sys.stderr,
                 flush=True,
             )
-            procs.append((code, proc, out_fh, out_path))
+            procs.append((code, proc, out_fh, err_fh, out_path))
 
         failed: list[str] = []
-        for code, proc, out_fh, out_path in procs:
+        deadline_base = time.time()
+        for code, proc, out_fh, err_fh, out_path in procs:
+            # Every reviewer gets the same wall-clock budget, measured from batch start.
+            remaining = max(1.0, args.timeout_seconds - (time.time() - deadline_base))
             try:
-                rc = proc.wait(timeout=args.timeout_seconds)
+                rc = proc.wait(timeout=remaining)
             except subprocess.TimeoutExpired:
                 proc.kill()
                 proc.wait()
                 out_fh.close()
+                err_fh.close()
                 elapsed = time.time() - start
                 print(
                     f"[spawn_reviewers] {code} TIMEOUT after {args.timeout_seconds}s (attempt={attempt}, t+{elapsed:.1f}s)",
@@ -385,9 +470,11 @@ def main() -> int:
                 continue
 
             out_fh.close()
+            err_fh.seek(0)
+            err = err_fh.read()
+            err_fh.close()
             elapsed = time.time() - start
             if rc != 0:
-                err = proc.stderr.read() if proc.stderr else ""
                 print(
                     f"[spawn_reviewers] {code} FAIL rc={rc} (attempt={attempt}, t+{elapsed:.1f}s): {err[:500]}",
                     file=sys.stderr,

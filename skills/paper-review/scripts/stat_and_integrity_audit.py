@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.10"
-# dependencies = [
-#     "scipy>=1.10.0",
-# ]
+# dependencies = []
 # ///
 """3-Axis (Area × Article Type × Research Approach) statistical, methodological, and citation auditor.
 
@@ -27,9 +25,6 @@ import json
 import math
 import re
 import sys
-import urllib.error
-import urllib.parse
-import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -40,6 +35,13 @@ from area_profiles import (  # noqa: E402
     classify_manuscript,
     sanitize_and_scan_manuscript,
 )
+from journal_scope import (  # noqa: E402
+    audit_journal_scope,
+    clean_journal_name,
+    estimate_body_word_count,
+    format_scope_markdown,
+)
+from openalex_lookup import lookup_dois  # noqa: E402
 
 
 # --- Pure-Python special functions for zero-dependency p-value recalculation ---
@@ -253,7 +255,11 @@ def run_statcheck(text: str, alpha: float = 0.05) -> dict[str, Any]:
                 if recalc_p < reported_p * 0.95:
                     is_inconsistent = True
 
-            reported_sig = (reported_p < alpha) or (op in ("<", "≤") and reported_p <= alpha)
+            if op in (">", "≥"):
+                # "p > x" never asserts significance (e.g. "p > .01" is not a significant result).
+                reported_sig = False
+            else:
+                reported_sig = (reported_p < alpha) or (op in ("<", "≤") and reported_p <= alpha)
             actual_sig = recalc_p < alpha
             is_decision_error = reported_sig != actual_sig
 
@@ -883,56 +889,25 @@ def check_area_specific_markers(text: str, area_code: str, study_design: str) ->
     return common
 
 
-STRICT_DOI_VALIDATION_REGEX = re.compile(r"^10\.\d{4,9}/[-._;()/:A-Za-z0-9]+$")
-
-
-def verify_dois_live(dois: list[str], max_checks: int = 15) -> dict[str, Any]:
-    verified = []
-    unresolvable = []
-    retracted = []
-
-    for doi in dois[:max_checks]:
-        clean_doi = doi.strip().rstrip(".,;)]}")
-        if not STRICT_DOI_VALIDATION_REGEX.match(clean_doi):
-            continue
-        url = f"https://api.openalex.org/works/https://doi.org/{urllib.parse.quote(clean_doi, safe='')}"
-        req = urllib.request.Request(
-            url,
-            headers={
-                "User-Agent": (
-                    "gemini-peer-review/2.1 (LaBiOmicS - UMC; "
-                    "Prof. Dr. Fabiano Bezerra Menegidio; mailto:fabianomenegidio@umc.br)"
-                ),
-                "Accept": "application/json",
-            },
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=6.0) as resp:
-                raw_bytes = resp.read(262144)  # 256 KB cap
-                data = json.loads(raw_bytes.decode("utf-8", errors="replace"))
-                title = data.get("title") or "Untitled"
-                year = data.get("publication_year")
-                is_retracted = bool(data.get("is_retracted", False))
-                entry = {
-                    "doi": clean_doi,
-                    "title": title,
-                    "year": year,
-                    "is_retracted": is_retracted,
-                    "cited_by_count": data.get("cited_by_count", 0),
-                }
-                verified.append(entry)
-                if is_retracted:
-                    retracted.append(entry)
-        except urllib.error.HTTPError as e:
-            if e.code == 404:
-                unresolvable.append(clean_doi)
-        except Exception:
-            pass
-
+def verify_dois_live(dois: list[str], max_checks: int = 200) -> dict[str, Any]:
+    """Verify DOIs (batched) against OpenAlex and flag retracted or unresolvable references."""
+    res = lookup_dois(dois, max_checks=max_checks)
+    verified = [
+        {
+            "doi": doi,
+            "title": work.get("title") or "Untitled",
+            "year": work.get("publication_year"),
+            "is_retracted": bool(work.get("is_retracted", False)),
+            "cited_by_count": work.get("cited_by_count", 0),
+        }
+        for doi, work in res["found"].items()
+    ]
+    retracted = [v for v in verified if v["is_retracted"]]
     return {
-        "checked_count": min(len(dois), max_checks),
+        "checked_count": len(res["found"]) + len(res["unresolvable"]),
         "verified_count": len(verified),
-        "unresolvable_dois": unresolvable,
+        "unresolvable_dois": res["unresolvable"],
+        "unchecked_dois": res["unchecked"],
         "retracted_works": retracted,
         "verified_sample": verified[:10],
     }
@@ -1034,7 +1009,8 @@ def format_markdown_report(audit: dict[str, Any]) -> str:
         lines.extend([
             "",
             "## 5. Live Citation & Retraction Audit (OpenAlex)",
-            f"- **DOIs checked**: {ca['checked_count']} (Verified: {ca['verified_count']})",
+            f"- **DOIs checked**: {ca['checked_count']} (Verified: {ca['verified_count']})"
+            + (f" | Not checked (network/limit): {len(ca['unchecked_dois'])}" if ca.get("unchecked_dois") else ""),
             f"- **Unresolvable / potentially fabricated DOIs**: {', '.join(ca['unresolvable_dois']) if ca['unresolvable_dois'] else 'None'}",
             f"- **Retracted citations detected**: {len(ca['retracted_works'])}",
         ])
@@ -1107,6 +1083,13 @@ def format_markdown_report(audit: dict[str, Any]) -> str:
             f"- **Ethics Committee Approval Declared**: {'Yes' if trans.get('ethics_approval_or_committee_declared') else 'No / Not explicitly found'}",
         ])
 
+    scope_audit = audit.get("journal_scope_audit")
+    if scope_audit:
+        lines.extend([
+            "",
+            format_scope_markdown(scope_audit).strip(),
+        ])
+
     return "\n".join(lines) + "\n"
 
 
@@ -1134,6 +1117,12 @@ def main() -> int:
         help="Research Approach override (default: auto).",
     )
     parser.add_argument("--domain", default="", help="Optional specific domain hint.")
+    parser.add_argument("--journal", "--target-journal", dest="journal", default="", help="Target journal name for aims & scope validation.")
+    parser.add_argument(
+        "--paper-meta",
+        help="Optional paper_structure.json from extract_paper.py; its inferred target_journal is used when --journal is empty.",
+    )
+    parser.add_argument("--offline", action="store_true", help="Do not query OpenAlex for journal metadata.")
     parser.add_argument("--verify-citations", action="store_true", help="Verify extracted DOIs against OpenAlex.")
     args = parser.parse_args()
 
@@ -1171,6 +1160,22 @@ def main() -> int:
         "methodological_markers": markers_res,
         "reproducibility_and_fair_audit": reproducibility_fair_res,
     }
+
+    target_journal = clean_journal_name(args.journal)
+    if not target_journal and args.paper_meta and Path(args.paper_meta).is_file():
+        try:
+            meta = json.loads(Path(args.paper_meta).read_text(encoding="utf-8"))
+            target_journal = clean_journal_name(meta.get("target_journal"))
+        except (OSError, ValueError):
+            pass
+    if target_journal:
+        audit["journal_scope_audit"] = audit_journal_scope(
+            manuscript_text=text,
+            target_journal_input=target_journal,
+            scientific_area_meta=scientific_area,
+            word_count=estimate_body_word_count(text),
+            online=not args.offline,
+        )
 
     if args.verify_citations:
         dois = sorted({d.rstrip(".,;)]}") for d in re.findall(r"\b(10\.\d{4,9}/[-._;()/:A-Za-z0-9]+)\b", text)})

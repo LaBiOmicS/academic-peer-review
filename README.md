@@ -27,9 +27,10 @@ Desenvolvido no **LaBiOmicS / UMC** sob coordenação do **Prof. Dr. Fabiano Bez
    - **Eixo 3 — 12 Abordagens de Pesquisa (`--research-approach`)**: Ensaio Clínico, Biomarcadores/Diagnóstico, Epidemiológico/Observacional, Campo/Ecológico/Agronômico, Bancada/Experimental, Computacional/In Silico, Quantitativo/Estatístico, Qualitativo, Métodos Mistos, DSR/Pesquisa-Ação, Documental/Histórico e Teórico-Formal.
    - **Diretrizes Transversais**: Checagem automática de equidade de sexo/gênero (**SAGER**) e IA biomédica (**TRIPOD+AI / CONSORT-AI / CLAIM**).
 
-2. **Revisão Cega Rigorosa & Zero AI-Disclosure (Trilíngue: PT / EN / ES)**:
-   - Os pareceristas **jamais se identificam como IA** ou revelam mecanismos automáticos (proibição estrita de frases como *"Como uma IA..."* ou *"Análise automatizada..."*).
-   - O tom é 100% autêntico de um parecerista acadêmico sênior cego.
+2. **Voz Profissional de Parecerista & Transparência sobre IA (Trilíngue: PT / EN / ES)**:
+   - Os pareceres são redigidos no tom de um parecerista acadêmico sênior, sem frases de chatbot (*"Como uma IA..."*) e sem expor prompts ou scripts internos.
+   - Os relatórios são **rascunhos assistidos por IA**: devem ser verificados, editados e assinados por um parecerista ou editor humano. O PDF final inclui uma **declaração de uso de IA**.
+   - **Confidencialidade**: antes de enviar um manuscrito inédito a um serviço de IA, confirme que a política de revisão da revista permite (COPE, ICMJE e várias editoras restringem esse uso e exigem declaração).
    - **Alinhamento Linguístico Nativo**: O parecer e a meta-revisão são redigidos no mesmo idioma do manuscrito (Português, Inglês ou Espanhol).
 
 3. **Auditoria Determinística de Dados FAIR & Reprodutibilidade**:
@@ -48,7 +49,13 @@ Desenvolvido no **LaBiOmicS / UMC** sob coordenação do **Prof. Dr. Fabiano Bez
    - **Dupla Checagem contra Falsa Omissão (*Negative-Search Grounding*)**: Força varredura exaustiva por sinônimos antes de acusar que um tópico está ausente no manuscrito.
    - **Auditoria Reversa de Citações no OpenAlex**: O compilador verifica ao vivo se os DOIs citados pelos próprios pareceristas são reais ou alucinados.
 
-6. **Segurança da Informação e Defesa Cibernética**:
+6. **Validação de Escopo da Revista & Risco de Desk-Reject (`--journal`)**:
+   - **Aderência a Aims & Scope**: Avalia a aderência temática e o nível de novidade conceitual/técnica frente ao perfil do periódico pretendido (via base de conhecimento curada e OpenAlex Sources API ao vivo).
+   - **Prevenção Ativa de Desk-Reject**: Mapeia vícios de rejeição sumária de mesa (ex.: aplicação rotineira de software em revistas que exigem método novo, ou estudos empíricos em periódicos exclusivos de revisão/benchmark).
+   - **Conformidade de Diretrizes do Autor**: Alerta sobre limites de palavras/figuras e seções obrigatórias (*Data Availability*, repositório aberto de código, registro de ensaio clínico).
+   - **Recomendação de Periódicos Alternativos (*Cascading Journals*)**: Sugere 2 a 3 revistas com escopo mais aderente caso haja descompasso editorial.
+
+7. **Segurança da Informação e Defesa Cibernética**:
    - Defesa ativa contra *Indirect Prompt Injection* (texto oculto em LaTeX/CSS e comandos maliciosos embutidos).
    - Sanitização de caracteres Unicode invisíveis/bidirecionais e isolamento estrito em `<UNTRUSTED_MANUSCRIPT_CONTENT>`.
    - Proteção contra OWASP *CSV Formula Injection* nas matrizes exportadas.
@@ -65,26 +72,31 @@ Desenvolvido no **LaBiOmicS / UMC** sob coordenação do **Prof. Dr. Fabiano Bez
   - `pdftotext` (pacote `poppler-utils`, para extração otimizada de PDFs).
 
 #### Opção A: Instalação Automatizada com uv (Recomendada)
-O instalador automatizado verifica o `uv`, sincroniza as dependências em ambiente isolado (SciPy, ReportLab) e registra o plugin no Antigravity CLI:
+O instalador automatizado verifica o `uv`, sincroniza as dependências em ambiente isolado (pypdf, python-docx, ReportLab) e registra o plugin no Antigravity CLI e no Claude Code:
 ```bash
-git clone https://github.com/LaBiOmicS/gemini-peer-review.git
-cd gemini-peer-review
+git clone https://github.com/LaBiOmicS/academic-peer-review.git
+cd academic-peer-review
 ./install.sh
+```
+
+No Claude Code, o plugin também pode ser instalado direto do GitHub:
+```text
+/plugin install academic-peer-review --marketplace LaBiOmicS/academic-peer-review
 ```
 
 #### Opção B: Instalação Direta via Antigravity CLI
 ```bash
 # Validar e instalar diretamente a pasta do plugin
-agy plugin install /caminho/para/gemini-peer-review
-agy plugin enable gemini-peer-review
+agy plugin install /caminho/para/academic-peer-review
+agy plugin enable academic-peer-review
 ```
 
 #### Opção C: Instalação Manual e Sincronização via `uv` (Astral)
 ```bash
-# Sincroniza ambiente virtual e dependências científicas em milissegundos
-uv sync
+# Sincroniza ambiente virtual e dependências (extração de PDF/DOCX e ReportLab)
+uv sync --all-extras
 
-# Executa scripts diretamente com SciPy em ambiente isolado
+# Executa scripts diretamente em ambiente isolado
 uv run skills/paper-review/scripts/stat_and_integrity_audit.py --help
 ```
 
@@ -189,10 +201,13 @@ Após a conclusão da revisão, os seguintes arquivos estruturados estarão disp
 ### Estrutura do Pacote
 
 ```text
-gemini-peer-review/
+academic-peer-review/
 ├── pyproject.toml                                  # Configuração PEP 621 e suporte nativo a uv
 ├── uv.lock                                         # Lockfile determinístico de dependências
-├── plugin.json                                     # Manifesto do plugin (v2.1.0)
+├── plugin.json                                     # Manifesto do plugin para Antigravity (v2.2.0)
+├── .claude-plugin/
+│   ├── plugin.json                                 # Manifesto do plugin para Claude Code
+│   └── marketplace.json                            # Marketplace local "labiomics" (instalação no Claude Code)
 ├── assets/
 │   ├── logo.jpg                                    # Logotipo oficial LaBiOmicS / UMC
 │   └── logo.svg                                    # Ícone vetorial SVG
@@ -212,6 +227,8 @@ gemini-peer-review/
         ├── scripts/
         │   ├── area_profiles.py                    # Matriz 3D (900 perfis), microrrubricas e scanner AppSec
         │   ├── extract_paper.py                    # Extrator de PDFs, DOCX, TeX com defesas sandboxed
+        │   ├── journal_scope.py                    # Auditor de aderência ao escopo da revista e risco de desk-reject
+        │   ├── openalex_lookup.py                  # Consulta de DOIs em lote no OpenAlex (citações e retratações)
         │   ├── stat_and_integrity_audit.py         # Auditor estatístico (statcheck), OpenAlex, FAIR e IA
         │   ├── literature_search.py                # Busca multi-base HTTPS (OpenAlex, PubMed, Crossref, arXiv)
         │   ├── arxiv_search.py                     # Busca rápida via arXiv API
@@ -236,8 +253,10 @@ Developed at **LaBiOmicS / UMC** under the leadership of **Prof. Dr. Fabiano Bez
 
 1. **3-Axis Composable Matrix**:
    - Classifies manuscripts across **5 Major Scientific Areas**, **15 Academic Article Types**, and **12 Research Approaches**, generating targeted (~12-line) micro-rubrics without polluting the prompt context.
-2. **Strict Blind Peer Review & Zero AI-Disclosure (Trilingual: EN / PT / ES)**:
-   - Referees never disclose their automated nature. The evaluation is produced in authoritative academic referee voice in the manuscript's natural language (English, Portuguese, or Spanish).
+2. **Professional Referee Voice & AI-Assistance Transparency (Trilingual: EN / PT / ES)**:
+   - Reports use an authoritative academic referee voice in the manuscript's language (English, Portuguese, or Spanish), without chatbot phrasing or internal tool names.
+   - Reports are **AI-assisted drafts** that a human referee or editor must verify and sign off on; the final PDF carries an **AI-assistance disclosure**.
+   - **Confidentiality**: before uploading an unpublished manuscript to an AI service, confirm that the journal's peer-review policy allows it (COPE, ICMJE and many publishers restrict this and require disclosure).
 3. **Pragmatic FAIR & Reproducibility Audit**:
    - Detects and flags evasive *"data available upon request"* statements.
    - Audits open repositories (Zenodo, GitHub, OSF, GEO/SRA), software dependency manifests (`requirements.txt`, `environment.yml`, Docker), and random seeds.
@@ -245,6 +264,10 @@ Developed at **LaBiOmicS / UMC** under the leadership of **Prof. Dr. Fabiano Bez
    - Enforces **Verbatim Anchoring** (mandatory direct quotes for criticisms), **Negative-Search Grounding** (double-check before claiming an element is omitted), and **Reverse Citation Checking** via OpenAlex in `compile_results.py`.
 5. **Generative AI Provenance Audit (COPE / ICMJE / SciELO Standards)**:
    - Detects uncleaned chat artifacts, flags improper AI co-authorship, and measures synthetic stylistic tell densities.
+6. **Target Journal Scope & Desk-Reject Risk Audit (`--journal`)**:
+   - Assesses thematic fit, conceptual novelty thresholds, and editorial audience alignment using a curated journal registry and live OpenAlex Sources API queries.
+   - Detects classical desk-reject pitfalls (e.g., routine tool applications in algorithmic journals, unformatted submissions, missing prospective trial registrations).
+   - Recommends 2-3 suitable alternative/cascading journals when scope misalignment is identified.
 
 ---
 
@@ -256,23 +279,28 @@ Developed at **LaBiOmicS / UMC** under the leadership of **Prof. Dr. Fabiano Bez
 - **Optional Tools**: `pandoc` (for DOCX/LaTeX) and `pdftotext` (for fast PDF extraction).
 
 #### Option A: One-Command Automated Setup with uv (Recommended)
-The automated setup verifies `uv`, synchronizes dependencies in an isolated virtual environment (SciPy, ReportLab), and registers the plugin in Antigravity:
+The automated setup verifies `uv`, synchronizes dependencies in an isolated virtual environment (pypdf, python-docx, ReportLab), and registers the plugin in Antigravity and Claude Code:
 ```bash
-git clone https://github.com/LaBiOmicS/gemini-peer-review.git
-cd gemini-peer-review
+git clone https://github.com/LaBiOmicS/academic-peer-review.git
+cd academic-peer-review
 ./install.sh
+```
+
+In Claude Code, the plugin can also be installed straight from GitHub:
+```text
+/plugin install academic-peer-review --marketplace LaBiOmicS/academic-peer-review
 ```
 
 #### Option B: Direct Antigravity CLI Installation
 ```bash
-agy plugin install /path/to/gemini-peer-review
-agy plugin validate /path/to/gemini-peer-review --strict
+agy plugin install /path/to/academic-peer-review
+agy plugin validate /path/to/academic-peer-review --strict
 ```
 
 #### Option C: Manual Setup with `uv`
 ```bash
-# Sync isolated environment with SciPy and dependencies in milliseconds
-uv sync
+# Sync isolated environment with PDF/DOCX extraction and ReportLab extras
+uv sync --all-extras
 
 # Run any audit script directly in isolation
 uv run skills/paper-review/scripts/stat_and_integrity_audit.py --help
