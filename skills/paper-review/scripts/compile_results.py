@@ -294,9 +294,15 @@ def main() -> int:
         except Exception:
             pass
 
+    # With a panel manifest, only its reviewers count: review files left over from an earlier,
+    # larger panel in the same directory must not leak into the verdicts and consensus.
+    panel_codes = set((manifest_data.get("reviewers") or {}).keys())
     for idx, code in enumerate(GREEK_ORDER, start=1):
         rev_file = out_dir / f"review_{code}.md"
         if not rev_file.exists():
+            continue
+        if panel_codes and code not in panel_codes:
+            print(f"[compile_results] Ignoring {rev_file.name}: not part of the current panel manifest.", file=sys.stderr)
             continue
         text = rev_file.read_text(encoding="utf-8", errors="replace")
         individual_reviews[code] = text

@@ -35,7 +35,7 @@ For detailed notes on the 3-Axis Matrix, String Seed of Thought (SSoT), and audi
 
 | Argument | Required | Default | Notes |
 |---|---|---|---|
-| `paper` | yes | — | Path to a `.pdf`, `.docx`, `.tex`, `.md`, or `.txt` manuscript. |
+| `paper` | yes | — | Path to a `.pdf`, `.docx`, `.tex`, `.md`, `.txt`, `.rst`, or (via pandoc) `.odt`, `.rtf`, `.html`, `.epub` manuscript. Legacy `.doc` must be converted first. |
 | `area` | no | `auto` | Major Scientific Area (`auto`, `biologicas`, `saude`, `exatas`, `engenharias`, `humanas`). |
 | `article_type` | no | `auto` | Article Type (`auto` or any of the 15 article type codes). |
 | `research_approach` | no | `auto` | Research Approach (`auto` or any of the 12 research approach codes). |

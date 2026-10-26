@@ -174,86 +174,118 @@ def calc_p_value(stat_type: str, stat_val: float, df1: float, df2: float | None 
     return None
 
 
+# Numbers accept a decimal point or a decimal comma (Portuguese/Spanish manuscripts), and the
+# p label may be lowercase (APA) or uppercase (many medical journals).
+_NUM = r"[+-]?\d+(?:[.,]\d+)?"
+_PVAL = r"(\d*[.,]?\d+(?:[eE][+-]?\d+)?)"
+_P_TAIL = r"\s*[,;]\s*[pP]\s*([=<>≤≥])\s*" + _PVAL
+
 STAT_PATTERNS = [
-    (
-        "t",
-        re.compile(
-            r"\bt\s*\(\s*(\d+(?:\.\d+)?)\s*\)\s*=\s*([+-]?\d+(?:\.\d+)?)\s*[,;]\s*p\s*([=<>≤≥])\s*(\d*\.\d+(?:[eE][+-]?\d+)?)"
-        ),
-    ),
+    ("t", re.compile(r"\bt\s*\(\s*(\d+(?:[.,]\d+)?)\s*\)\s*=\s*(" + _NUM + ")" + _P_TAIL)),
     (
         "F",
         re.compile(
-            r"\bF\s*\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*\)\s*=\s*([+-]?\d+(?:\.\d+)?)\s*[,;]\s*p\s*([=<>≤≥])\s*(\d*\.\d+(?:[eE][+-]?\d+)?)"
+            r"\bF\s*\(\s*(\d+(?:\.\d+)?)\s*[,;]\s*(\d+(?:\.\d+)?)\s*\)\s*=\s*(" + _NUM + ")" + _P_TAIL
         ),
     ),
-    (
-        "r",
-        re.compile(
-            r"\br\s*\(\s*(\d+(?:\.\d+)?)\s*\)\s*=\s*([+-]?0?\.\d+)\s*[,;]\s*p\s*([=<>≤≥])\s*(\d*\.\d+(?:[eE][+-]?\d+)?)"
-        ),
-    ),
+    ("r", re.compile(r"\br\s*\(\s*(\d+(?:[.,]\d+)?)\s*\)\s*=\s*([+-]?0?[.,]\d+)" + _P_TAIL)),
     (
         "chi2",
         re.compile(
-            r"(?:χ2|χ\^2|chi2|chi-square)\s*\(\s*(\d+(?:\.\d+)?)(?:\s*,\s*[Nn]\s*=\s*\d+)?\s*\)\s*=\s*([+-]?\d+(?:\.\d+)?)\s*[,;]\s*p\s*([=<>≤≥])\s*(\d*\.\d+(?:[eE][+-]?\d+)?)",
+            r"(?:χ2|χ\^2|chi2|chi-square[d]?)\s*\(\s*(\d+(?:[.,]\d+)?)(?:\s*[,;]\s*[Nn]\s*=\s*\d+)?\s*\)\s*=\s*("
+            + _NUM + ")" + _P_TAIL,
             re.IGNORECASE,
         ),
     ),
-    (
-        "z",
-        re.compile(
-            r"\bz\s*=\s*([+-]?\d+(?:\.\d+)?)\s*[,;]\s*p\s*([=<>≤≥])\s*(\d*\.\d+(?:[eE][+-]?\d+)?)"
-        ),
-    ),
+    ("z", re.compile(r"\b[zZ]\s*=\s*(" + _NUM + ")" + _P_TAIL)),
 ]
 
 STANDALONE_P_REGEX = re.compile(
-    r"\bp\s*([=<>≤≥])\s*(0?\.\d+(?:[eE][+-]?\d+)?|\d+(?:\.\d+)?[eE][+-]?\d+)\b"
+    r"\b[pP]\s*([=<>≤≥])\s*(0?[.,]\d+(?:[eE][+-]?\d+)?|\d+(?:\.\d+)?[eE][+-]?\d+)\b"
 )
+
+
+def _num(value: str) -> float:
+    return float(value.replace(",", "."))
+
+
+def _decimals(value: str) -> int:
+    """Number of reported decimal places (0 for integers or scientific notation)."""
+    mantissa = re.split(r"[eE]", value)[0]
+    sep = max(mantissa.rfind("."), mantissa.rfind(","))
+    return len(mantissa) - sep - 1 if sep >= 0 else 0
+
+
+def normalize_stats_text(text: str) -> str:
+    """Undo PDF-extraction artefacts that hide test statistics from the regexes."""
+    return (
+        text.replace("\u2212", "-")  # Unicode minus sign
+        .replace("χ²", "χ2")
+        .replace("Χ²", "χ2")
+        .replace("chi²", "chi2")
+    )
 
 
 def run_statcheck(text: str, alpha: float = 0.05) -> dict[str, Any]:
     results = []
     inconsistencies = []
     decision_errors = []
+    text = normalize_stats_text(text)
 
     for stat_type, pattern in STAT_PATTERNS:
         for m in pattern.finditer(text):
             raw = m.group(0)
-            if stat_type == "F":
-                df1 = float(m.group(1))
-                df2 = float(m.group(2))
-                stat_val = float(m.group(3))
-                op = m.group(4)
-                reported_p = float(m.group(5))
-            elif stat_type == "z":
-                df1 = 0.0
-                df2 = None
-                stat_val = float(m.group(1))
-                op = m.group(2)
-                reported_p = float(m.group(3))
-            else:
-                df1 = float(m.group(1))
-                df2 = None
-                stat_val = float(m.group(2))
-                op = m.group(3)
-                reported_p = float(m.group(4))
+            try:
+                if stat_type == "F":
+                    df1 = _num(m.group(1))
+                    df2 = _num(m.group(2))
+                    stat_val = _num(m.group(3))
+                    op = m.group(4)
+                    reported_p = _num(m.group(5))
+                elif stat_type == "z":
+                    df1 = 0.0
+                    df2 = None
+                    stat_val = _num(m.group(1))
+                    op = m.group(2)
+                    reported_p = _num(m.group(3))
+                else:
+                    df1 = _num(m.group(1))
+                    df2 = None
+                    stat_val = _num(m.group(2))
+                    op = m.group(3)
+                    reported_p = _num(m.group(4))
+            except ValueError:
+                continue
+            if not 0.0 <= reported_p <= 1.0:
+                continue
 
             recalc_p = calc_p_value(stat_type, stat_val, df1, df2)
             if recalc_p is None:
                 continue
 
+            # statcheck-style rounding tolerance: the reported statistic stands for an interval
+            # (e.g. 1.96 = [1.955, 1.965]) and the reported p for its own rounding interval.
+            stat_str = m.group(3) if stat_type == "F" else (m.group(1) if stat_type == "z" else m.group(2))
+            p_str = m.group(5) if stat_type == "F" else (m.group(3) if stat_type == "z" else m.group(4))
+            stat_half = 0.5 * 10 ** -_decimals(stat_str)
+            p_half = 0.5 * 10 ** -_decimals(p_str) if op == "=" else 0.0
+            abs_stat = abs(stat_val)
+            upper_stat = abs_stat + stat_half
+            lower_stat = max(0.0, abs_stat - stat_half)
+            if stat_type == "r":
+                upper_stat = min(upper_stat, 0.999999)
+            p_low = calc_p_value(stat_type, upper_stat, df1, df2)
+            p_high = calc_p_value(stat_type, lower_stat, df1, df2)
+            if p_low is None or p_high is None:
+                p_low = p_high = recalc_p
+
             is_inconsistent = False
             if op == "=":
-                if abs(recalc_p - reported_p) > max(0.005, reported_p * 0.25):
-                    is_inconsistent = True
+                is_inconsistent = reported_p + p_half < p_low or reported_p - p_half > p_high
             elif op in ("<", "≤"):
-                if recalc_p > reported_p * 1.05:
-                    is_inconsistent = True
+                is_inconsistent = p_low > reported_p
             elif op in (">", "≥"):
-                if recalc_p < reported_p * 0.95:
-                    is_inconsistent = True
+                is_inconsistent = p_high < reported_p
 
             if op in (">", "≥"):
                 # "p > x" never asserts significance (e.g. "p > .01" is not a significant result).
@@ -261,7 +293,8 @@ def run_statcheck(text: str, alpha: float = 0.05) -> dict[str, Any]:
             else:
                 reported_sig = (reported_p < alpha) or (op in ("<", "≤") and reported_p <= alpha)
             actual_sig = recalc_p < alpha
-            is_decision_error = reported_sig != actual_sig
+            # As in statcheck, a decision error is an inconsistency that also flips significance.
+            is_decision_error = is_inconsistent and reported_sig != actual_sig
 
             entry = {
                 "raw": raw,
@@ -282,11 +315,12 @@ def run_statcheck(text: str, alpha: float = 0.05) -> dict[str, Any]:
     for m in STANDALONE_P_REGEX.finditer(text):
         op, val_str = m.group(1), m.group(2)
         try:
-            p_val = float(val_str)
-            if 0.01 <= p_val < 0.05 and op in ("=", "<", "≤"):
-                fragile_p.append(m.group(0))
+            p_val = _num(val_str)
         except ValueError:
-            pass
+            continue
+        # "p = .03" / "p ≤ .03" are fragile; "p < .01" is not (it only says p is below .01).
+        if (op in ("=", "≤") and 0.01 <= p_val < 0.05) or (op == "<" and 0.01 < p_val < 0.05):
+            fragile_p.append(m.group(0))
 
     return {
         "tests_checked": len(results),
@@ -982,12 +1016,17 @@ def format_markdown_report(audit: dict[str, Any]) -> str:
             f"- **Decision errors at α = 0.05**: {sc['decision_errors_count']}",
             f"- **Fragile p-values (0.01 ≤ p < 0.05)**: {sc['fragile_p_values_001_to_005_count']}",
         ])
-        if sc["inconsistencies"]:
+        # Decision errors can occur without a large numeric gap (e.g. reported .049, recalculated .054),
+        # so they are listed even when they are not among the inconsistencies.
+        flagged = list(sc["inconsistencies"]) + [
+            d for d in sc["decision_errors"] if d["raw"] not in {i["raw"] for i in sc["inconsistencies"]}
+        ]
+        if flagged:
             lines.append("\n### Flagged Statistical Discrepancies")
-            for inc in sc["inconsistencies"]:
+            for inc in flagged:
                 flag = " [DECISION ERROR]" if inc["decision_error_at_005"] else ""
                 lines.append(
-                    f"- `{inc['raw']}` → recalculated two-tailed *p* = `{inc['recalculated_p_two_tailed']}`{flag}"
+                    f"- `{inc['raw']}` → recalculated *p* (two-tailed for t, r, z) = `{inc['recalculated_p_two_tailed']}`{flag}"
                 )
 
     if tc:
@@ -1156,6 +1195,22 @@ def main() -> int:
         return 1
     raw_text = paper_path.read_text(encoding="utf-8", errors="replace")
     text, security_scan = sanitize_and_scan_manuscript(raw_text)
+
+    paper_meta: dict[str, Any] = {}
+    if args.paper_meta and Path(args.paper_meta).is_file():
+        try:
+            paper_meta = json.loads(Path(args.paper_meta).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            paper_meta = {}
+    # Hidden-formatting findings (white/hidden/tiny DOCX runs) only exist at extraction time.
+    hidden_findings = [
+        f for f in (paper_meta.get("security_scan") or {}).get("suspicious_patterns", [])
+        if f.get("category") == "hidden_formatted_text"
+    ]
+    if hidden_findings:
+        security_scan["suspicious_patterns"] = hidden_findings + security_scan["suspicious_patterns"]
+        security_scan["suspicious_prompt_injection_count"] += len(hidden_findings)
+        security_scan["is_clean"] = False
     scientific_area = classify_manuscript(
         text,
         domain_hint=args.domain,
@@ -1185,13 +1240,7 @@ def main() -> int:
         "reproducibility_and_fair_audit": reproducibility_fair_res,
     }
 
-    target_journal = clean_journal_name(args.journal)
-    if not target_journal and args.paper_meta and Path(args.paper_meta).is_file():
-        try:
-            meta = json.loads(Path(args.paper_meta).read_text(encoding="utf-8"))
-            target_journal = clean_journal_name(meta.get("target_journal"))
-        except (OSError, ValueError):
-            pass
+    target_journal = clean_journal_name(args.journal) or clean_journal_name(paper_meta.get("target_journal"))
     if target_journal:
         audit["journal_scope_audit"] = audit_journal_scope(
             manuscript_text=text,

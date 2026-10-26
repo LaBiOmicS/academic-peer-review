@@ -91,3 +91,16 @@ def test_verdict_variants():
     }
     for text, expected in cases.items():
         assert parse_single_review(text)["verdict"] == expected, text
+
+
+def test_stale_reviews_outside_manifest_are_ignored(tmp_path, monkeypatch):
+    (tmp_path / ".prompts").mkdir()
+    (tmp_path / ".prompts" / "panel_manifest.json").write_text(
+        json.dumps({"reviewers": {"alfa": {"archetype": "domain-reviewer"}, "beta": {"archetype": "domain-reviewer"}}}),
+        encoding="utf-8",
+    )
+    for code, verdict in (("alfa", "Accept"), ("beta", "Accept"), ("gamma", "Reject"), ("delta", "Reject"), ("zeta", "Reject")):
+        (tmp_path / f"review_{code}.md").write_text(REVIEW.format(seed="c" * 32, verdict=verdict), encoding="utf-8")
+    results = _run(tmp_path, monkeypatch)
+    assert set(results["verdict_summary"]["per_reviewer"]) == {"alfa", "beta"}
+    assert results["verdict_summary"]["consensus"] == "Accept"

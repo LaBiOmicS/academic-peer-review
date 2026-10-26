@@ -80,3 +80,43 @@ def test_primer_mention_alone_is_not_primer_sequences():
 
     assert primers("Primers were designed as described previously.") is False
     assert primers("Forward primer: ACGTTGCAAGTCCGATTGCA") is True
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "t(28) = 2.10, P = .045",  # uppercase P (medical journals)
+        "t(28) = 2,10; p = 0,045",  # decimal comma (PT/ES manuscripts)
+        "χ²(2) = 7.8, p = .02",  # superscript two
+        "t(28) = −2.10, p = .045",  # Unicode minus from PDF extraction
+    ],
+)
+def test_statistic_formats_are_parsed(text):
+    assert run_statcheck(text)["tests_checked"] == 1
+
+
+def test_rounding_tolerance_avoids_false_decision_error():
+    # z = 1.96 gives p = .04999..., but 1.96 stands for [1.955, 1.965]: "p = .05" is consistent.
+    res = run_statcheck("z = 1.96, p = .05")
+    assert res["inconsistencies_count"] == 0
+    assert res["decision_errors_count"] == 0
+
+
+def test_p_below_001_is_not_fragile():
+    assert run_statcheck("p < .01")["fragile_p_values_001_to_005_count"] == 0
+    assert run_statcheck("p = .03")["fragile_p_values_001_to_005_count"] == 1
+
+
+def test_decision_errors_listed_in_markdown_report():
+    import stat_and_integrity_audit as audit_mod
+    from area_profiles import classify_manuscript
+
+    text = "Results: t(30) = 2.00, p = .049."
+    audit = {
+        "scientific_area": classify_manuscript(text),
+        "statcheck": run_statcheck(text),
+        "methodological_markers": audit_mod.check_area_specific_markers(text, "exatas", "x"),
+    }
+    md = audit_mod.format_markdown_report(audit)
+    assert "t(30) = 2.00, p = .049" in md
+    assert "[DECISION ERROR]" in md

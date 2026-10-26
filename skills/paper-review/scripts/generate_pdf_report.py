@@ -227,7 +227,9 @@ def assemble_consolidated_markdown(output_dir: Path) -> tuple[str, dict[str, Any
 
     # Part 4: Individual Blind Referee Reports
     doc.extend(["# Part IV: Individual Independent Referee Reports", ""])
-    for code in GREEK_ORDER:
+    # Only the panel compiled into results.json (stale review files from older runs are skipped).
+    panel = [c for c in GREEK_ORDER if c in rev_meta] if rev_meta else GREEK_ORDER
+    for code in panel:
         rf = output_dir / f"review_{code}.md"
         if rf.exists():
             r_text = rf.read_text(encoding="utf-8", errors="replace")
