@@ -114,7 +114,8 @@ def test_scope_audit_matching_bioinformatics():
     assert audit["adherence_score_pct"] >= 65
     assert audit["desk_reject_risk"] in ("Low Risk", "Moderate Risk")
     assert not audit["desk_reject_flags"]
-    assert audit["alternative_journal_recommendations"]
+    # A good fit does not come with cascading-journal suggestions.
+    assert not audit["alternative_journal_recommendations"]
 
     md = format_scope_markdown(audit)
     assert "## Target Journal Scope Adherence & Desk-Reject Risk Audit" in md
@@ -148,6 +149,7 @@ def test_scope_audit_severe_mismatch_lancet():
     assert audit["adherence_score_pct"] <= 30
     assert "Desk-Reject" in audit["desk_reject_risk"]
     assert audit["desk_reject_flags"]
+    assert audit["alternative_journal_recommendations"]
     assert "Critical Desk-Reject Red Flags" in format_scope_markdown(audit)
 
 
@@ -196,3 +198,68 @@ def test_access_model_label_uses_doaj_flag():
     md = format_scope_markdown(scope)
     assert "DOAJ" not in md
     assert "Open Access" in md
+
+
+def _openalex_journal(name: str, topics: list[dict[str, str]]) -> dict:
+    return {
+        "display_name": name,
+        "publisher": "BioMed Central",
+        "issn": "2049-2618",
+        "works_count": 2500,
+        "topics": topics,
+        "exact_title_match": True,
+        "source": "OpenAlex Sources API",
+    }
+
+
+MICROBIOME_TOPICS = [
+    {"name": "Gut microbiota and health", "domain": "Life Sciences"},
+    {"name": "Microbial Community Ecology and Physiology", "domain": "Life Sciences"},
+    {"name": "Genomics and Phylogenetic Studies", "domain": "Life Sciences"},
+    {"name": "Probiotics and Fermented Foods", "domain": "Health Sciences"},
+]
+
+BIO_OBSERVATIONAL = {
+    "area_code": "biologicas",
+    "article_type": {"type_code": "original_research"},
+    "research_approach": {"approach_code": "epidemiological_observational"},
+}
+
+
+def test_openalex_journal_matching_topic_and_area_is_not_high_risk(monkeypatch):
+    # Regression: a gut-microbiome study submitted to Microbiome was rated "High Risk of Desk Reject"
+    # because the score never left its baseline and generic requirements were deducted.
+    monkeypatch.setattr(
+        journal_scope, "query_openalex_journal", lambda *a, **k: _openalex_journal("Microbiome", MICROBIOME_TOPICS)
+    )
+    text = "We sequenced 16S rRNA to compare gut microbiota diversity and health outcomes in type 2 diabetes."
+    audit = audit_journal_scope(text, "Microbiome", BIO_OBSERVATIONAL)
+
+    assert audit["desk_reject_risk"] in ("Low Risk", "Moderate Risk")
+    assert "Gut microbiota and health" in audit["matched_topics"]
+    assert not audit["alternative_journal_recommendations"]
+    assert all("not verified" in w for w in audit["guideline_warnings"])
+
+
+def test_openalex_journal_without_evidence_is_not_assessed(monkeypatch):
+    monkeypatch.setattr(journal_scope, "query_openalex_journal", lambda *a, **k: _openalex_journal("Some Journal", []))
+    audit = audit_journal_scope("A short text about something.", "Some Journal", BIO_OBSERVATIONAL)
+
+    assert audit["adherence_score_pct"] is None
+    assert audit["desk_reject_risk"] == journal_scope.NOT_ASSESSED_RISK
+    assert not audit["alternative_journal_recommendations"]
+    assert "n/a" in format_scope_markdown(audit)
+
+
+def test_unresolved_journal_is_not_assessed():
+    audit = audit_journal_scope("Text.", "Journal That Does Not Exist", BIO_OBSERVATIONAL, online=False)
+    assert audit["desk_reject_risk"] == journal_scope.NOT_ASSESSED_RISK
+
+
+def test_openalex_topics_outside_manuscript_area_flag_mismatch(monkeypatch):
+    topics = [{"name": f"Topic {i}", "domain": "Social Sciences"} for i in range(5)]
+    monkeypatch.setattr(journal_scope, "query_openalex_journal", lambda *a, **k: _openalex_journal("Law Review", topics))
+    audit = audit_journal_scope("We sequenced bacterial genomes.", "Law Review", BIO_OBSERVATIONAL)
+
+    assert any("Probable Area Mismatch" in f for f in audit["desk_reject_flags"])
+    assert audit["adherence_score_pct"] is not None

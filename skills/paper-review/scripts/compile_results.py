@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "reportlab>=4.0.0",
+# ]
+# ///
 """Deterministic post-processor and bundle compiler for academic-peer-review.
 
 1. Reads all `review_<codename>.md` files in `<output_dir>` (Greek letter codenames:
@@ -309,11 +315,11 @@ def main() -> int:
         parsed_meta = parse_single_review(text)
         archetype = (
             manifest_data.get("reviewers", {}).get(code, {}).get("archetype")
-            or f"gemini-subagent-{idx}"
+            or f"reviewer-{idx}"
         )
         parsed_meta["archetype"] = archetype
         reviewer_metadata[code] = parsed_meta
-        reviewer_mapping[code] = f"gemini-subagent-{idx} ({archetype})"
+        reviewer_mapping[code] = f"reviewer-{idx} ({archetype})"
 
     codenames = list(individual_reviews.keys())
     if not codenames:

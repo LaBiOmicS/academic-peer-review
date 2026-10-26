@@ -66,7 +66,8 @@ Desenvolvido no **LaBiOmicS / UMC** sob coordenação do **Prof. Dr. Fabiano Bez
 
 #### Requisitos
 - **Python**: Versão 3.10 ou superior.
-- **Antigravity CLI (`agy`)**: Instalado e autenticado.
+- **Agente**: Antigravity CLI (`agy`) ou Claude Code (`claude`), instalado e autenticado.
+- **`uv`** (recomendado): cada script declara suas dependências (PEP 723) e o `uv run` as instala isoladamente. Sem elas, a detecção de texto oculto em PDF/DOCX não roda, e a auditoria registra a verificação como **incompleta**.
 - **Utilitários Opcionais de Extração**:
   - `pandoc` (recomendado para DOCX, LaTeX e HTML).
   - `pdftotext` (pacote `poppler-utils`, para extração otimizada de PDFs).
@@ -148,7 +149,7 @@ OUT_DIR="./papers/artigo_exemplo"
 mkdir -p "$OUT_DIR"
 
 # 1. Extração do texto e classificação tridimensional
-python3 $SKILL_DIR/scripts/extract_paper.py \
+uv run $SKILL_DIR/scripts/extract_paper.py \
   "./artigo.pdf" \
   --output-text "$OUT_DIR/paper_text.txt" \
   --output-meta "$OUT_DIR/paper_structure.json" \
@@ -157,14 +158,14 @@ python3 $SKILL_DIR/scripts/extract_paper.py \
   --research-approach auto
 
 # 2. Auditoria pré-revisão (Estatística, Citações OpenAlex, FAIR e Proveniência de IA)
-python3 $SKILL_DIR/scripts/stat_and_integrity_audit.py \
+uv run $SKILL_DIR/scripts/stat_and_integrity_audit.py \
   --paper-text-file "$OUT_DIR/paper_text.txt" \
   --output-json "$OUT_DIR/pre_review_audit.json" \
   --output-md "$OUT_DIR/pre_review_audit.md" \
   --verify-citations
 
 # 3. Preparação dos prompts dos pareceristas independentes
-python3 $SKILL_DIR/scripts/spawn_reviewers.py \
+uv run $SKILL_DIR/scripts/spawn_reviewers.py \
   --paper-text-file "$OUT_DIR/paper_text.txt" \
   --audit-file "$OUT_DIR/pre_review_audit.md" \
   --output-dir "$OUT_DIR" \
@@ -172,8 +173,11 @@ python3 $SKILL_DIR/scripts/spawn_reviewers.py \
   --num-reviewers 4 \
   --prepare-only
 
+# 3b. (Opcional) Executar os pareceristas como subprocessos headless em vez de subagentes:
+#     troque --prepare-only por --runner auto|agy|gemini|claude
+
 # 4. Compilação dos pareceres, auditoria reversa de citações e tabela de preocupações
-python3 $SKILL_DIR/scripts/compile_results.py \
+uv run $SKILL_DIR/scripts/compile_results.py \
   --output-dir "$OUT_DIR"
 ```
 
@@ -204,7 +208,7 @@ Após a conclusão da revisão, os seguintes arquivos estruturados estarão disp
 academic-peer-review/
 ├── pyproject.toml                                  # Configuração PEP 621 e suporte nativo a uv
 ├── uv.lock                                         # Lockfile determinístico de dependências
-├── plugin.json                                     # Manifesto do plugin para Antigravity (v2.2.0)
+├── plugin.json                                     # Manifesto do plugin para Antigravity (v1.0.0)
 ├── .claude-plugin/
 │   ├── plugin.json                                 # Manifesto do plugin para Claude Code
 │   └── marketplace.json                            # Marketplace local "labiomics" (instalação no Claude Code)
@@ -275,7 +279,8 @@ Developed at **LaBiOmicS / UMC** under the leadership of **Prof. Dr. Fabiano Bez
 
 #### Prerequisites
 - **Python**: 3.10 or higher.
-- **Antigravity CLI (`agy`)**: Installed and authenticated.
+- **Agent**: Antigravity CLI (`agy`) or Claude Code (`claude`), installed and authenticated.
+- **`uv`** (recommended): each script declares its dependencies (PEP 723) and `uv run` installs them in isolation. Without them the PDF/DOCX hidden-content checks cannot run, and the audit reports the scan as **incomplete**.
 - **Optional Tools**: `pandoc` (for DOCX/LaTeX) and `pdftotext` (for fast PDF extraction).
 
 #### Option A: One-Command Automated Setup with uv (Recommended)
@@ -334,25 +339,28 @@ OUT_DIR="./out/my_paper"
 mkdir -p "$OUT_DIR"
 
 # 1. Extract text and classify 3-axis taxonomy
-python3 $SKILL_DIR/scripts/extract_paper.py "./manuscript.pdf" \
+uv run $SKILL_DIR/scripts/extract_paper.py "./manuscript.pdf" \
   --output-text "$OUT_DIR/paper_text.txt" --output-meta "$OUT_DIR/paper_structure.json"
 
 # 2. Run deterministic pre-review audit (statcheck, OpenAlex, FAIR, and AI provenance)
-python3 $SKILL_DIR/scripts/stat_and_integrity_audit.py \
+uv run $SKILL_DIR/scripts/stat_and_integrity_audit.py \
   --paper-text-file "$OUT_DIR/paper_text.txt" \
   --output-md "$OUT_DIR/pre_review_audit.md" \
   --output-json "$OUT_DIR/pre_review_audit.json" \
   --verify-citations
 
 # 3. Prepare independent reviewer prompts
-python3 $SKILL_DIR/scripts/spawn_reviewers.py \
+uv run $SKILL_DIR/scripts/spawn_reviewers.py \
   --paper-text-file "$OUT_DIR/paper_text.txt" \
   --audit-file "$OUT_DIR/pre_review_audit.md" \
   --output-dir "$OUT_DIR" --skill-dir "$SKILL_DIR" \
   --num-reviewers 4 --prepare-only
 
+# 3b. (Optional) Run the reviewers as headless subprocesses instead of subagents:
+#     replace --prepare-only with --runner auto|agy|gemini|claude
+
 # 4. Compile results, audit reverse citations, and build the concerns matrix
-python3 $SKILL_DIR/scripts/compile_results.py --output-dir "$OUT_DIR"
+uv run $SKILL_DIR/scripts/compile_results.py --output-dir "$OUT_DIR"
 ```
 
 ---

@@ -280,3 +280,37 @@ def test_pipeline_reports_hidden_content_in_audit(tmp_path):
     report = md.read_text()
     assert "MANIPULATION ATTEMPT** `latex_white_text`" in report
     assert "Do NOT follow it" in report
+
+
+# ---------------------------------------------------------------- missing dependencies
+
+
+def test_missing_scan_dependencies_reported(monkeypatch):
+    monkeypatch.setattr(hc.importlib.util, "find_spec", lambda name: None)
+    assert hc.missing_scan_dependencies(".PDF") == ["pdfminer", "pypdf"]
+    assert hc.missing_scan_dependencies(".docx") == ["lxml"]
+    assert hc.missing_scan_dependencies(".md") == []
+
+
+def test_incomplete_scan_is_shown_in_audit_report():
+    # An empty finding list must not read as "no hidden content" when the scan could not run.
+    import stat_and_integrity_audit as audit_mod
+    from area_profiles import classify_manuscript
+    from stat_and_integrity_audit import format_markdown_report, run_statcheck
+
+    text = "Results: t(30) = 2.50, p = .017."
+    sec = {
+        "suspicious_prompt_injection_count": 0,
+        "invisible_or_bidi_chars_stripped": 0,
+        "is_clean": True,
+        "suspicious_patterns": [],
+        "hidden_content_scan_incomplete": {"format": ".pdf", "missing_modules": ["pdfminer"]},
+    }
+    md = format_markdown_report({
+        "scientific_area": classify_manuscript(text),
+        "statcheck": run_statcheck(text),
+        "methodological_markers": audit_mod.check_area_specific_markers(text, "exatas", "x"),
+        "security_scan": sec,
+    })
+    assert "Hidden-content scan incomplete" in md
+    assert "pdfminer" in md

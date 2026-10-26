@@ -3,8 +3,6 @@ from __future__ import annotations
 import subprocess
 import sys
 
-import pytest
-
 import extract_paper
 from conftest import SCRIPTS_DIR
 

@@ -21,7 +21,7 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
-USER_AGENT = "academic-peer-review/2.2.0 (LaBiOmicS - UMC; mailto:fabianomenegidio@umc.br; https://github.com/LaBiOmicS/academic-peer-review)"
+USER_AGENT = "academic-peer-review/1.0.0 (LaBiOmicS - UMC; mailto:fabianomenegidio@umc.br; https://github.com/LaBiOmicS/academic-peer-review)"
 
 MAX_JOURNAL_NAME_LEN = 120
 _JOURNAL_NAME_ALLOWED = re.compile(r"[^\w\s&:,.()'/+-]")
@@ -52,8 +52,7 @@ def _normalize_key(name: str) -> str:
     ascii_only = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
     key = re.sub(r"[^\w\s]", " ", ascii_only.lower().replace("&", " and "))
     key = " ".join(key.split())
-    if key.startswith("the "):
-        key = key[4:]
+    key = key.removeprefix("the ")
     return key
 
 
@@ -501,6 +500,43 @@ def resolve_journal(journal_name: str, *, online: bool = True) -> dict[str, Any]
 # SCOPE ADHERENCE & DESK-REJECT AUDITING ENGINE
 # ==============================================================================
 
+NOT_ASSESSED_RISK = "Not assessed (insufficient data on the journal's scope)"
+
+_TOPIC_STOPWORDS = {
+    "and", "the", "for", "with", "from", "their", "based", "studies", "study", "research",
+    "analysis", "applications", "methods", "techniques", "approaches", "related", "various",
+}
+
+# OpenAlex topic domains -> manuscript areas (Physical Sciences covers both exact sciences and engineering).
+OPENALEX_DOMAIN_AREAS = {
+    "Life Sciences": ("biologicas",),
+    "Health Sciences": ("saude",),
+    "Physical Sciences": ("exatas", "engenharias"),
+    "Social Sciences": ("humanas",),
+}
+
+
+def _topic_in_text(topic: str, text_lower: str) -> bool:
+    """OpenAlex topic names are phrases ("Gut microbiota and health"): match them by content words."""
+    topic_l = topic.lower()
+    if re.search(rf"\b{re.escape(topic_l)}\b", text_lower):
+        return True
+    words = [w for w in re.findall(r"[a-z][a-z-]{3,}", topic_l) if w not in _TOPIC_STOPWORDS]
+    if len(words) < 2:
+        return False
+    hits = sum(1 for w in words if re.search(rf"\b{re.escape(w.rstrip('s'))}", text_lower))
+    return hits >= max(2, -(-2 * len(words) // 3))
+
+
+def _infer_journal_areas(topics: list[dict[str, Any]]) -> tuple[set[str], float]:
+    """Areas covering >= 30% of a journal's OpenAlex topics, and the share of the dominant domain."""
+    domains = [t.get("domain") for t in topics if t.get("domain") in OPENALEX_DOMAIN_AREAS]
+    if not domains:
+        return set(), 0.0
+    shares = {d: domains.count(d) / len(domains) for d in set(domains)}
+    areas = {a for d, share in shares.items() if share >= 0.3 for a in OPENALEX_DOMAIN_AREAS[d]}
+    return areas, max(shares.values())
+
 def audit_journal_scope(
     manuscript_text: str,
     target_journal_input: str,
@@ -536,17 +572,20 @@ def audit_journal_scope(
 
     desk_reject_flags: list[str] = []
     adherence_points = 50  # Baseline neutral
+    # Without curated data or a topic/area signal the score would only reflect the baseline,
+    # so the risk is reported as not assessed instead of guessed.
+    has_scope_evidence = bool(curated_key)
 
     # --- 1. Topic & Keyword Matching ---
     matched_topics: list[str] = []
     all_topics = journal.get("topics", []) or journal.get("openalex_topics", [])
     for top in all_topics:
-        tname = top.get("name", "").lower()
-        if tname and len(tname) > 3:
-            pattern = rf"\b{re.escape(tname)}\b"
-            if re.search(pattern, text_lower):
-                matched_topics.append(top.get("name", ""))
-                adherence_points += 6
+        tname = top.get("name", "")
+        if len(tname) > 3 and _topic_in_text(tname, text_lower):
+            matched_topics.append(tname)
+            adherence_points += 6
+    if matched_topics:
+        has_scope_evidence = True
 
     # Match curated keywords/domain if present
     journal_domain = journal.get("domain", "").lower()
@@ -568,6 +607,18 @@ def audit_journal_scope(
             adherence_points -= 40
         else:
             adherence_points += 15
+    elif not journal_area and area_code != "unknown":
+        inferred_areas, dominant_share = _infer_journal_areas(all_topics)
+        if area_code in inferred_areas:
+            adherence_points += 15
+            has_scope_evidence = True
+        elif inferred_areas and dominant_share >= 0.8:
+            desk_reject_flags.append(
+                f"Probable Area Mismatch: the manuscript is classified under '{area_code}', but "
+                f"{journal['display_name']}'s indexed topics fall almost entirely outside it (inferred from OpenAlex)."
+            )
+            adherence_points -= 25
+            has_scope_evidence = True
 
     # --- 3. Article Type & Pitfall Evaluation ---
     j_name_lower = journal["display_name"].lower()
@@ -637,20 +688,24 @@ def audit_journal_scope(
         )
         adherence_points -= 10
 
-    # Mandatory data / code / registration checks
+    # Mandatory data / code / registration checks. Only curated requirements are known to be the
+    # journal's own; the generic ones are reported as typical and do not lower the score.
     is_trial = research_approach_code == "clinical_interventional"
+    requirements_verified = bool(curated_key)
+    req_penalty = 1 if requirements_verified else 0
+    req_label = "mandatory" if requirements_verified else "typical (not verified for this journal)"
     for req in journal.get("mandatory_requirements", []):
         req_l = req.lower()
         if "data availability" in req_l and not re.search(
             r"\bdata\s+availability\b|\bdisponibilidade\s+de\s+dados\b|\bdata\s+(?:sharing|access)\s+statement\b", text_lower
         ):
-            guideline_warnings.append(f"Missing mandatory section for {journal['display_name']}: 'Data Availability Statement'.")
-            adherence_points -= 8
+            guideline_warnings.append(f"Missing {req_label} section for {journal['display_name']}: 'Data Availability Statement'.")
+            adherence_points -= 8 * req_penalty
         if "code repository" in req_l and not re.search(
             r"(?:github\.com|gitlab\.com|bitbucket\.org|zenodo\.org|code\s+availability|software\s+availability)", text_lower
         ):
-            guideline_warnings.append(f"Missing mandatory open code requirement for {journal['display_name']}: Code repository link not detected.")
-            adherence_points -= 10
+            guideline_warnings.append(f"Missing {req_label} open code requirement for {journal['display_name']}: Code repository link not detected.")
+            adherence_points -= 10 * req_penalty
         if "registration" in req_l and is_trial and not re.search(
             r"\b(?:NCT\d{8}|RBR-[a-z0-9]{5,10}|ISRCTN\d{8}|ACTRN\d{14}|EUCTR\d{4}-\d{6}-\d{2}|CTRI/\d{4}/\d{2,3}/\d{6}|DRKS\d{8}|ChiCTR[\w-]{6,})\b",
             manuscript_text,
@@ -660,9 +715,13 @@ def audit_journal_scope(
             adherence_points -= 30
 
     # --- 5. Adherence Score & Risk Level Calculation ---
-    final_score = max(5, min(98, adherence_points))
+    final_score: int | None = max(5, min(98, adherence_points))
 
-    if final_score >= 75 and not desk_reject_flags:
+    if not has_scope_evidence and not desk_reject_flags:
+        final_score = None
+        fit_category = "Indeterminate (no curated profile and no topic/area match for this journal)"
+        desk_reject_risk = NOT_ASSESSED_RISK
+    elif final_score >= 75 and not desk_reject_flags:
         fit_category = "High Adherence (Strong Aims & Scope Fit)"
         desk_reject_risk = "Low Risk"
     elif final_score >= 55 and len(desk_reject_flags) <= 1:
@@ -675,10 +734,17 @@ def audit_journal_scope(
         fit_category = "Out of Scope / Severe Editorial Mismatch"
         desk_reject_risk = "Critical Desk-Reject Risk"
 
-    # --- 6. Alternative Journal Suggestions ---
-    alternatives = journal.get("alternative_journals", [])
-    if not alternatives and area_code != "unknown":
-        if area_code == "biologicas":
+    # --- 6. Alternative Journal Suggestions (only when the fit is actually poor) ---
+    poor_fit = desk_reject_risk in ("High Risk of Desk Reject", "Critical Desk-Reject Risk")
+    alternatives = journal.get("alternative_journals", []) if poor_fit else []
+    if poor_fit and not alternatives and area_code != "unknown":
+        if area_code == "biologicas" and research_approach_code != "computational_in_silico":
+            alternatives = [
+                {"name": "PeerJ (Life & Environment)", "focus": "Broad life-science research judged on scientific soundness."},
+                {"name": "PLOS ONE", "focus": "Methodologically rigorous studies without subjective impact thresholds."},
+                {"name": "Scientific Reports", "focus": "Sound-science multidisciplinary natural sciences journal."},
+            ]
+        elif area_code == "biologicas":
             alternatives = [
                 {"name": "BMC Bioinformatics", "focus": "Broad bioinformatic applications and software tools."},
                 {"name": "PLOS ONE", "focus": "Methodologically rigorous studies without subjective impact thresholds."},
@@ -745,8 +811,10 @@ def format_scope_markdown(scope: dict[str, Any]) -> str:
         apc = f" | **APC**: ${scope['apc_usd']:,} USD" if scope.get("apc_usd") is not None else ""
         lines.append(f"- **Access Model**: {access}{apc}")
 
+    score = scope.get("adherence_score_pct")
+    score_txt = f"{score}%" if score is not None else "n/a"
     lines.extend([
-        f"- **Aims & Scope Adherence Score**: **{scope['adherence_score_pct']}%** (`{scope['fit_category']}`)",
+        f"- **Aims & Scope Adherence Score**: **{score_txt}** (`{scope['fit_category']}`)",
         f"- **Desk-Reject Risk Assessment**: **{scope['desk_reject_risk']}**",
     ])
 

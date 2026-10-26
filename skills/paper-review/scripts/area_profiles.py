@@ -24,7 +24,7 @@ a concise, non-redundant micro-rubric (~12 lines) injected into reviewer prompts
 from __future__ import annotations
 
 import re
-from functools import lru_cache
+from functools import cache
 from typing import Any
 
 # `\bSEM\b`-style acronyms must stay case-sensitive inside otherwise case-insensitive
@@ -32,7 +32,7 @@ from typing import Any
 _ACRONYM_TOKEN = re.compile(r"\\b([A-Z][A-Z0-9]{1,6})\\b")
 
 
-@lru_cache(maxsize=None)
+@cache
 def compile_signal_pattern(pat_str: str) -> re.Pattern[str]:
     """Compile a keyword pattern case-insensitively, keeping all-caps acronyms case-sensitive."""
     return re.compile(_ACRONYM_TOKEN.sub(r"(?-i:\\b\1\\b)", pat_str), re.IGNORECASE)

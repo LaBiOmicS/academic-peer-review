@@ -4,7 +4,11 @@ import json
 
 import pytest
 
-from generate_pdf_report import AI_ASSISTANCE_NOTICE, assemble_consolidated_markdown, render_with_reportlab
+from generate_pdf_report import (
+    AI_ASSISTANCE_NOTICE,
+    assemble_consolidated_markdown,
+    render_with_reportlab,
+)
 
 
 def _make_bundle(tmp_path):
@@ -61,3 +65,17 @@ def test_pdflatex_transliteration_keeps_accents():
 
     out = _pdflatex_safe("Decision errors at α = 0.05; χ² ≤ 3 — Saúde, revisión")
     assert out == "Decision errors at alpha = 0.05; chi^2 <= 3 — Saúde, revisión"
+
+
+def test_concerns_matrix_rendered_once_and_bad_dois_listed(tmp_path):
+    _make_bundle(tmp_path)
+    (tmp_path / "meta_review.md").write_text(
+        "## Verdict synthesis\nMajor revision.\n\n## Major Concerns Matrix\n\n"
+        "| Major Concern | alfa | Total |\n|---|:---:|:---:|\n| Data | ✓ | 1/1 |\n\n## Ranking\nalfa first.\n",
+        encoding="utf-8",
+    )
+    md, _ = assemble_consolidated_markdown(tmp_path)
+    assert "Major Concerns Matrix" in md  # Part II heading
+    assert md.count("| Data |") == 0  # the meta-review copy is gone; Part II comes from the CSV
+    assert "alfa first." in md  # content after the matrix is kept
+    assert "Reviewer Alfa: `10.1/x`" in md

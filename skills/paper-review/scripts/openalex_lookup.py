@@ -20,7 +20,7 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
-USER_AGENT = "academic-peer-review/2.2.0 (LaBiOmicS - UMC; mailto:fabianomenegidio@umc.br)"
+USER_AGENT = "academic-peer-review/1.0.0 (LaBiOmicS - UMC; mailto:fabianomenegidio@umc.br)"
 BATCH_SIZE = 50
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 STRICT_DOI_REGEX = re.compile(r"^10\.\d{4,9}/[-._;()/:A-Za-z0-9]+$")

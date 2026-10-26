@@ -16,11 +16,17 @@ description: >-
   compiles an editorial meta-review, revision roadmap, CSV concerns matrix, and results.json.
 ---
 
-# Academic Paper Peer Review (`gemini-peer-review`)
+# Academic Paper Peer Review (`academic-peer-review`)
 
 Multi-reviewer, 3-axis composable peer review and methodological audit system for **Gemini / Antigravity (`agy`)** and **Claude Code**.
 
 `{skill_dir}` below is this skill's directory: in Claude Code it is the base directory shown when the skill loads (`${CLAUDE_PLUGIN_ROOT}/skills/paper-review`); in Antigravity it is the installed plugin's `skills/paper-review` folder.
+
+**Running the scripts.** Run every script with `uv run` (shown below as `$PY`): each script declares its own dependencies (PEP 723), and `uv` installs them in an isolated environment. Without them the PDF/DOCX hidden-content checks cannot run. Only if `uv` is not installed, use `python3`, and tell the user that `pre_review_audit.md` will report the hidden-content scan as incomplete:
+
+```bash
+PY="$(command -v uv >/dev/null && echo 'uv run --quiet' || echo python3)"
+```
 
 > **AI-assistance & confidentiality.** The output is an AI-assisted draft that a human referee or editor must verify and sign off on; the PDF report carries an AI-assistance disclosure. Before reviewing a confidential, unpublished manuscript, remind the user to confirm that the journal's peer-review policy allows uploading it to an AI service (many publishers, COPE and ICMJE restrict this and require disclosure).
 Automatically detects three orthogonal dimensions of the manuscript and injects a compact (~12-line) micro-rubric into each reviewer prompt:
@@ -46,7 +52,7 @@ For detailed notes on the 3-Axis Matrix, String Seed of Thought (SSoT), and audi
 | `alignment_critic` | no | `true` | Includes an Area- and Genre-Adapted Epistemic Red-Team Critic in the panel. |
 | `specialist_panel` | no | `true` | Includes specialized Methodological/Analytical and Reproducibility/Normative auditors alongside Domain Reviewers. |
 | `verify_citations` | no | `true` | Queries OpenAlex during the pre-review audit to verify extracted DOIs and detect retracted papers. |
-| `execution_mode` | no | `auto` | `subagents` (native Antigravity `invoke_subagent` parallel execution) or `cli` (`spawn_reviewers.py` parallel `agy -p` / `gemini -p` subprocesses). |
+| `execution_mode` | no | `auto` | `subagents` (native parallel subagents: Claude Code `Agent`, Antigravity `invoke_subagent`) or `cli` (`spawn_reviewers.py` parallel `agy -p` / `gemini -p` / `claude -p` subprocesses). |
 | `skip_meta` | no | `false` | If `true`, produces individual reviews and audit only. |
 | `overwrite` | no | `false` | If `false`, reuses valid existing `review_<codename>.md` files. |
 | `tool_permissions` | no | `sandboxed` | CLI path only: `sandboxed` (auto-approve inside the runner sandbox), `none` (no auto-approval), or `unsafe` (no sandbox — trusted manuscripts only). |
@@ -60,7 +66,7 @@ For detailed notes on the 3-Axis Matrix, String Seed of Thought (SSoT), and audi
 Run [extract_paper.py](./scripts/extract_paper.py) to extract clean text, section coverage, figure/table captions, bibliography/accession identifiers, the target journal (given or inferred from a `Submitted to:` line), and automatic **Area × Article Type × Research Approach** classification:
 
 ```bash
-python3 {skill_dir}/scripts/extract_paper.py \
+$PY {skill_dir}/scripts/extract_paper.py \
   "<paper_path>" \
   --output-text "<output_dir>/paper_text.txt" \
   --output-meta "<output_dir>/paper_structure.json" \
@@ -76,7 +82,7 @@ python3 {skill_dir}/scripts/extract_paper.py \
 Run [stat_and_integrity_audit.py](./scripts/stat_and_integrity_audit.py) to execute statistical test consistency checks ($t, F, r, \chi^2, z$ vs reported $p$-values), article-type checks (`PRISMA`, `PRISMA-ScR`, `PRIOR/AMSTAR-2`, `SANRA`, `BIBLIO`, `AGREE II/ACCORD`, `CARE`, `FAIR`, `JOSS/FAIR4RS`, `SPIRIT`), research-approach checks (`CONSORT`, `STARD/TRIPOD/REMARK`, `STROBE`, `ARRIVE`, `COREQ/SRQR`, `GRAMMS`), area-specific checks, target journal scope & desk-reject risk evaluation, and live DOI/retraction verification:
 
 ```bash
-python3 {skill_dir}/scripts/stat_and_integrity_audit.py \
+$PY {skill_dir}/scripts/stat_and_integrity_audit.py \
   --paper-text-file "<output_dir>/paper_text.txt" \
   --output-json "<output_dir>/pre_review_audit.json" \
   --output-md "<output_dir>/pre_review_audit.md" \
@@ -94,7 +100,7 @@ python3 {skill_dir}/scripts/stat_and_integrity_audit.py \
 #### Path A (Recommended inside interactive Antigravity sessions): Native Parallel Subagents (`invoke_subagent`)
 1. Prepare the anonymized, specialized prompts and panel manifest:
    ```bash
-   python3 {skill_dir}/scripts/spawn_reviewers.py \
+   $PY {skill_dir}/scripts/spawn_reviewers.py \
      --paper-text-file "<output_dir>/paper_text.txt" \
      --audit-file "<output_dir>/pre_review_audit.md" \
      --output-dir "<output_dir>" \
@@ -109,12 +115,12 @@ python3 {skill_dir}/scripts/stat_and_integrity_audit.py \
      --prepare-only
    ```
 2. For each Greek letter codename (`alfa`, `beta`, `gamma`, `delta`, …) in `<output_dir>/.prompts/panel_manifest.json`, launch one `peer-reviewer` subagent **in a single parallel tool turn**, passing its `prompt_file` and `output_file` from the manifest:
-   - **Claude Code**: one `Agent` tool call per reviewer (`subagent_type="peer-reviewer"`), all in the same message.
+   - **Claude Code**: one `Agent` tool call per reviewer (`subagent_type="academic-peer-review:peer-reviewer"` — plugin agents are namespaced by plugin name), all in the same message.
    - **Antigravity**: `invoke_subagent` with `TypeName="peer-reviewer"` (or `"self"`) and `Model="inherit"`.
 
 #### Path B (Headless CLI / Subprocess Parallelism): Direct OS Subprocesses via `spawn_reviewers.py`
 ```bash
-python3 {skill_dir}/scripts/spawn_reviewers.py \
+$PY {skill_dir}/scripts/spawn_reviewers.py \
   --paper-text-file "<output_dir>/paper_text.txt" \
   --audit-file "<output_dir>/pre_review_audit.md" \
   --output-dir "<output_dir>" \
@@ -140,10 +146,10 @@ Read all `<output_dir>/review_<codename>.md` files, `<output_dir>/pre_review_aud
 
 ### Step 5. Compile Final Bundle, Concerns Matrix & Standardized PDF Report
 
-Run `compile_results.py` (via `uv run` or `python3`) to parse reviewer outputs, verify external citations live, assemble the CSV concerns matrix, and render `editorial_peer_review_report.pdf`. It is safe to re-run (the concerns matrix is kept in `concerns_matrix.json`):
+Run `compile_results.py` to parse reviewer outputs, verify external citations live, assemble the CSV concerns matrix, and render `editorial_peer_review_report.pdf`. It is safe to re-run (the concerns matrix is kept in `concerns_matrix.json`):
 
 ```bash
-uv run {skill_dir}/scripts/compile_results.py --output-dir "<output_dir>" || python3 {skill_dir}/scripts/compile_results.py --output-dir "<output_dir>"
+$PY {skill_dir}/scripts/compile_results.py --output-dir "<output_dir>"
 ```
 
 ### Step 6. Present Results & Verdict Table to the User

@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = []
+# ///
 """Multi-database academic literature search helper with Scientific Area routing & Security Hardening.
 
 Queries OpenAlex (250M+ works across all disciplines), PubMed/EuropePMC,
@@ -33,9 +37,8 @@ from area_profiles import (  # noqa: E402
     resolve_area_code,
 )
 
-
 USER_AGENT = (
-    "academic-peer-review/2.2.0 (LaBiOmicS - Universidade de Mogi das Cruzes; "
+    "academic-peer-review/1.0.0 (LaBiOmicS - Universidade de Mogi das Cruzes; "
     "Prof. Dr. Fabiano Bezerra Menegidio; mailto:fabianomenegidio@umc.br)"
 )
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024  # 4 MB cap per HTTP response

@@ -146,9 +146,11 @@ def assemble_consolidated_markdown(output_dir: Path) -> tuple[str, dict[str, Any
 
     scope = pre_audit.get("journal_scope_audit")
     if scope:
+        score = scope.get("adherence_score_pct")
+        score_txt = f"{score}%" if score is not None else "n/a"
         doc.append(
             f"- **Target Journal & Scope Fit**: **{scope.get('target_journal')}** "
-            f"({scope.get('adherence_score_pct')}% — `{scope.get('fit_category')}` | "
+            f"({score_txt} — `{scope.get('fit_category')}` | "
             f"Desk-Reject Risk: **{scope.get('desk_reject_risk')}**)"
         )
 
@@ -171,12 +173,20 @@ def assemble_consolidated_markdown(output_dir: Path) -> tuple[str, dict[str, Any
             bad = len(flagged.get(code, []))
             doc.append(f"| **Reviewer {code.capitalize()}** | **{v}** | {lens} | {cits} cited | {bad} |")
 
+    if flagged:
+        doc.extend(["", "**Unresolvable DOIs cited by reviewers** (not found in OpenAlex — verify before relying on them):", ""])
+        for code in GREEK_ORDER:
+            for doi in flagged.get(code, []):
+                doc.append(f"- Reviewer {code.capitalize()}: `{_md_cell(doi)}`")
+
     doc.extend(["", AI_ASSISTANCE_NOTICE, "", "---", ""])
 
     # Part 1: Editorial Meta-Review
     meta_path = output_dir / "meta_review.md"
     if meta_path.exists():
         raw_meta = meta_path.read_text(encoding="utf-8", errors="replace")
+        # compile_results.py embeds the concerns matrix in the meta-review; Part II renders it once.
+        raw_meta = re.sub(r"#+\s*Major Concerns Matrix\s*\n+(?:\|[^\n]*(?:\n|$))+", "", raw_meta)
         cleaned_meta = _clean_markdown_for_pdf(raw_meta)
         doc.extend([
             "# Part I: Editorial Synthesis & Meta-Review",
@@ -303,7 +313,7 @@ def render_with_reportlab(markdown_content: str, output_pdf_path: Path, results:
         from reportlab.lib.colors import HexColor
         from reportlab.lib.pagesizes import letter
         from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-        from reportlab.platypus import HRFlowable, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+        from reportlab.platypus import HRFlowable, Paragraph, SimpleDocTemplate, Spacer
     except ImportError:
         return False
 

@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = []
+# ///
 """Spawn N independent peer reviewer agents in parallel with 3-Axis Specialization & Security Hardening.
 
-Designed for Gemini / Antigravity (`agy`):
-1. Multi-runner support (`--runner auto|agy|gemini`).
+Designed for Gemini / Antigravity (`agy`) and Claude Code (`claude`):
+1. Multi-runner support (`--runner auto|agy|gemini|claude`).
 2. Greek letter reviewer codenames (`alfa`, `beta`, `gamma`, `delta`, `epsilon`, `zeta`, `eta`, `theta`).
 3. 3-Axis Composable Classification (`5 Areas × 15 Article Types × 12 Research Approaches`).
 4. Information Security Hardening:
@@ -30,7 +34,6 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from journal_scope import clean_journal_name  # noqa: E402
 from area_profiles import (  # noqa: E402
     ARTICLE_TYPE_DEFINITIONS,
     RESEARCH_APPROACH_DEFINITIONS,
@@ -41,7 +44,7 @@ from area_profiles import (  # noqa: E402
     get_research_approach_profile,
     sanitize_and_scan_manuscript,
 )
-
+from journal_scope import clean_journal_name  # noqa: E402
 
 GREEK = ["alfa", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta"]
 CSPRNG = secrets.SystemRandom()
@@ -61,15 +64,20 @@ SCRUBBED_ENV_VARS = {
     "STRIPE_SECRET_KEY",
     "SSH_AUTH_SOCK",
 }
-# Any variable whose name looks like a credential is removed, except the ones the runners need.
-SECRET_NAME_REGEX = re.compile(r"(TOKEN|SECRET|PASSWORD|PASSWD|API_KEY|APIKEY|PRIVATE_KEY|ACCESS_KEY|CREDENTIAL)", re.I)
-RUNNER_ENV_ALLOWLIST = {
+# Any variable whose name looks like a credential is removed, except the ones the chosen runner needs.
+SECRET_NAME_REGEX = re.compile(r"(TOKEN|SECRET|PASSWORD|PASSWD|API_KEY|APIKEY|PRIVATE_KEY|ACCESS_KEY|CREDENTIAL)", re.IGNORECASE)
+GOOGLE_RUNNER_ENV = {
     "GEMINI_API_KEY",
     "GOOGLE_API_KEY",
     "GOOGLE_APPLICATION_CREDENTIALS",
     "GOOGLE_CLOUD_PROJECT",
     "GOOGLE_CLOUD_LOCATION",
     "GOOGLE_GENAI_USE_VERTEXAI",
+}
+RUNNER_ENV_ALLOWLIST = {
+    "agy": GOOGLE_RUNNER_ENV,
+    "gemini": GOOGLE_RUNNER_ENV,
+    "claude": {"ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN"},
 }
 
 
@@ -78,14 +86,18 @@ def detect_runner(requested: str) -> str:
         if not shutil.which(requested):
             raise RuntimeError(f"Requested runner '{requested}' not found in PATH.")
         return requested
-    for candidate in ("agy", "gemini"):
+    for candidate in ("agy", "gemini", "claude"):
         if shutil.which(candidate):
             return candidate
-    raise RuntimeError("No supported CLI runner ('agy' or 'gemini') found in PATH.")
+    raise RuntimeError("No supported CLI runner ('agy', 'gemini' or 'claude') found in PATH.")
 
 
 def build_cli_cmd(
-    runner: str, model: str | None, effort: str | None, tool_permissions: str = "sandboxed"
+    runner: str,
+    model: str | None,
+    effort: str | None,
+    tool_permissions: str = "sandboxed",
+    skill_dir: str = "",
 ) -> list[str]:
     """Build the reviewer CLI command.
 
@@ -93,6 +105,9 @@ def build_cli_cmd(
       - "sandboxed" (default): auto-approve tools, but inside the runner's terminal sandbox.
       - "none": no auto-approval; tools needing permission are not run (literature search may be skipped).
       - "unsafe": auto-approve tools without a sandbox (only for trusted manuscripts).
+
+    Claude Code has no CLI sandbox flag, so "sandboxed" there means an allowlist: reading files and
+    running the bundled literature search, nothing else.
     """
     if runner == "agy":
         cmd = ["agy"]
@@ -116,13 +131,26 @@ def build_cli_cmd(
         if model and model not in ("auto", "default", "inherit"):
             cmd.extend(["-m", model])
         return cmd
+    if runner == "claude":
+        cmd = ["claude", "-p"]
+        if tool_permissions == "sandboxed":
+            search = f"{skill_dir}/scripts/literature_search.py" if skill_dir else "literature_search.py"
+            cmd.extend(["--allowedTools", "Read", f"Bash(python3 {search}:*)"])
+        elif tool_permissions == "unsafe":
+            cmd.append("--dangerously-skip-permissions")
+        if model and model not in ("auto", "default", "inherit"):
+            cmd.extend(["--model", model])
+        if effort:
+            cmd.extend(["--effort", effort])
+        return cmd
     raise ValueError(f"Unsupported runner: {runner}")
 
 
-def build_sanitized_env() -> dict[str, str]:
+def build_sanitized_env(runner: str = "gemini") -> dict[str, str]:
     env = os.environ.copy()
+    allowed = RUNNER_ENV_ALLOWLIST.get(runner, set())
     for k in list(env.keys()):
-        if k in RUNNER_ENV_ALLOWLIST:
+        if k in allowed:
             continue
         if k in SCRUBBED_ENV_VARS or SECRET_NAME_REGEX.search(k):
             env.pop(k, None)
@@ -283,7 +311,7 @@ def main() -> int:
         default="sandboxed",
         help="Tool approval policy for reviewer CLIs (default: sandboxed). 'unsafe' disables the sandbox.",
     )
-    p.add_argument("--runner", choices=["auto", "agy", "gemini"], default="auto")
+    p.add_argument("--runner", choices=["auto", "agy", "gemini", "claude"], default="auto")
     p.add_argument("--model", default="auto", help="Model override (default: auto/inherit).")
     p.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], default="high")
     p.add_argument("--stagger-seconds", type=float, default=6.0, help="Stagger delay between spawns (default 6s).")
@@ -410,7 +438,7 @@ def main() -> int:
         return 0
 
     runner = detect_runner(args.runner)
-    cmd_base = build_cli_cmd(runner, args.model, args.effort, args.tool_permissions)
+    cmd_base = build_cli_cmd(runner, args.model, args.effort, args.tool_permissions, str(skill_dir))
     if args.tool_permissions == "unsafe":
         print(
             "[spawn_reviewers] WARNING: --tool-permissions unsafe auto-approves tools without a sandbox; "
@@ -425,7 +453,7 @@ def main() -> int:
     )
 
     start = time.time()
-    clean_env = build_sanitized_env()
+    clean_env = build_sanitized_env(runner)
 
     def launch_batch(target_codes: list[str], attempt: int = 1) -> list[str]:
         procs: list[tuple[str, subprocess.Popen[str], Any, Any, Path]] = []
@@ -441,9 +469,9 @@ def main() -> int:
             if spawn_count > 0 and args.stagger_seconds > 0:
                 time.sleep(args.stagger_seconds)
             spawn_count += 1
-            out_fh = open(out_path, "w", encoding="utf-8")
+            out_fh = open(out_path, "w", encoding="utf-8")  # noqa: SIM115 - closed after the child exits
             # stderr goes to a file, not a PIPE: an unread pipe fills up (~64 KB) and deadlocks the child.
-            err_fh = open(prompts_out_dir / f"stderr_{code}.log", "w+", encoding="utf-8")
+            err_fh = open(prompts_out_dir / f"stderr_{code}.log", "w+", encoding="utf-8")  # noqa: SIM115
             proc = subprocess.Popen(
                 cmd_base,
                 stdin=subprocess.PIPE,

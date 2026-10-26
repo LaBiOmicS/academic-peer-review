@@ -65,3 +65,20 @@ def test_prompts_use_assigned_seed():
     prompts = Path(spawn_reviewers.__file__).resolve().parent.parent / "prompts"
     for name in ("reviewer.md", "reviewer_alignment_forum.md", "reviewer_methodology_stats.md", "reviewer_reproducibility_integrity.md"):
         assert "SEED: {entropy_hint}" in (prompts / name).read_text(encoding="utf-8")
+
+
+def test_env_scrubbing_is_per_runner(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "g")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "a")
+    claude_env = build_sanitized_env("claude")
+    assert claude_env["ANTHROPIC_API_KEY"] == "a"
+    assert "GEMINI_API_KEY" not in claude_env
+
+
+def test_claude_runner_permissions():
+    sandboxed = build_cli_cmd("claude", "auto", "high", "sandboxed", "/skill")
+    assert sandboxed[:2] == ["claude", "-p"]
+    assert "--dangerously-skip-permissions" not in sandboxed
+    assert "Bash(python3 /skill/scripts/literature_search.py:*)" in sandboxed
+    assert "--allowedTools" not in build_cli_cmd("claude", None, None, "none")
+    assert "--dangerously-skip-permissions" in build_cli_cmd("claude", None, None, "unsafe")

@@ -43,7 +43,10 @@ def test_consistent_report_passes():
 
 
 def test_common_words_do_not_trigger_acronym_checks():
-    from stat_and_integrity_audit import check_area_specific_markers, check_article_type_markers
+    from stat_and_integrity_audit import (
+        check_area_specific_markers,
+        check_article_type_markers,
+    )
 
     en = "Patients received drug or placebo and outcomes were recorded or missed. " * 5
     assert check_area_specific_markers(en, "saude", "x")["effect_size_reported"] is False  # "or" != OR
@@ -120,3 +123,19 @@ def test_decision_errors_listed_in_markdown_report():
     md = audit_mod.format_markdown_report(audit)
     assert "t(30) = 2.00, p = .049" in md
     assert "[DECISION ERROR]" in md
+
+
+def test_markdown_report_sections_are_numbered_consecutively():
+    import re
+
+    import stat_and_integrity_audit as audit_mod
+    from area_profiles import classify_manuscript
+
+    text = "Results: t(30) = 2.00, p = .049."
+    audit = {
+        "scientific_area": classify_manuscript(text),
+        "statcheck": run_statcheck(text),
+        "methodological_markers": audit_mod.check_area_specific_markers(text, "exatas", "x"),
+    }
+    numbers = [int(n) for n in re.findall(r"^## (\d+)\. ", audit_mod.format_markdown_report(audit), re.MULTILINE)]
+    assert numbers == list(range(len(numbers)))

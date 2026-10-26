@@ -36,6 +36,7 @@ Each finding is classified:
 
 from __future__ import annotations
 
+import importlib.util
 import re
 import zipfile
 from html.parser import HTMLParser
@@ -46,6 +47,14 @@ from area_profiles import PROMPT_INJECTION_PATTERNS
 
 MAX_FINDINGS = 40
 MIN_HIDDEN_CHARS = 4
+
+# Third-party modules each binary format needs; without them the scan is silently empty.
+SCAN_DEPENDENCIES = {".pdf": ("pdfminer", "pypdf"), ".docx": ("lxml",)}
+
+
+def missing_scan_dependencies(suffix: str) -> list[str]:
+    """Modules the hidden-content scan of this file type needs but cannot import."""
+    return [m for m in SCAN_DEPENDENCIES.get(suffix.lower(), ()) if importlib.util.find_spec(m) is None]
 
 # Vocabulary that has no business being hidden: addressing reviewers, AI systems or the verdict.
 REVIEW_STEERING_REGEX = re.compile(
@@ -134,7 +143,7 @@ def _to_rgb(color: Any, space_name: str | None = None) -> tuple[float, float, fl
 
 
 def _same_color(a: tuple[float, float, float] | None, b: tuple[float, float, float] | None, tol: float = 0.06) -> bool:
-    return a is not None and b is not None and max(abs(x - y) for x, y in zip(a, b)) <= tol
+    return a is not None and b is not None and max(abs(x - y) for x, y in zip(a, b, strict=True)) <= tol
 
 
 def _contains(outer: tuple[float, float, float, float], x: float, y: float) -> bool:
@@ -245,7 +254,7 @@ def _pdf_layout_scan(path: Path, max_pages: int) -> list[dict[str, Any]]:
             chars: list[Any] = []
             covers: list[Any] = []  # opaque filled shapes and images, in drawing order
 
-            def walk(container: Any) -> None:
+            def walk(container: Any, chars: list[Any] = chars, covers: list[Any] = covers) -> None:
                 for obj in container:
                     if isinstance(obj, LTChar):
                         chars.append(obj)
@@ -255,7 +264,7 @@ def _pdf_layout_scan(path: Path, max_pages: int) -> list[dict[str, Any]]:
                         if getattr(obj, "fill_alpha", 1.0) >= 0.95:
                             covers.append(obj)
                     if isinstance(obj, LTFigure):
-                        walk(obj)
+                        walk(obj, chars, covers)
 
             walk(layout)
 

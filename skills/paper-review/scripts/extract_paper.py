@@ -41,6 +41,7 @@ from area_profiles import (  # noqa: E402
 )
 from hidden_content import (  # noqa: E402
     merge_into_security_scan,
+    missing_scan_dependencies,
     scan_docx,
     scan_html,
     scan_markdown,
@@ -48,7 +49,6 @@ from hidden_content import (  # noqa: E402
     scan_tex,
 )
 from journal_scope import clean_journal_name  # noqa: E402
-
 
 SECTION_PATTERNS = {
     "abstract": re.compile(r"(?im)^\s*(?:#+\s*|\d+\.?\s*)?(?:abstract|resumo|resumen)\b"),
@@ -392,6 +392,15 @@ def main() -> int:
 
     text, security_scan = sanitize_and_scan_manuscript(raw_text)
     merge_into_security_scan(security_scan, hidden_findings)
+    missing_deps = missing_scan_dependencies(ext)
+    if missing_deps:
+        # An empty result here would read as "no hidden content": record that the scan did not run.
+        security_scan["hidden_content_scan_incomplete"] = {"format": ext, "missing_modules": missing_deps}
+        print(
+            f"WARNING: hidden-content scan for {ext} files is incomplete (missing: {', '.join(missing_deps)}). "
+            "Run this script with `uv run` so its declared dependencies are installed.",
+            file=sys.stderr,
+        )
 
     out_text = Path(args.output_text).resolve()
     out_text.parent.mkdir(parents=True, exist_ok=True)
@@ -441,7 +450,7 @@ def main() -> int:
     if structure["char_count"] < 1000:
         print(
             "WARNING: Extracted text is shorter than 1,000 characters. The PDF may be scanned/image-only. "
-            "Use Gemini's native multimodal read_file tool directly on the PDF if OCR text is missing.",
+            "If OCR text is missing, read the PDF directly with the agent's multimodal file reader.",
             file=sys.stderr,
         )
         return 2
