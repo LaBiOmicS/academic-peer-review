@@ -80,3 +80,14 @@ def test_compile_is_idempotent(tmp_path, monkeypatch):
         "alfa": ["10.1038/nature12373"],
         "beta": ["10.1038/nature12373"],
     }
+
+
+def test_verdict_variants():
+    cases = {
+        "### Verdict\n**Major revision** — weak stats.": "Major revision",
+        "### Verdict: Minor revision. Fine.": "Minor revision",
+        "**Verdict**: Reject — fabricated data.": "Reject",
+        "We do not reject the null.\nFinal recommendation: Minor revision": "Minor revision",
+    }
+    for text, expected in cases.items():
+        assert parse_single_review(text)["verdict"] == expected, text

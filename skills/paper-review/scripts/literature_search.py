@@ -246,7 +246,12 @@ def search_crossref(query: str, max_papers: int = 6) -> list[dict[str, Any]]:
             "title": title,
             "authors": author_str or "Unknown",
             "citations": it.get("is-referenced-by-count", 0),
-            "retracted": bool(it.get("update-to")),
+            # "updated-by" lists notices that amend this work; "update-to" would mean this record
+            # *is* such a notice (or a new version), which says nothing about retraction.
+            "retracted": any(
+                (u or {}).get("type") in ("retraction", "withdrawal", "removal")
+                for u in (it.get("updated-by") or [])
+            ),
             "summary": summary or (f"Published in: {container}" if container else "(No abstract in Crossref)"),
             "source": "Crossref",
         })
@@ -259,7 +264,7 @@ def format_results(items: list[dict[str, Any]]) -> str:
     blocks = []
     for p in items:
         cite_str = f" | Citations: {p['citations']}" if p.get("citations") is not None else ""
-        retract_str = " [⚠️ RETRACTED / UPDATED PAPER]" if p.get("retracted") else ""
+        retract_str = " [⚠️ RETRACTED / WITHDRAWN]" if p.get("retracted") else ""
         blocks.append(
             f"[{p['id']}] ({p['year']}) {p['title']}{retract_str}\n"
             f"  Source: {p['source']}{cite_str} | Authors: {p['authors']}\n"

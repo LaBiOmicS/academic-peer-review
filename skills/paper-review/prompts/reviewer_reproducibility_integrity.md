@@ -20,10 +20,10 @@ Every integrity and reproducibility criticism must be grounded strictly in fact:
 
 ## Step 0 — Seed your audit focus (String Seed of Thought)
 
-Emit a 32-character hex string (incorporating `{entropy_hint}` if helpful):
+Before writing anything else, copy the panel-assigned seed below verbatim (it guarantees that panel members start from different lenses; do not invent your own):
 
 ```
-SEED: <your 32 hex characters>
+SEED: {entropy_hint}
 ```
 
 Derive your **primary audit lens** = `int(SEED[0:2], 16) mod 6`:

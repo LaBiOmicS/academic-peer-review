@@ -24,7 +24,18 @@ a concise, non-redundant micro-rubric (~12 lines) injected into reviewer prompts
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 from typing import Any
+
+# `\bSEM\b`-style acronyms must stay case-sensitive inside otherwise case-insensitive
+# patterns: with re.IGNORECASE, "SEM" matches the Portuguese word "sem", "OR" matches "or", etc.
+_ACRONYM_TOKEN = re.compile(r"\\b([A-Z][A-Z0-9]{1,6})\\b")
+
+
+@lru_cache(maxsize=None)
+def compile_signal_pattern(pat_str: str) -> re.Pattern[str]:
+    """Compile a keyword pattern case-insensitively, keeping all-caps acronyms case-sensitive."""
+    return re.compile(_ACRONYM_TOKEN.sub(r"(?-i:\\b\1\\b)", pat_str), re.IGNORECASE)
 
 
 # ============================================================================
@@ -431,7 +442,8 @@ RESEARCH_APPROACH_DEFINITIONS: dict[str, dict[str, Any]] = {
         "guidelines": ["CONSORT 2010", "TREND", "CONSORT Harms"],
         "exempt_from_inferential_stats": False,
         "patterns": [
-            r"\b(?:randomized\s+controlled\s+trial|\bRCT\b|double-blind|placebo-controlled|intention-to-treat|allocation\s+concealment|CONSORT|ensaio\s+clínico\s+randomizado)\b",
+            r"\b(?:randomi[sz]ed\s+(?:controlled\s+|clinical\s+|crossover\s+)?trial|\bRCT\b|double-blind|placebo-controlled|intention-to-treat|allocation\s+concealment|CONSORT|ensaio\s+clínico\s+randomizado)\b",
+            r"\b(?:(?:were|was)\s+randomi[sz]ed\s+to|randomly\s+(?:assigned|allocated)|phase\s+(?:I{1,3}|IV|[1-4])\s+(?:clinical\s+)?trial|trial\s+registration|NCT\d{8}|ISRCTN\d{8}|RBR-[a-z0-9]{5,10}|ensaio\s+clínico|randomizad[oa]s?\s+(?:para|em)|alocad[oa]s?\s+aleatoriamente|ensayo\s+clínico\s+aleatorizado)\b",
         ],
         "micro_rubric": (
             "- **Research Approach (`clinical_interventional` — CONSORT / TREND)**: Audit randomization & allocation concealment, blinding, "
@@ -606,13 +618,18 @@ DOMAIN_HINT_ALIASES: dict[str, str] = {
     "computer science": "exatas", "computação": "exatas", "machine learning": "exatas",
     "artificial intelligence": "exatas", "statistics": "exatas",
     "engenharias": "engenharias", "engenharia": "engenharias", "engineering": "engenharias",
-    "electrical": "engenharias", "mechanical": "engenharias", "civil": "engenharias",
+    "electrical": "engenharias", "mechanical": "engenharias",
     "materials": "engenharias", "chemical engineering": "engenharias", "biomedical engineering": "engenharias",
     "humanas": "humanas", "humanities": "humanas", "social sciences": "humanas",
     "ciências sociais": "humanas", "sociology": "humanas", "anthropology": "humanas",
     "history": "humanas", "história": "humanas", "law": "humanas", "direito": "humanas",
     "education": "humanas", "educação": "humanas", "philosophy": "humanas",
     "filosofia": "humanas", "linguistics": "humanas", "letras": "humanas", "psychology": "humanas",
+    "economics": "humanas", "economia": "humanas", "political science": "humanas", "ciência política": "humanas",
+    "psicologia": "humanas", "geology": "exatas", "geologia": "exatas", "geosciences": "exatas", "geociências": "exatas",
+    "astronomy": "exatas", "astronomia": "exatas", "veterinary": "saude", "veterinária": "saude",
+    "pharmacy": "saude", "farmácia": "saude", "pharmacology": "saude", "farmacologia": "saude",
+    "civil engineering": "engenharias", "engenharia civil": "engenharias",
 }
 
 ARTICLE_TYPE_ALIASES: dict[str, str] = {
@@ -649,40 +666,33 @@ RESEARCH_APPROACH_ALIASES: dict[str, str] = {
 }
 
 
-def resolve_area_code(area_or_domain: str | None) -> str | None:
-    if not area_or_domain:
+def _resolve_alias(hint: str | None, definitions: dict[str, Any], aliases: dict[str, str]) -> str | None:
+    """Map a free-text hint to a code by whole-word alias match, longest alias first.
+
+    Whole-word matching avoids "economics" -> "omics" or "collaborative" -> "lab"; trying the
+    longest alias first lets "chemical engineering" win over "chemistry"-like shorter aliases.
+    """
+    if not hint:
         return None
-    clean = area_or_domain.strip().lower()
-    if clean in AREA_DEFINITIONS:
+    clean = " ".join(hint.strip().lower().split())
+    if clean in definitions:
         return clean
-    for alias, code in DOMAIN_HINT_ALIASES.items():
-        if alias in clean:
-            return code
+    for alias in sorted(aliases, key=len, reverse=True):
+        if re.search(rf"(?<![\w-]){re.escape(alias)}(?![\w-])", clean):
+            return aliases[alias]
     return None
+
+
+def resolve_area_code(area_or_domain: str | None) -> str | None:
+    return _resolve_alias(area_or_domain, AREA_DEFINITIONS, DOMAIN_HINT_ALIASES)
 
 
 def resolve_article_type_code(article_type_hint: str | None) -> str | None:
-    if not article_type_hint:
-        return None
-    clean = article_type_hint.strip().lower()
-    if clean in ARTICLE_TYPE_DEFINITIONS:
-        return clean
-    for alias, code in ARTICLE_TYPE_ALIASES.items():
-        if alias in clean:
-            return code
-    return None
+    return _resolve_alias(article_type_hint, ARTICLE_TYPE_DEFINITIONS, ARTICLE_TYPE_ALIASES)
 
 
 def resolve_research_approach_code(approach_hint: str | None) -> str | None:
-    if not approach_hint:
-        return None
-    clean = approach_hint.strip().lower()
-    if clean in RESEARCH_APPROACH_DEFINITIONS:
-        return clean
-    for alias, code in RESEARCH_APPROACH_ALIASES.items():
-        if alias in clean:
-            return code
-    return None
+    return _resolve_alias(approach_hint, RESEARCH_APPROACH_DEFINITIONS, RESEARCH_APPROACH_ALIASES)
 
 
 def classify_article_type(text: str, explicit_type: str = "auto") -> dict[str, Any]:
@@ -708,7 +718,7 @@ def classify_article_type(text: str, explicit_type: str = "auto") -> dict[str, A
         score = 0
         matches: list[str] = []
         for pat_str in spec["patterns"]:
-            pat = re.compile(pat_str, re.IGNORECASE)
+            pat = compile_signal_pattern(pat_str)
             head_hits = pat.findall(head_text)
             body_hits = pat.findall(text)
             score += len(head_hits) * 4 + len(body_hits)
@@ -755,7 +765,7 @@ def classify_research_approach(text: str, best_area: str, explicit_approach: str
     for code, spec in RESEARCH_APPROACH_DEFINITIONS.items():
         score = 0
         for pat_str in spec["patterns"]:
-            pat = re.compile(pat_str, re.IGNORECASE)
+            pat = compile_signal_pattern(pat_str)
             score += len(pat.findall(head_text)) * 3 + len(pat.findall(text))
         if score > 0:
             scores[code] = score
@@ -849,7 +859,7 @@ def classify_manuscript(
 
     for code, spec in AREA_DEFINITIONS.items():
         for pat_str in spec["keywords"]:
-            pat = re.compile(pat_str, re.IGNORECASE)
+            pat = compile_signal_pattern(pat_str)
             head_hits = pat.findall(head_text)
             body_hits = pat.findall(text)
             score = len(head_hits) * 3 + len(body_hits)
@@ -905,21 +915,28 @@ def get_research_approach_profile(approach_code: str) -> dict[str, Any]:
 # ============================================================================
 
 INVISIBLE_AND_BIDI_REGEX = re.compile(
-    r"[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff\x00-\x08\x0b\x0c\x0e-\x1f\x7f]"
+    # Zero-width/bidi controls, C0 controls, and Unicode "tag" characters (U+E0000-E007F),
+    # which can smuggle invisible ASCII instructions into text.
+    r"[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff\x00-\x08\x0b\x0c\x0e-\x1f\x7f\U000e0000-\U000e007f]"
 )
 
 PROMPT_INJECTION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "instruction_override",
         re.compile(
-            r"\b(?:ignore\s+(?:all\s+)?(?:previous|prior|above|system)\s+instructions|disregard\s+(?:all\s+)?(?:previous|prior)\s+instructions|forget\s+all\s+previous\s+instructions|ignore\s+todas\s+as\s+instruções\s+anteriores)\b",
+            r"\b(?:ignore\s+(?:all\s+)?(?:previous|prior|above|system)\s+instructions|disregard\s+(?:all\s+)?(?:previous|prior)\s+instructions|forget\s+all\s+previous\s+instructions|"
+            r"ignor[ea]\s+(?:todas\s+)?as\s+instruções\s+(?:anteriores|acima)|desconsidere\s+(?:todas\s+)?as\s+instruções|"
+            r"ignora\s+(?:todas\s+)?las\s+instrucciones\s+(?:anteriores|previas))\b",
             re.IGNORECASE,
         ),
     ),
     (
         "reviewer_verdict_manipulation",
         re.compile(
-            r"\b(?:if\s+you\s+are\s+an?\s+(?:AI|LLM|language\s+model|automated)\s+reviewer|as\s+an?\s+(?:AI|LLM)\s+reviewer\s*,?\s*you\s+must|give\s+this\s+paper\s+a\s+strong\s+accept|output\s+only\s+the\s+verdict\s+accept|do\s+not\s+mention\s+any\s+weaknesses\s+or\s+flaws)\b",
+            r"\b(?:if\s+you\s+are\s+an?\s+(?:AI|LLM|language\s+model|automated)\s+reviewer|as\s+an?\s+(?:AI|LLM)\s+reviewer\s*,?\s*you\s+must|give\s+this\s+paper\s+a\s+strong\s+accept|output\s+only\s+the\s+verdict\s+accept|do\s+not\s+mention\s+any\s+weaknesses\s+or\s+flaws|"
+            r"give\s+(?:a\s+)?positive\s+review(?:\s+only)?|do\s+not\s+highlight\s+any\s+negatives|"
+            r"(?:dê|faça)\s+(?:uma\s+)?(?:avaliação|revisão|parecer)\s+positiv[ao]|"
+            r"(?:da|haz)\s+(?:una\s+)?(?:evaluación|revisión)\s+positiva)\b",
             re.IGNORECASE,
         ),
     ),
@@ -933,7 +950,7 @@ PROMPT_INJECTION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "delimiter_or_system_tag_spoofing",
         re.compile(
-            r"(?:</?UNTRUSTED_MANUSCRIPT_CONTENT>|</?SYSTEM_INSTRUCTION>|<\s*\|im_start\|\s*>|<\s*\|endoftext\|\s*>)",
+            r"(?:<\s*/?\s*UNTRUSTED_MANUSCRIPT_CONTENT\s*/?\s*>|<\s*/?\s*SYSTEM_INSTRUCTION\s*>|<\s*\|im_start\|\s*>|<\s*\|endoftext\|\s*>)",
             re.IGNORECASE,
         ),
     ),
@@ -954,6 +971,10 @@ def sanitize_and_scan_manuscript(text: str) -> tuple[str, dict[str, Any]]:
     )
 
     findings: list[dict[str, str]] = []
+    # Unicode tag characters mirror ASCII (U+E0020 = " "); decode them so hidden payloads are reported.
+    smuggled = "".join(chr(ord(ch) - 0xE0000) for ch in invisible_hits if 0xE0020 <= ord(ch) <= 0xE007E)
+    if smuggled.strip():
+        findings.append({"category": "unicode_tag_smuggling", "matched_text": " ".join(smuggled.split())[:120]})
     for category, pat in PROMPT_INJECTION_PATTERNS:
         for m in pat.finditer(text):
             snippet = " ".join(m.group(0).split())[:120]

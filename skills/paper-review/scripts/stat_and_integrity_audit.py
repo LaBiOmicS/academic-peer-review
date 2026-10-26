@@ -299,6 +299,22 @@ def run_statcheck(text: str, alpha: float = 0.05) -> dict[str, Any]:
     }
 
 
+_BOOLEAN_OPERATOR = re.compile(r"\b(?:AND|OR|NOT)\b")  # uppercase only: "and"/"or" are ordinary words
+_SEARCH_DATABASE = re.compile(
+    r"\b(?:PubMed|MEDLINE|Scopus|Web\s+of\s+Science|Embase|SciELO|Cochrane|LILACS|PsycINFO|CINAHL|IEEE\s+Xplore)\b",
+    re.IGNORECASE,
+)
+
+
+def _has_boolean_search_string(text: str, window: int = 600) -> bool:
+    """True when at least two uppercase Boolean operators appear near a bibliographic database name."""
+    for db in _SEARCH_DATABASE.finditer(text):
+        nearby = text[max(0, db.start() - window) : db.end() + window]
+        if len(_BOOLEAN_OPERATOR.findall(nearby)) >= 2:
+            return True
+    return False
+
+
 def check_article_type_markers(text: str, type_code: str) -> dict[str, Any]:
     """Run deterministic checks specific to the detected Academic Article Type (Axis 2)."""
     if type_code in ("systematic_review", "meta_analysis"):
@@ -306,9 +322,9 @@ def check_article_type_markers(text: str, type_code: str) -> dict[str, Any]:
             "prisma_guideline_cited": bool(re.search(r"\bPRISMA(?:\s+2020|-NMA|-IPD)?\b", text, re.IGNORECASE)),
             "protocol_registry_prospero_osf": bool(re.search(r"\b(?:PROSPERO|CRD\d{7,12}|OSF\s+Registries|osf\.io)\b", text, re.IGNORECASE)),
             "structured_question_pico_peco_spider": bool(re.search(r"\b(?:PICO|PICOS|PECO|PICOC|SPIDER)\b", text)),
-            "boolean_search_string_reported": bool(re.search(r"\b(?:AND|OR)\b.*?\b(?:PubMed|MEDLINE|Scopus|Web\s+of\s+Science|Embase|SciELO|Cochrane)\b", text, re.IGNORECASE | re.DOTALL)),
+            "boolean_search_string_reported": _has_boolean_search_string(text),
             "dual_independent_screening_mentioned": bool(re.search(r"\b(?:two\s+(?:independent\s+)?reviewers|dois\s+revisores\s+independentes|independently\s+screened|Rayyan|Covidence)\b", text, re.IGNORECASE)),
-            "risk_of_bias_tool_used": bool(re.search(r"\b(?:RoB\s*2|ROBINS-I|Newcastle-Ottawa|\bNOS\b|QUADAS-2|SYRCLE|JBI\s+critical\s+appraisal|MMAT)\b", text, re.IGNORECASE)),
+            "risk_of_bias_tool_used": bool(re.search(r"\b(?:RoB\s*2|ROBINS-I|Newcastle-Ottawa|(?-i:\bNOS\b)|QUADAS-2|SYRCLE|JBI\s+critical\s+appraisal|MMAT)\b", text, re.IGNORECASE)),
             "grade_certainty_assessed": bool(re.search(r"\b(?:GRADE|Grading\s+of\s+Recommendations)\b", text)),
         }
         if type_code == "meta_analysis":
@@ -323,13 +339,13 @@ def check_article_type_markers(text: str, type_code: str) -> dict[str, Any]:
         return {
             "prior_or_umbrella_guideline": bool(re.search(r"\b(?:PRIOR|JBI\s+umbrella|overview\s+of\s+reviews)\b", text, re.IGNORECASE)),
             "amstar2_or_robis_quality_appraisal": bool(re.search(r"\b(?:AMSTAR-?2|AMSTAR|ROBIS)\b", text, re.IGNORECASE)),
-            "primary_study_overlap_cca": bool(re.search(r"\b(?:corrected\s+covered\s+area|\bCCA\b|citation\s+matrix|overlap\s+of\s+primary\s+studies|sobreposição\s+de\s+estudos)\b", text, re.IGNORECASE)),
+            "primary_study_overlap_cca": bool(re.search(r"\b(?:corrected\s+covered\s+area|(?-i:\bCCA\b)|citation\s+matrix|overlap\s+of\s+primary\s+studies|sobreposição\s+de\s+estudos)\b", text, re.IGNORECASE)),
         }
 
     if type_code == "scoping_review":
         return {
-            "prisma_scr_or_jbi_cited": bool(re.search(r"\b(?:PRISMA-ScR|Arksey\s+and\s+O'Malley|Joanna\s+Briggs|\bJBI\b)\b", text, re.IGNORECASE)),
-            "pcc_framework_question": bool(re.search(r"\b(?:\bPCC\b|Population,\s*Concept,\s*and\s*Context|População,\s*Conceito\s*e\s*Contexto)\b", text, re.IGNORECASE)),
+            "prisma_scr_or_jbi_cited": bool(re.search(r"\b(?:PRISMA-ScR|Arksey\s+and\s+O'Malley|Joanna\s+Briggs|(?-i:\bJBI\b))\b", text, re.IGNORECASE)),
+            "pcc_framework_question": bool(re.search(r"\b(?:(?-i:\bPCC\b)|Population,\s*Concept,\s*and\s*Context|População,\s*Conceito\s*e\s*Contexto)\b", text, re.IGNORECASE)),
             "grey_literature_searched": bool(re.search(r"\b(?:grey\s+literature|gray\s+literature|literatura\s+cinzenta|Google\s+Scholar|ProQuest|BDTD|OpenGrey)\b", text, re.IGNORECASE)),
             "evidence_charting_or_gap_mapping": bool(re.search(r"\b(?:data\s+charting|evidence\s+map\w*|knowledge\s+gaps|lacunas\s+de\s+conhecimento|mapeamento)\b", text, re.IGNORECASE)),
         }
@@ -349,7 +365,7 @@ def check_article_type_markers(text: str, type_code: str) -> dict[str, Any]:
 
     if type_code == "bibliometric_review":
         return {
-            "bibliometric_databases_specified": bool(re.search(r"\b(?:Web\s+of\s+Science|\bWoS\b|Scopus|OpenAlex|Dimensions|Lens\.org)\b", text, re.IGNORECASE)),
+            "bibliometric_databases_specified": bool(re.search(r"\b(?:Web\s+of\s+Science|(?-i:\bWoS\b)|Scopus|OpenAlex|Dimensions|Lens\.org)\b", text, re.IGNORECASE)),
             "science_mapping_software_cited": bool(re.search(r"\b(?:VOSviewer|bibliometrix|Biblioshiny|CiteSpace|Gephi|SciMAT|BibExcel)\b", text, re.IGNORECASE)),
             "metadata_cleaning_or_thesaurus": bool(re.search(r"\b(?:thesaurus|disambiguat\w+|data\s+cleaning|deduplicat\w+|tesauro|desambiguação|limpeza\s+de\s+dados)\b", text, re.IGNORECASE)),
             "network_methods_cocitation_coupling": bool(re.search(r"\b(?:co-citation|bibliographic\s+coupling|co-occurrence|thematic\s+evolution|Bradford|Lotka|cocitação|acoplamento\s+bibliográfico)\b", text, re.IGNORECASE)),
@@ -393,7 +409,7 @@ def check_article_type_markers(text: str, type_code: str) -> dict[str, Any]:
     if type_code == "methods_or_protocol_paper":
         return {
             "spirit_prismap_or_star_protocols": bool(re.search(r"\b(?:SPIRIT|PRISMA-P|STAR\s+Protocols|Nature\s+Protocols|Key\s+Resources\s+Table|RRID:)\b", text, re.IGNORECASE)),
-            "troubleshooting_or_statistical_plan": bool(re.search(r"\b(?:Troubleshooting|critical\s+steps|pause\s+point|statistical\s+analysis\s+plan|\bSAP\b|resolução\s+de\s+problemas)\b", text, re.IGNORECASE)),
+            "troubleshooting_or_statistical_plan": bool(re.search(r"\b(?:Troubleshooting|critical\s+steps|pause\s+point|statistical\s+analysis\s+plan|(?-i:\bSAP\b)|resolução\s+de\s+problemas)\b", text, re.IGNORECASE)),
         }
 
     return {}
@@ -405,25 +421,25 @@ def check_research_approach_markers(text: str, approach_code: str) -> dict[str, 
         return {
             "consort_or_trend_cited": bool(re.search(r"\b(?:CONSORT|TREND)\b", text)),
             "trial_registration_nct_rebec": bool(re.search(r"\b(?:NCT\d{8}|RBR-[a-z0-9]{5,10}|ISRCTN\d+|ClinicalTrials\.gov|ReBEC)\b", text, re.IGNORECASE)),
-            "itt_or_allocation_concealment": bool(re.search(r"\b(?:intention-to-treat|\bITT\b|allocation\s+concealment|ocultação\s+da\s+alocação|intenção\s+de\s+tratar)\b", text, re.IGNORECASE)),
+            "itt_or_allocation_concealment": bool(re.search(r"\b(?:intention-to-treat|(?-i:\bITT\b)|allocation\s+concealment|ocultação\s+da\s+alocação|intenção\s+de\s+tratar)\b", text, re.IGNORECASE)),
             "adverse_events_reported": bool(re.search(r"\b(?:adverse\s+event\w*|eventos?\s+adversos?|harms|safety\s+profile)\b", text, re.IGNORECASE)),
         }
     if approach_code == "diagnostic_prognostic_biomarker":
         return {
             "stard_tripod_or_remark_cited": bool(re.search(r"\b(?:STARD|TRIPOD(?:\+AI)?|REMARK)\b", text)),
             "roc_auc_or_sens_spec_reported": bool(re.search(r"\b(?:ROC-?AUC|AUROC|PR-?AUC|sensitivity\s+and\s+specificity|sensibilidade\s+e\s+especificidade|Youden)\b", text, re.IGNORECASE)),
-            "calibration_or_decision_curve": bool(re.search(r"\b(?:calibration\s+curve| calibration\s+slope|Brier\s+score|decision\s+curve\s+analysis|curva\s+de\s+calibração)\b", text, re.IGNORECASE)),
+            "calibration_or_decision_curve": bool(re.search(r"\b(?:calibration\s+curve|calibration\s+slope|Brier\s+score|decision\s+curve\s+analysis|curva\s+de\s+calibração)\b", text, re.IGNORECASE)),
             "external_validation_cohort": bool(re.search(r"\b(?:external\s+validation|independent\s+validation\s+cohort|validação\s+externa|coorte\s+independente)\b", text, re.IGNORECASE)),
         }
     if approach_code == "epidemiological_observational":
         return {
             "strobe_or_record_cited": bool(re.search(r"\b(?:STROBE|RECORD|MOOSE)\b", text)),
-            "confounding_adjustment_or_dag": bool(re.search(r"\b(?:confounder\w*|adjusted\s+for|propensity\s+score|directed\s+acyclic\s+graph|\bDAG\b|fatores\s+de\s+confusão|análise\s+ajustada)\b", text, re.IGNORECASE)),
+            "confounding_adjustment_or_dag": bool(re.search(r"\b(?:confounder\w*|adjusted\s+for|propensity\s+score|directed\s+acyclic\s+graph|(?-i:\bDAG\b)|fatores\s+de\s+confusão|análise\s+ajustada)\b", text, re.IGNORECASE)),
             "missing_data_or_attrition_addressed": bool(re.search(r"\b(?:missing\s+data|multiple\s+imputation|loss\s+to\s+follow-up|perda\s+de\s+seguimento|dados\s+faltantes)\b", text, re.IGNORECASE)),
         }
     if approach_code == "field_ecological_agronomic":
         return {
-            "spatial_design_blocks_or_transects": bool(re.search(r"\b(?:randomized\s+complete\s+block|\bRCBD\b|\bDBC\b|split-plot|transect\w*|quadrat\w*|blocos\s+casualizados|parcelas\s+subdivididas)\b", text, re.IGNORECASE)),
+            "spatial_design_blocks_or_transects": bool(re.search(r"\b(?:randomized\s+complete\s+block|(?-i:\bRCBD\b)|(?-i:\bDBC\b)|split-plot|transect\w*|quadrat\w*|blocos\s+casualizados|parcelas\s+subdivididas)\b", text, re.IGNORECASE)),
             "voucher_specimen_or_coordinates": bool(re.search(r"\b(?:voucher\s+specimen|herbarium|holotype|paratype|geographic\s+coordinates|exsicata|herbário|coordenadas\s+geográficas)\b", text, re.IGNORECASE)),
             "nomenclature_code_iczn_icn_ictv": bool(re.search(r"\b(?:ICZN|ICN|ICTV|ICNP|MycoBank|ZooBank|IPNI)\b", text)),
         }
@@ -435,7 +451,7 @@ def check_research_approach_markers(text: str, approach_code: str) -> dict[str, 
         }
     if approach_code == "computational_in_silico":
         return {
-            "baselines_or_sota_comparison": bool(re.search(r"\b(?:baseline\w*|state-of-the-art|\bSOTA\b|benchmark\w*)\b", text, re.IGNORECASE)),
+            "baselines_or_sota_comparison": bool(re.search(r"\b(?:baseline\w*|state-of-the-art|(?-i:\bSOTA\b)|benchmark\w*)\b", text, re.IGNORECASE)),
             "ablation_or_sensitivity_analysis": bool(re.search(r"\b(?:ablation\s+stud\w*|hyperparameter\s+sensitivity|grid\s+search|cross-validation|validação\s+cruzada)\b", text, re.IGNORECASE)),
             "reproducibility_seeds_or_splits": bool(re.search(r"\b(?:random\s+seed\w*|train/validation/test|data\s+leakage|Docker|Singularity|Nextflow|Snakemake)\b", text, re.IGNORECASE)),
         }
@@ -657,7 +673,7 @@ def audit_reproducibility_and_fair(text: str, area_code: str, approach_code: str
     """Audit pragmatic reproducibility, FAIR data/code posture, and essential reporting transparency."""
     has_data_section = bool(DATA_AVAILABILITY_SECTION_PATTERNS.search(text))
     evasive_match = EVASIVE_DATA_PATTERNS.search(text)
-    evasive_statement = evasive_match.group(0).strip() if evasive_match else None
+    evasive_statement = " ".join(evasive_match.group(0).split())[:240] if evasive_match else None
 
     # Public repository links (Zenodo, OSF, GitHub, Figshare, Dryad, etc.)
     repos = sorted(
@@ -692,17 +708,25 @@ def audit_reproducibility_and_fair(text: str, area_code: str, approach_code: str
     reagent_catalog = bool(re.search(r"\b(?:cat[aá]log(?:ue|o)?\s*(?:no\.?|number|#)?\s*[:=]?\s*[A-Z0-9-]{3,}|código\s+do\s+catálogo|número\s+de\s+catálogo|lot\s*(?:no\.?|number|#)\s*[:=]?\s*[A-Z0-9-]+)\b", text, re.IGNORECASE))
     rrids = sorted(set(re.findall(r"\b(RRID:\s*[A-Z]+_[A-Z0-9_]+)\b", text, re.IGNORECASE)))
     cell_authentication = bool(re.search(r"\b(?:STR\s+profiling|mycoplasma|short\s+tandem\s+repeat|autenticação\s+celular|micoplasma)\b", text, re.IGNORECASE))
-    primers = bool(re.search(r"\b(?:5['\s]?-?[ACGTUN]{10,}-?3['\s]?|forward\s+primer|reverse\s+primer|primers?|oligonucleotides?)\b", text, re.IGNORECASE))
+    primers = bool(
+        re.search(r"(?<![A-Za-z])[ACGTU]{15,}(?![A-Za-z])", text)  # an explicit oligo sequence
+        or re.search(r"\b(?:primer\s+sequences?|sequências?\s+(?:dos\s+)?(?:primers|iniciadores)|forward\s+primer\s*[:(]|reverse\s+primer\s*[:(])", text, re.IGNORECASE)
+    )
 
     # Transparency core
     has_coi = bool(COI_SECTION_PATTERNS.search(text)) or bool(re.search(r"\b(?:no\s+(?:potential\s+)?conflicts?\s+of\s+interest|declare\s+no\s+competing\s+interests|sem\s+conflitos\s+de\s+interesse|declaramos\s+não\s+haver\s+conflito|sin\s+conflictos\s+de\s+interés)\b", text, re.IGNORECASE))
     has_ethics = bool(re.search(r"\b(?:CEP|CONEP|CAAE|CEUA|IRB|Institutional\s+Review\s+Board|IACUC|Comitê\s+de\s+Ética|Comité\s+de\s+Ética|ethics\s+committee|approval\s+number)\b", text, re.IGNORECASE))
 
     # Overall FAIR/Data Status summary
-    if evasive_statement:
+    total_targets = len(repos) + len(data_dois) + len(accessions)
+    if evasive_statement and not total_targets:
         data_status = f"Evasive — Author used '{evasive_statement}' instead of open deposition"
-    elif repos or data_dois or accessions:
-        total_targets = len(repos) + len(data_dois) + len(accessions)
+    elif evasive_statement:
+        data_status = (
+            f"Partially Open — {total_targets} public target{'s' if total_targets > 1 else ''} found, but part of the "
+            f"data/code is only offered on request ('{evasive_statement}')"
+        )
+    elif total_targets:
         data_status = f"Open & FAIR — Public repository, DOIs, or accessions provided ({total_targets} target{'s' if total_targets > 1 else ''} found)"
     elif has_data_section:
         data_status = "Declared — Statement present, but verify if direct download link or accession is functional"
@@ -739,7 +763,7 @@ def check_area_specific_markers(text: str, area_code: str, study_design: str) ->
     common = {
         "multiple_comparison_correction": bool(
             re.search(
-                r"\b(?:Bonferroni|Holm|Benjamini[\s-]Hochberg|false\s+discovery\s+rate|\bFDR\b|Tukey|Scheff[eé]|family[\s-]wise\s+error|\bFWER\b|padj|q-value)\b",
+                r"\b(?:Bonferroni|Holm|Benjamini[\s-]Hochberg|false\s+discovery\s+rate|(?-i:\bFDR\b)|Tukey|Scheff[eé]|family[\s-]wise\s+error|(?-i:\bFWER\b)|padj|q-value)\b",
                 text,
                 re.IGNORECASE,
             )
@@ -753,14 +777,14 @@ def check_area_specific_markers(text: str, area_code: str, study_design: str) ->
         ),
         "effect_size_reported": bool(
             re.search(
-                r"\b(?:Cohen'?s\s+d|Hedges'?\s+g|eta[\s-]squared|η2|odds\s+ratio|\bOR\b|hazard\s+ratio|\bHR\b|relative\s+risk|\bRR\b|log2FoldChange|log2FC|effect\s+size|tamanho\s+de\s+efeito)\b",
+                r"\b(?:Cohen'?s\s+d|Hedges'?\s+g|eta[\s-]squared|η2|odds\s+ratio|(?-i:\bOR\b)|hazard\s+ratio|(?-i:\bHR\b)|relative\s+risk|(?-i:\bRR\b)|log2FoldChange|log2FC|effect\s+size|tamanho\s+de\s+efeito)\b",
                 text,
                 re.IGNORECASE,
             )
         ),
         "confidence_intervals_or_error_bars": bool(
             re.search(
-                r"\b(?:95%\s*CI|IC\s*95%|confidence\s+interval|standard\s+error|\bSEM\b|standard\s+deviation|\bSD\b|interquartile\s+range|\bIQR\b|error\s+bars)\b",
+                r"\b(?:95%\s*CI|IC\s*95%|confidence\s+interval|standard\s+error|(?-i:\bSEM\b)|standard\s+deviation|(?-i:\bSD\b)|interquartile\s+range|(?-i:\bIQR\b)|error\s+bars)\b",
                 text,
                 re.IGNORECASE,
             )
@@ -828,7 +852,7 @@ def check_area_specific_markers(text: str, area_code: str, study_design: str) ->
                 re.search(r"\b(?:RoB\s*2|Risk\s+of\s+Bias|Newcastle-Ottawa|QUADAS-2|ROBINS-I|GRADE)\b", text, re.IGNORECASE)
             ),
             "clinical_significance_mcid_nnt": bool(
-                re.search(r"\b(?:MCID|minimal\s+clinically\s+important|\bNNT\b|\bNNH\b|clinical\s+relevance|relevância\s+clínica)\b", text, re.IGNORECASE)
+                re.search(r"\b(?:MCID|minimal\s+clinically\s+important|(?-i:\bNNT\b)|(?-i:\bNNH\b)|clinical\s+relevance|relevância\s+clínica)\b", text, re.IGNORECASE)
             ),
         }
     elif area_code == "exatas":
@@ -843,7 +867,7 @@ def check_area_specific_markers(text: str, area_code: str, study_design: str) ->
                 re.search(r"\b(?:time\s+complexity|space\s+complexity|FLOPs|runtime|wall-clock|O\(n\s*log\s*n\)|O\(n\^2\))\b", text, re.IGNORECASE)
             ),
             "physical_chemical_characterization": bool(
-                re.search(r"\b(?:IUPAC|1H\s*NMR|13C\s*NMR|HRMS|XRD|FTIR|Raman|crystallograph\w+|\bCIF\b)\b", text, re.IGNORECASE)
+                re.search(r"\b(?:IUPAC|1H\s*NMR|13C\s*NMR|HRMS|XRD|FTIR|Raman|crystallograph\w+|(?-i:\bCIF\b))\b", text, re.IGNORECASE)
             ),
         }
     elif area_code == "engenharias":
@@ -858,7 +882,7 @@ def check_area_specific_markers(text: str, area_code: str, study_design: str) ->
                 re.search(r"\b(?:calibration|uncertainty\s+propagation|measurement\s+uncertainty|repeatability|calibração|incerteza\s+de\s+medição)\b", text, re.IGNORECASE)
             ),
             "cost_energy_or_safety_analysis": bool(
-                re.search(r"\b(?:energy\s+efficiency|power\s+consumption|safety\s+factor|\bFMEA\b|cost\s+analysis|eficiência\s+energética|fator\s+de\s+segurança)\b", text, re.IGNORECASE)
+                re.search(r"\b(?:energy\s+efficiency|power\s+consumption|safety\s+factor|(?-i:\bFMEA\b)|cost\s+analysis|eficiência\s+energética|fator\s+de\s+segurança)\b", text, re.IGNORECASE)
             ),
         }
     elif area_code == "humanas":

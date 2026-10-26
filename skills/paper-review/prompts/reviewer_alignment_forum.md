@@ -27,10 +27,10 @@ Every red-team attack must be strictly rooted in the reality of the manuscript:
 
 ## Step 0 — Seed your red-team focus (String Seed of Thought)
 
-Before writing anything else, emit a 32-character hex string (you may derive from or mix with `{entropy_hint}`):
+Before writing anything else, copy the panel-assigned seed below verbatim (it guarantees that panel members start from different lenses; do not invent your own):
 
 ```
-SEED: <your 32 hex characters>
+SEED: {entropy_hint}
 ```
 
 Derive your **primary red-team axis** for `{area_code}` = `int(SEED[0:2], 16) mod 8`:

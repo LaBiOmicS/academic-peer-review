@@ -26,10 +26,10 @@ Every evaluation you provide must be strictly anchored in the factual reality of
 
 ## Step 0 — Seed your perspective (String Seed of Thought)
 
-Before writing anything else, emit a 32-character hex string. You may combine fresh entropy with the slot entropy hint `{entropy_hint}` so your initial bytes are uncorrelated with other panel members.
+Before writing anything else, copy the panel-assigned seed below verbatim (it guarantees that panel members start from different lenses; do not invent your own):
 
 ```
-SEED: <your 32 hex characters>
+SEED: {entropy_hint}
 ```
 
 Then deterministically derive two parameters from that seed using the **Area-Specialized Lens Table** for `{area_code}`:

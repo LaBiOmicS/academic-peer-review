@@ -49,3 +49,19 @@ def test_journal_directive_rendered_once(tmp_path):
     assert prompt.count("Target Journal & Scope Directive") == 1
     # single-pass rendering: placeholders inside the manuscript are not expanded
     assert prompt.rstrip().endswith("{target_journal}")
+
+
+def test_assigned_seeds_give_distinct_lenses():
+    for offset in range(24):
+        seeds = [spawn_reviewers.assign_seed(i, offset) for i in range(8)]
+        assert all(len(s) == 32 and int(s, 16) >= 0 for s in seeds)
+        assert len({int(s[:2], 16) % 6 for s in seeds[:6]}) == 6
+        assert len({int(s[:2], 16) % 8 for s in seeds}) == 8
+
+
+def test_prompts_use_assigned_seed():
+    from pathlib import Path
+
+    prompts = Path(spawn_reviewers.__file__).resolve().parent.parent / "prompts"
+    for name in ("reviewer.md", "reviewer_alignment_forum.md", "reviewer_methodology_stats.md", "reviewer_reproducibility_integrity.md"):
+        assert "SEED: {entropy_hint}" in (prompts / name).read_text(encoding="utf-8")

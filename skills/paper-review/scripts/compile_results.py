@@ -38,10 +38,13 @@ except Exception as _pdf_import_error:  # noqa: BLE001 - PDF output is optional;
 
 GREEK_ORDER = ["alfa", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta"]
 
+# Matches "### Verdict\n**Major revision** — ..." as well as "### Verdict: Major revision" on one line.
 VERDICT_REGEX = re.compile(
-    r"(?:##+|###+|\*\*)\s*(?:\d+\.\s*)?Verdict\b[^\n]*\n+\s*(?:[-*]\s*)?\*{0,2}(Reject|Major\s+revision|Minor\s+revision|Accept)\*{0,2}[.:—\s-]*(.*)",
+    r"(?:##+|\*\*)\s*(?:\d+\.\s*)?Verdict\b\**[ \t]*[:—-]?[ \t]*\**[ \t]*(?:\n+\s*(?:[-*]\s*)?)?"
+    r"\*{0,2}(Reject|Major\s+revision|Minor\s+revision|Accept)\*{0,2}[.:—\s-]*(.*)",
     re.IGNORECASE,
 )
+VERDICT_LABEL_REGEX = re.compile(r"\b(Reject|Major\s+revision|Minor\s+revision|Accept)\b", re.IGNORECASE)
 SEED_REGEX = re.compile(r"SEED:\s*([0-9a-fA-F]{16,64})")
 LENS_REGEX = re.compile(r"(?:LENS|AXIS):\s*([^\n]+)")
 STANCE_REGEX = re.compile(r"STANCE:\s*([^\n]+)")
@@ -84,11 +87,16 @@ def parse_single_review(text: str) -> dict[str, Any]:
         verdict = verdict_map.get(raw_v, raw_v.capitalize())
         verdict_reason = verdict_m.group(2).strip().splitlines()[0] if verdict_m.group(2).strip() else ""
     else:
+        # No Verdict heading: take the last verdict label mentioned near the end of the review.
         tail = "\n".join(text.splitlines()[-30:])
-        for v_label in ("Reject", "Major revision", "Minor revision", "Accept"):
-            if re.search(rf"\b{re.escape(v_label)}\b", tail, re.IGNORECASE):
-                verdict = v_label
-                break
+        labels = VERDICT_LABEL_REGEX.findall(tail)
+        if labels:
+            verdict = {
+                "reject": "Reject",
+                "major revision": "Major revision",
+                "minor revision": "Minor revision",
+                "accept": "Accept",
+            }[" ".join(labels[-1].split()).lower()]
 
     cited_ids: set[str] = set()
     for m in ARXIV_CITE_REGEX.finditer(text):
