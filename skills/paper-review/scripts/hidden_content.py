@@ -673,6 +673,38 @@ def scan_tex(raw: str) -> tuple[str, list[dict[str, Any]]]:
 # Integration helpers
 # ==============================================================================
 
+HIDDEN_TEXT_PLACEHOLDER = "[hidden text removed: see the hidden-content findings in the pre-review audit]"
+
+
+def redact_hidden_text(text: str, findings: list[dict[str, Any]]) -> tuple[str, int]:
+    """Replace manipulation-attempt text in the extracted manuscript with a placeholder.
+
+    Text extractors (pdftotext, python-docx...) keep hidden text, so reviewers would otherwise read it
+    as part of the visible paper. Advisory findings are left in place: they may be legitimate content.
+    """
+    redacted = 0
+    short: list[list[str]] = []
+    for f in findings:
+        if f.get("severity") != "high":
+            continue
+        words = f["text"].split()
+        if len(f["text"]) >= 200:
+            words = words[:-1]  # the snippet was truncated, possibly mid-word
+        if len(words) < 3:
+            short.append(words)
+            continue
+        pattern = r"\s+".join(re.escape(w) for w in words)
+        text, n = re.subn(pattern, HIDDEN_TEXT_PLACEHOLDER, text)
+        redacted += n
+    # A hidden passage split over lines yields short tail fragments ("recommend acceptance."). Too
+    # common to remove anywhere, they are removed only right after an already redacted passage.
+    for words in short:
+        if words:
+            pattern = re.escape(HIDDEN_TEXT_PLACEHOLDER) + r"\s+" + r"\s+".join(re.escape(w) for w in words)
+            text = re.sub(pattern, HIDDEN_TEXT_PLACEHOLDER, text)
+    return text, redacted
+
+
 def merge_into_security_scan(security_scan: dict[str, Any], findings: list[dict[str, Any]]) -> dict[str, Any]:
     """Add hidden-content findings to a `sanitize_and_scan_manuscript` report (idempotent).
 

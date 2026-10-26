@@ -748,6 +748,50 @@ def classify_article_type(text: str, explicit_type: str = "auto") -> dict[str, A
     }
 
 
+REFERENCES_HEADING_REGEX = re.compile(
+    r"(?im)^\s*(?:#+\s*|\d+\.?\s*)?(?:references|bibliography|literature\s+cited|works\s+cited|"
+    r"referências(?:\s+bibliográficas)?|referencias(?:\s+bibliográficas)?|bibliografía|bibliografia)\s*:?\s*$"
+)
+PAGE_MARKER_REGEX = re.compile(r"^--- \[Page \d+\] ---$", re.MULTILINE)
+
+
+def strip_reference_list(text: str) -> str:
+    """Main text without page markers and the trailing reference list."""
+    body = PAGE_MARKER_REGEX.sub("", text)
+    headings = list(REFERENCES_HEADING_REGEX.finditer(body))
+    if headings:
+        last = headings[-1]
+        # Ignore a heading in the first fifth of the text (e.g. a table-of-contents entry).
+        if last.start() > len(body) * 0.2:
+            body = body[: last.start()]
+    return body
+
+
+# An explicit design statement ("a cross-sectional study", "randomised controlled trial") outweighs
+# technique vocabulary (e.g. "metagenomic", "machine learning") that any design can mention.
+DESIGN_DECLARATIONS = {
+    "clinical_interventional": re.compile(
+        r"\b(?:randomi[sz]ed\s+(?:controlled\s+|clinical\s+)?trial|ensaio\s+clínico\s+randomizado|ensayo\s+clínico\s+aleatorizado)\b",
+        re.IGNORECASE,
+    ),
+    "epidemiological_observational": re.compile(
+        r"\b(?:cohort|case-control|cross-sectional|ecological)\s+(?:study|design|survey)\b|"
+        r"\bestudo\s+(?:de\s+coorte|caso-controle|transversal|ecológico)\b|"
+        r"\bestudio\s+(?:de\s+cohorte|de\s+casos\s+y\s+controles|transversal)\b",
+        re.IGNORECASE,
+    ),
+    "diagnostic_prognostic_biomarker": re.compile(
+        r"\bdiagnostic\s+accuracy\s+study\b|\bestudo\s+de\s+acurácia\s+diagnóstica\b", re.IGNORECASE
+    ),
+    "qualitative": re.compile(
+        r"\b(?:qualitative\s+(?:study|research|design)|estudo\s+qualitativo|pesquisa\s+qualitativa|estudio\s+cualitativo)\b",
+        re.IGNORECASE,
+    ),
+    "mixed_methods": re.compile(r"\bmixed[\s-]methods?\s+(?:study|design|approach)\b|\bmétodos\s+mistos\b", re.IGNORECASE),
+}
+DESIGN_DECLARATION_WEIGHT = 25
+
+
 def classify_research_approach(text: str, best_area: str, explicit_approach: str = "auto") -> dict[str, Any]:
     if explicit_approach and explicit_approach != "auto":
         forced = resolve_research_approach_code(explicit_approach)
@@ -758,8 +802,11 @@ def classify_research_approach(text: str, best_area: str, explicit_approach: str
                 "approach_name": spec["name"],
                 "guidelines": spec.get("guidelines", ["Methodological Rigor Standards"]),
                 "exempt_from_inferential_stats": spec["exempt_from_inferential_stats"],
+                "confidence": 1.0,
             }
 
+    # Cited titles describe other studies' designs, not this one.
+    text = strip_reference_list(text)
     head_text = text[:6000]
     scores: dict[str, int] = {}
     for code, spec in RESEARCH_APPROACH_DEFINITIONS.items():
@@ -767,12 +814,17 @@ def classify_research_approach(text: str, best_area: str, explicit_approach: str
         for pat_str in spec["patterns"]:
             pat = compile_signal_pattern(pat_str)
             score += len(pat.findall(head_text)) * 3 + len(pat.findall(text))
+        declaration = DESIGN_DECLARATIONS.get(code)
+        if declaration:
+            score += DESIGN_DECLARATION_WEIGHT * min(2, len(declaration.findall(text)))
         if score > 0:
             scores[code] = score
 
     if scores:
         best_approach = max(scores.items(), key=lambda kv: kv[1])[0]
+        confidence = round(scores[best_approach] / sum(scores.values()), 2)
     else:
+        confidence = 0.0  # no design signal at all: area default below
         default_by_area = {
             "biologicas": "experimental_lab",
             "saude": "epidemiological_observational",
@@ -788,6 +840,7 @@ def classify_research_approach(text: str, best_area: str, explicit_approach: str
         "approach_name": spec["name"],
         "guidelines": spec.get("guidelines", ["Methodological Rigor Standards"]),
         "exempt_from_inferential_stats": spec["exempt_from_inferential_stats"],
+        "confidence": confidence,
     }
 
 
@@ -839,6 +892,10 @@ def compose_rubric(area_info: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+AREA_CONFIDENCE_THRESHOLD = 0.7
+APPROACH_CONFIDENCE_THRESHOLD = 0.6
+
+
 def classify_manuscript(
     text: str,
     domain_hint: str = "",
@@ -883,6 +940,14 @@ def classify_manuscript(
     total_score = sum(scores.values()) or 1
     confidence = round(min(0.99, max(0.35, scores[best_code] / total_score)), 2) if not forced_code else 1.0
 
+    # Keyword scores cannot settle a close call; the orchestrating agent confirms these axes
+    # from the abstract and methods (or asks the user) before the panel is prepared.
+    low_confidence_axes = []
+    if confidence < AREA_CONFIDENCE_THRESHOLD:
+        low_confidence_axes.append("area")
+    if research_approach["confidence"] < APPROACH_CONFIDENCE_THRESHOLD:
+        low_confidence_axes.append("research_approach")
+
     profile = AREA_DEFINITIONS[best_code]
     return {
         "area_code": best_code,
@@ -892,6 +957,8 @@ def classify_manuscript(
         "article_type": article_type,
         "transversal_flags": transversal,
         "confidence": confidence,
+        "needs_confirmation": bool(low_confidence_axes),
+        "low_confidence_axes": low_confidence_axes,
         "area_scores": scores,
         "matched_signals": matched_terms[best_code][:10],
         "preferred_sources": profile["preferred_sources"],

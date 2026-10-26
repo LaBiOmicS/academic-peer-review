@@ -67,3 +67,36 @@ def test_unicode_tag_smuggling_is_stripped_and_reported():
 def test_injection_payloads_detected(payload):
     _, report = sanitize_and_scan_manuscript(f"Methods text. {payload} More text.")
     assert report["suspicious_prompt_injection_count"] >= 1
+
+
+def test_declared_design_outweighs_technique_vocabulary():
+    # Regression: a cross-sectional 16S study was classified as computational because
+    # "metagenome-wide" in the introduction and reference titles outscored the design statement.
+    text = (
+        "Introduction. Metagenome-wide association studies and metagenomic surveys linked microbiota to diabetes. " * 3
+        + "Methods. We conducted a cross-sectional study of 120 adults. Reads were processed with QIIME 2. "
+        + "\n\nReferences\n" + "1. A metagenome-wide association study. Nature. doi:10.1/x\n" * 5
+    )
+    assert classify_manuscript(text)["research_approach"]["approach_code"] == "epidemiological_observational"
+
+
+def test_close_area_scores_ask_for_confirmation():
+    # Diabetes microbiome study: health and biology vocabulary both score high.
+    text = (
+        "Patients with type 2 diabetes were recruited at a hospital with informed consent. "
+        "Gut microbiota were profiled by 16S rRNA sequencing and metagenome analysis of bacterial genomes. "
+    ) * 3
+    result = classify_manuscript(text)
+    assert result["needs_confirmation"]
+    assert "area" in result["low_confidence_axes"]
+
+
+def test_explicit_axes_never_ask_for_confirmation():
+    result = classify_manuscript("Short text.", explicit_area="humanas", explicit_research_approach="qualitative")
+    assert not result["needs_confirmation"]
+    assert result["research_approach"]["confidence"] == 1.0
+
+
+def test_clear_design_does_not_ask_for_confirmation():
+    text = "We conducted a randomised controlled trial of 200 patients with hypertension; placebo arm; hospital clinic. " * 3
+    assert not classify_manuscript(text)["needs_confirmation"]

@@ -21,16 +21,13 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+from area_profiles import strip_reference_list
+
 USER_AGENT = "academic-peer-review/1.0.0 (LaBiOmicS - UMC; mailto:fabianomenegidio@umc.br; https://github.com/LaBiOmicS/academic-peer-review)"
 
 MAX_JOURNAL_NAME_LEN = 120
 _JOURNAL_NAME_ALLOWED = re.compile(r"[^\w\s&:,.()'/+-]")
 
-REFERENCES_HEADING_REGEX = re.compile(
-    r"(?im)^\s*(?:#+\s*|\d+\.?\s*)?(?:references|bibliography|literature\s+cited|works\s+cited|"
-    r"referências(?:\s+bibliográficas)?|referencias(?:\s+bibliográficas)?|bibliografía|bibliografia)\s*:?\s*$"
-)
-PAGE_MARKER_REGEX = re.compile(r"^--- \[Page \d+\] ---$", re.MULTILINE)
 
 
 def clean_journal_name(name: str | None) -> str:
@@ -58,14 +55,7 @@ def _normalize_key(name: str) -> str:
 
 def estimate_body_word_count(text: str) -> int:
     """Count words in the main text, excluding the reference list and page markers."""
-    body = PAGE_MARKER_REGEX.sub("", text)
-    headings = list(REFERENCES_HEADING_REGEX.finditer(body))
-    if headings:
-        last = headings[-1]
-        # Ignore a heading in the first fifth of the text (e.g. a table-of-contents entry).
-        if last.start() > len(body) * 0.2:
-            body = body[: last.start()]
-    return len(re.findall(r"\b\w+\b", body))
+    return len(re.findall(r"\b\w+\b", strip_reference_list(text)))
 
 # ==============================================================================
 # CURATED KNOWLEDGE BASE OF NOTABLE JOURNALS ACROSS ALL 5 SCIENTIFIC AREAS

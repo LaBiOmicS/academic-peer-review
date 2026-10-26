@@ -139,3 +139,18 @@ def test_markdown_report_sections_are_numbered_consecutively():
     }
     numbers = [int(n) for n in re.findall(r"^## (\d+)\. ", audit_mod.format_markdown_report(audit), re.MULTILINE)]
     assert numbers == list(range(len(numbers)))
+
+
+def test_unconfirmed_classification_is_flagged_in_report():
+    import stat_and_integrity_audit as audit_mod
+    from area_profiles import classify_manuscript
+
+    text = "Results: t(30) = 2.00, p = .049."
+    sa = classify_manuscript(text)
+    sa.update(needs_confirmation=True, low_confidence_axes=["area"])
+    audit = {
+        "scientific_area": sa,
+        "statcheck": run_statcheck(text),
+        "methodological_markers": audit_mod.check_area_specific_markers(text, "exatas", "x"),
+    }
+    assert "Uncertain classification" in audit_mod.format_markdown_report(audit)

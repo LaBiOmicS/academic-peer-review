@@ -22,3 +22,8 @@ Primeira versão pública e estável.
 - O PDF não duplica mais a matriz de preocupações e lista os DOIs não resolvidos citados pelos pareceristas.
 - As seções do relatório de auditoria são numeradas em sequência.
 - Credenciais repassadas aos subprocessos dependem do runner escolhido.
+- O texto oculto de tentativas de manipulação é substituído por um marcador na cópia do manuscrito lida pelos pareceristas, para que não o descrevam como texto visível.
+- A classificação da abordagem de pesquisa dá precedência à declaração explícita de desenho (ex.: "cross-sectional study", "randomised controlled trial") e ignora a lista de referências.
+- Classificação com confiança baixa (área ou abordagem) é marcada como `needs_confirmation`: o agente confirma os eixos pelo resumo e pelos métodos e, em sessão interativa, pergunta ao usuário antes de preparar o painel. Sem confirmação, a auditoria avisa os pareceristas.
+- README: estimativa de custo e tempo por revisão.
+- README: comandos de instalação no Claude Code corrigidos (`/plugin marketplace add` + `/plugin install academic-peer-review@labiomics`).

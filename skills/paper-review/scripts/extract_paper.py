@@ -42,6 +42,7 @@ from area_profiles import (  # noqa: E402
 from hidden_content import (  # noqa: E402
     merge_into_security_scan,
     missing_scan_dependencies,
+    redact_hidden_text,
     scan_docx,
     scan_html,
     scan_markdown,
@@ -390,8 +391,11 @@ def main() -> int:
         # LaTeX comments and \iffalse blocks are never rendered: drop them from the reviewers' text.
         raw_text, hidden_findings = scan_tex(raw_text)
 
+    raw_text, redacted = redact_hidden_text(raw_text, hidden_findings)
     text, security_scan = sanitize_and_scan_manuscript(raw_text)
     merge_into_security_scan(security_scan, hidden_findings)
+    if redacted:
+        security_scan["hidden_text_redacted"] = redacted
     missing_deps = missing_scan_dependencies(ext)
     if missing_deps:
         # An empty result here would read as "no hidden content": record that the scan did not run.
@@ -438,6 +442,10 @@ def main() -> int:
             "article_type": structure["scientific_area"]["article_type"]["type_code"],
             "research_approach": structure["scientific_area"]["research_approach"]["approach_code"],
             "transversal_flags": structure["scientific_area"]["transversal_flags"],
+            "area_confidence": structure["scientific_area"]["confidence"],
+            "research_approach_confidence": structure["scientific_area"]["research_approach"]["confidence"],
+            "needs_confirmation": structure["scientific_area"]["needs_confirmation"],
+            "low_confidence_axes": structure["scientific_area"]["low_confidence_axes"],
         },
         "detected_sections": [k for k, v in structure["detected_sections"].items() if v],
         "figures_detected": structure["figures_detected"],

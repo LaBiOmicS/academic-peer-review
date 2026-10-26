@@ -72,6 +72,9 @@ Desenvolvido no **LaBiOmicS / UMC** sob coordenação do **Prof. Dr. Fabiano Bez
   - `pandoc` (recomendado para DOCX, LaTeX e HTML).
   - `pdftotext` (pacote `poppler-utils`, para extração otimizada de PDFs).
 
+#### Custo e tempo
+Cada revisão consome tokens do modelo usado pelo agente: um parecer por parecerista, mais a metarrevisão. Como referência, uma revisão de um manuscrito curto (~1.000 palavras) com 3 pareceristas no Claude Sonnet custou cerca de **US$ 1** e levou poucos minutos. O custo cresce com o tamanho do manuscrito, o número de pareceristas (`num_reviewers`, de 3 a 8) e o modelo escolhido. Para reduzir, use `num_reviewers=3`.
+
 #### Opção A: Instalação Automatizada com uv (Recomendada)
 O instalador automatizado verifica o `uv`, sincroniza as dependências em ambiente isolado (pypdf, python-docx, ReportLab) e registra o plugin no Antigravity CLI e no Claude Code:
 ```bash
@@ -82,7 +85,8 @@ cd academic-peer-review
 
 No Claude Code, o plugin também pode ser instalado direto do GitHub:
 ```text
-/plugin install academic-peer-review --marketplace LaBiOmicS/academic-peer-review
+/plugin marketplace add LaBiOmicS/academic-peer-review
+/plugin install academic-peer-review@labiomics
 ```
 
 #### Opção B: Instalação Direta via Antigravity CLI
@@ -129,6 +133,7 @@ Esta é a forma mais prática e natural. Basta abrir o chat da Antigravity, anex
   ```text
   /paper-review paper="./manuscritos/artigo_genomica.pdf" area="biologicas" num_reviewers=4
   ```
+  No Claude Code, use o nome qualificado `/academic-peer-review:paper-review` se outro plugin também tiver uma skill `paper-review`.
 
 O agente coordenador executará automaticamente:
 1. Extração do texto completo e sanitização contra injeções de prompt (*Indirect Prompt Injection*).
@@ -283,6 +288,9 @@ Developed at **LaBiOmicS / UMC** under the leadership of **Prof. Dr. Fabiano Bez
 - **`uv`** (recommended): each script declares its dependencies (PEP 723) and `uv run` installs them in isolation. Without them the PDF/DOCX hidden-content checks cannot run, and the audit reports the scan as **incomplete**.
 - **Optional Tools**: `pandoc` (for DOCX/LaTeX) and `pdftotext` (for fast PDF extraction).
 
+#### Cost and time
+Each review spends tokens of the agent's model: one report per reviewer plus the meta-review. For reference, reviewing a short manuscript (~1,000 words) with 3 reviewers on Claude Sonnet cost about **US$ 1** and took a few minutes. Cost grows with manuscript length, the number of reviewers (`num_reviewers`, 3 to 8) and the model. To keep it down, use `num_reviewers=3`.
+
 #### Option A: One-Command Automated Setup with uv (Recommended)
 The automated setup verifies `uv`, synchronizes dependencies in an isolated virtual environment (pypdf, python-docx, ReportLab), and registers the plugin in Antigravity and Claude Code:
 ```bash
@@ -293,7 +301,8 @@ cd academic-peer-review
 
 In Claude Code, the plugin can also be installed straight from GitHub:
 ```text
-/plugin install academic-peer-review --marketplace LaBiOmicS/academic-peer-review
+/plugin marketplace add LaBiOmicS/academic-peer-review
+/plugin install academic-peer-review@labiomics
 ```
 
 #### Option B: Direct Antigravity CLI Installation
@@ -328,6 +337,7 @@ Simply attach your paper in the chat or reference its file path:
   ```text
   /paper-review paper="./manuscript.pdf" area="biologicas" num_reviewers=4
   ```
+  In Claude Code, use the qualified name `/academic-peer-review:paper-review` if another plugin also ships a `paper-review` skill.
 
 ---
 
