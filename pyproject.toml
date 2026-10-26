@@ -68,4 +68,8 @@ dev = [
     # Reference implementation used only by the tests to validate the pure-Python p-values.
     "scipy>=1.10.0",
     "reportlab>=4.0.0",
+    # Hidden-content tests build PDFs/DOCX and scan them.
+    "pdfplumber>=0.11.0",
+    "pypdf>=4.0.0",
+    "python-docx>=1.1.0",
 ]

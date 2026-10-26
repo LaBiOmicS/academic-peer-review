@@ -39,6 +39,14 @@ from area_profiles import (  # noqa: E402
     classify_manuscript,
     sanitize_and_scan_manuscript,
 )
+from hidden_content import (  # noqa: E402
+    merge_into_security_scan,
+    scan_docx,
+    scan_html,
+    scan_markdown,
+    scan_pdf,
+    scan_tex,
+)
 from journal_scope import clean_journal_name  # noqa: E402
 
 
@@ -82,56 +90,8 @@ FIGURE_CAPTION_REGEX = re.compile(r"(?im)^\s*(?:Figure|Fig\.?|Figura)\s*(\d+[A-Z
 TABLE_CAPTION_REGEX = re.compile(r"(?im)^\s*(?:Table|Tab\.?|Tabela|Quadro)\s*(\d+[A-Za-z]?)[\s.:—-]+([^\n]{10,250})")
 
 
-def _is_white(color: Any) -> bool:
-    """True for white fill in gray (1), RGB (1,1,1) or CMYK (0,0,0,0) colour spaces."""
-    if color is None:
-        return False
-    values = tuple(color) if isinstance(color, (list, tuple)) else (color,)
-    try:
-        values = tuple(float(v) for v in values)
-    except (TypeError, ValueError):
-        return False
-    if len(values) in (1, 3):
-        return all(v >= 0.98 for v in values)
-    if len(values) == 4:
-        return all(v <= 0.02 for v in values)
-    return False
-
-
-def _find_hidden_pdf_text(path: Path, max_pages: int = 60, limit: int = 15) -> list[str]:
-    """Return runs of characters drawn white or at <= 2pt (invisible to a human reader).
-
-    White-on-white text is the most common carrier of prompt injections aimed at AI reviewers.
-    Requires pdfplumber; returns [] when it is unavailable.
-    """
-    try:
-        import pdfplumber  # type: ignore
-    except ImportError:
-        return []
-
-    snippets: list[str] = []
-    try:
-        with pdfplumber.open(str(path)) as pdf:
-            for page in pdf.pages[:max_pages]:
-                current: list[str] = []
-                for ch in page.chars:
-                    hidden = _is_white(ch.get("non_stroking_color")) or float(ch.get("size") or 99) <= 2.0
-                    if hidden:
-                        current.append(ch.get("text", ""))
-                    elif current:
-                        snippets.append("".join(current))
-                        current = []
-                if current:
-                    snippets.append("".join(current))
-    except Exception:  # noqa: BLE001 - detection is best effort and must never block extraction
-        return []
-
-    cleaned = [" ".join(s.split())[:120] for s in snippets]
-    return [s for s in cleaned if len(s) >= 4][:limit]
-
-
 def extract_pdf(path: Path) -> tuple[str, dict[str, Any]]:
-    meta: dict[str, Any] = {"backend": None, "pages": 0, "hidden_text_runs": _find_hidden_pdf_text(path)}
+    meta: dict[str, Any] = {"backend": None, "pages": 0}
 
     try:
         import fitz  # type: ignore
@@ -198,38 +158,6 @@ def extract_pdf(path: Path) -> tuple[str, dict[str, Any]]:
     )
 
 
-def _find_hidden_docx_runs(doc: Any, limit: int = 15) -> list[str]:
-    """Return text of runs a human reader would not see (hidden, white, or ~1pt font).
-
-    Invisible text is the classic carrier for prompt injection aimed at AI reviewers.
-    """
-    from docx.shared import Pt, RGBColor  # type: ignore
-
-    paragraphs = list(doc.paragraphs)
-    for table in doc.tables:
-        for row in table.rows:
-            for cell in row.cells:
-                paragraphs.extend(cell.paragraphs)
-
-    hidden: list[str] = []
-    for para in paragraphs:
-        for run in para.runs:
-            text = run.text.strip()
-            if not text:
-                continue
-            font = run.font
-            try:
-                is_white = font.color is not None and font.color.type is not None and font.color.rgb == RGBColor(0xFF, 0xFF, 0xFF)
-            except (AttributeError, ValueError):
-                is_white = False
-            is_tiny = font.size is not None and font.size <= Pt(2)
-            if font.hidden or is_white or is_tiny:
-                hidden.append(" ".join(text.split())[:120])
-                if len(hidden) >= limit:
-                    return hidden
-    return hidden
-
-
 def extract_docx(path: Path) -> tuple[str, dict[str, Any]]:
     meta: dict[str, Any] = {"backend": None}
     try:
@@ -237,7 +165,6 @@ def extract_docx(path: Path) -> tuple[str, dict[str, Any]]:
 
         doc = docx.Document(str(path))
         meta["backend"] = "python-docx"
-        meta["hidden_text_runs"] = _find_hidden_docx_runs(doc)
         paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
         table_texts = []
         for t_idx, table in enumerate(doc.tables, start=1):
@@ -448,15 +375,23 @@ def main() -> int:
         print(f"Error: '{src.name}' looks like a binary file, not text. Convert it to PDF, DOCX or plain text.", file=sys.stderr)
         return 1
 
+    # Hidden-content scan: text a human reader never sees but an AI reviewer would read.
+    hidden_findings: list[dict[str, Any]] = []
+    if ext == ".pdf":
+        hidden_findings = scan_pdf(src)
+    elif ext == ".docx":
+        hidden_findings = scan_docx(src)
+    elif ext in (".html", ".htm"):
+        hidden_findings = scan_html(src.read_text(encoding="utf-8", errors="replace"))
+    elif ext in (".md", ".markdown"):
+        # HTML comments are never rendered: drop them from the text the reviewers read.
+        raw_text, hidden_findings = scan_markdown(raw_text)
+    elif ext == ".tex":
+        # LaTeX comments and \iffalse blocks are never rendered: drop them from the reviewers' text.
+        raw_text, hidden_findings = scan_tex(raw_text)
+
     text, security_scan = sanitize_and_scan_manuscript(raw_text)
-    hidden_runs = backend_meta.pop("hidden_text_runs", None) or []
-    if hidden_runs:
-        security_scan["hidden_formatted_text_runs"] = len(hidden_runs)
-        security_scan["suspicious_patterns"] = [
-            {"category": "hidden_formatted_text", "matched_text": t} for t in hidden_runs
-        ] + security_scan["suspicious_patterns"]
-        security_scan["suspicious_prompt_injection_count"] += len(hidden_runs)
-        security_scan["is_clean"] = False
+    merge_into_security_scan(security_scan, hidden_findings)
 
     out_text = Path(args.output_text).resolve()
     out_text.parent.mkdir(parents=True, exist_ok=True)
