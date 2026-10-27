@@ -82,6 +82,17 @@ def test_compile_is_idempotent(tmp_path, monkeypatch):
     }
 
 
+def test_dois_quoted_from_manuscript_are_not_flagged(tmp_path, monkeypatch):
+    # Regression (real run): reviewers quoting the manuscript's own malformed DOIs
+    # (e.g. "ref. 7 (10.1038/s41598-01819982-y)") were flagged as hallucinated citations.
+    (tmp_path / "paper_text.txt").write_text("References\n7. Sci Rep. doi:10.1038/NATURE12373\n", encoding="utf-8")
+    (tmp_path / "review_alfa.md").write_text(REVIEW.format(seed="a" * 32, verdict="Major revision"), encoding="utf-8")
+    results = _run(tmp_path, monkeypatch)
+    audit = results["reviewer_citation_audit"]
+    assert audit["flagged_reviewers"] == {}
+    assert audit["manuscript_dois_quoted"] == {"alfa": ["10.1038/nature12373"]}
+
+
 def test_verdict_variants():
     cases = {
         "### Verdict\n**Major revision** — weak stats.": "Major revision",

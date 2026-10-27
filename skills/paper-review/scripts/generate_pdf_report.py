@@ -99,8 +99,13 @@ def _clean_markdown_for_pdf(text: str) -> str:
     return text.strip()
 
 
-def assemble_consolidated_markdown(output_dir: Path) -> tuple[str, dict[str, Any]]:
-    """Assemble all review artifacts into a single standardized Markdown document."""
+def assemble_consolidated_markdown(output_dir: Path, ai_disclosure: bool = True) -> tuple[str, dict[str, Any]]:
+    """Assemble all review artifacts into a single standardized Markdown document.
+
+    With ``ai_disclosure=False`` the AI-assistance notice and the "(AI-assisted draft)" author
+    label are left out; the human referee then remains responsible for any disclosure the
+    journal's policy requires.
+    """
     results_json_path = output_dir / "results.json"
     results: dict[str, Any] = {}
     if results_json_path.exists():
@@ -125,7 +130,7 @@ def assemble_consolidated_markdown(output_dir: Path) -> tuple[str, dict[str, Any
         "---",
         "title: 'ACADEMIC PEER REVIEW & EDITORIAL REPORT'",
         "subtitle: 'Consolidated Blind Panel Evaluation & Scientific Integrity Audit'",
-        "author: 'Editorial Review Panel (AI-assisted draft)'",
+        f"author: '{'Editorial Review Panel (AI-assisted draft)' if ai_disclosure else 'Editorial Review Panel'}'",
         "date: '\\today'",
         "geometry: 'margin=2.2cm'",
         "header-includes:",
@@ -179,7 +184,9 @@ def assemble_consolidated_markdown(output_dir: Path) -> tuple[str, dict[str, Any
             for doi in flagged.get(code, []):
                 doc.append(f"- Reviewer {code.capitalize()}: `{_md_cell(doi)}`")
 
-    doc.extend(["", AI_ASSISTANCE_NOTICE, "", "---", ""])
+    if ai_disclosure:
+        doc.extend(["", AI_ASSISTANCE_NOTICE])
+    doc.extend(["", "---", ""])
 
     # Part 1: Editorial Meta-Review
     meta_path = output_dir / "meta_review.md"
@@ -411,12 +418,14 @@ def render_with_reportlab(markdown_content: str, output_pdf_path: Path, results:
     return output_pdf_path.exists() and output_pdf_path.stat().st_size > 1000
 
 
-def generate_pdf_report(output_dir: str | Path, output_pdf: str | Path | None = None) -> Path:
+def generate_pdf_report(
+    output_dir: str | Path, output_pdf: str | Path | None = None, ai_disclosure: bool = True
+) -> Path:
     """Generate standardized PDF peer review report from review artifacts."""
     out_dir = Path(output_dir).resolve()
     pdf_path = Path(output_pdf).resolve() if output_pdf else out_dir / "editorial_peer_review_report.pdf"
 
-    markdown_content, results = assemble_consolidated_markdown(out_dir)
+    markdown_content, results = assemble_consolidated_markdown(out_dir, ai_disclosure=ai_disclosure)
     consolidated_md_path = out_dir / "consolidated_editorial_report.md"
     consolidated_md_path.write_text(markdown_content, encoding="utf-8")
 
@@ -439,6 +448,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Generate standardized PDF academic peer review report.")
     parser.add_argument("--output-dir", required=True, help="Directory containing review artifacts.")
     parser.add_argument("--output-pdf", help="Optional output PDF path (defaults to editorial_peer_review_report.pdf).")
+    parser.add_argument(
+        "--no-ai-disclosure",
+        action="store_true",
+        help="Omit the AI-assistance disclosure from the report (the referee handles disclosure).",
+    )
     args = parser.parse_args()
 
     out_dir = Path(args.output_dir).resolve()
@@ -446,7 +460,7 @@ def main() -> int:
         print(f"Error: Output directory not found: {out_dir}", file=sys.stderr)
         return 1
 
-    generate_pdf_report(out_dir, args.output_pdf)
+    generate_pdf_report(out_dir, args.output_pdf, ai_disclosure=not args.no_ai_disclosure)
     return 0
 
 

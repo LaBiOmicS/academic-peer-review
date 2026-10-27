@@ -51,6 +51,14 @@ def test_assembled_markdown_is_well_formed(tmp_path):
     assert "| =x \\| y | X |" in md
 
 
+def test_ai_disclosure_can_be_omitted(tmp_path):
+    _make_bundle(tmp_path)
+    md, _ = assemble_consolidated_markdown(tmp_path, ai_disclosure=False)
+    assert AI_ASSISTANCE_NOTICE not in md
+    assert "AI-assisted draft" not in md
+    assert "author: 'Editorial Review Panel'" in md
+
+
 def test_reportlab_fallback_handles_markup_and_front_matter(tmp_path):
     pytest.importorskip("reportlab")
     _make_bundle(tmp_path)

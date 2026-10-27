@@ -186,6 +186,7 @@ uv run $SKILL_DIR/scripts/spawn_reviewers.py \
 # 4. Compilação dos pareceres, auditoria reversa de citações e tabela de preocupações
 uv run $SKILL_DIR/scripts/compile_results.py \
   --output-dir "$OUT_DIR"
+# Opcional: --no-ai-disclosure remove do PDF o aviso de revisão assistida por IA
 ```
 
 ---
@@ -267,7 +268,7 @@ Developed at **LaBiOmicS / UMC** under the leadership of **Prof. Dr. Fabiano Bez
    - Classification is keyword-based. When the evidence for an axis is weak, the axis is flagged `needs_confirmation` and the agent checks the title, abstract and methods before building the panel (asking the user in interactive sessions). Axes set explicitly are not re-evaluated.
 2. **Professional Referee Voice & AI-Assistance Transparency (Trilingual: EN / PT / ES)**:
    - Reports use an authoritative academic referee voice in the manuscript's language (English, Portuguese, or Spanish), without chatbot phrasing or internal tool names.
-   - Reports are **AI-assisted drafts** that a human referee or editor must verify and sign off on; the final PDF carries an **AI-assistance disclosure**.
+   - Reports are **AI-assisted drafts** that a human referee or editor must verify and sign off on; the final PDF carries an **AI-assistance disclosure** by default (`compile_results.py --no-ai-disclosure` omits it; disclosure to the journal then remains the referee's responsibility).
    - **Confidentiality**: before uploading an unpublished manuscript to an AI service, confirm that the journal's peer-review policy allows it (COPE, ICMJE and many publishers restrict this and require disclosure).
 3. **Pragmatic FAIR & Reproducibility Audit**:
    - Detects and flags evasive *"data available upon request"* statements.

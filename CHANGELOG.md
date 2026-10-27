@@ -2,6 +2,14 @@
 
 Todas as mudanças relevantes deste plugin. O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [SemVer](https://semver.org/lang/pt-BR/).
 
+## [Não lançado]
+
+### Adicionado
+- Opção `--no-ai-disclosure` em `compile_results.py` e `generate_pdf_report.py` para gerar o PDF sem o aviso de revisão assistida por IA. O aviso continua ativo por padrão.
+
+### Corrigido
+- A auditoria reversa de citações não acusa mais como alucinação os DOIs que os pareceristas copiam do próprio manuscrito (por exemplo, para apontar um DOI malformado nas referências). Eles ficam em `manuscript_dois_quoted` no `results.json`, já que a auditoria pré-revisão verifica os DOIs do manuscrito.
+
 ## [1.0.0] — 2026-10-26
 
 Primeira versão pública e estável.

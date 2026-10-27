@@ -145,13 +145,31 @@ def _sanitize_csv_cell(val: str) -> str:
     return cleaned
 
 
-def verify_reviewer_citations(reviewer_metadata: dict[str, Any], max_checks: int = 100) -> dict[str, Any]:
-    """Audit external DOIs cited by reviewers (batched OpenAlex lookup) to detect hallucinated references."""
+def manuscript_dois(paper_text: str) -> set[str]:
+    """DOIs printed in the manuscript itself, normalized like reviewer citations."""
+    return {d for m in DOI_CITE_REGEX.finditer(paper_text) if (d := normalize_doi(m.group(1)))}
+
+
+def verify_reviewer_citations(
+    reviewer_metadata: dict[str, Any], max_checks: int = 100, paper_dois: set[str] | None = None
+) -> dict[str, Any]:
+    """Audit external DOIs cited by reviewers (batched OpenAlex lookup) to detect hallucinated references.
+
+    DOIs that also appear in the manuscript are quotes of its reference list (often to point out a
+    malformed DOI), not reviewer citations: they are reported separately and never flagged, since the
+    pre-review audit already verifies the manuscript's own DOIs.
+    """
+    paper_dois = paper_dois or set()
     reviewer_dois: dict[str, list[str]] = {}
+    quoted_from_manuscript: dict[str, list[str]] = {}
     all_dois: list[str] = []
 
     for code, meta in reviewer_metadata.items():
         c_dois = sorted({c[4:] for c in meta.get("external_citations", []) if c.startswith("DOI:")})
+        quoted = [d for d in c_dois if d in paper_dois]
+        c_dois = [d for d in c_dois if d not in paper_dois]
+        if quoted:
+            quoted_from_manuscript[code] = quoted
         if c_dois:
             reviewer_dois[code] = c_dois
             all_dois.extend(c_dois)
@@ -175,6 +193,7 @@ def verify_reviewer_citations(reviewer_metadata: dict[str, Any], max_checks: int
         "unresolvable_dois": unresolvable,
         "unchecked_dois": res["unchecked"],
         "flagged_reviewers": hallucinating_reviewers,
+        "manuscript_dois_quoted": quoted_from_manuscript,
     }
 
 
@@ -293,6 +312,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Compile peer review outputs into CSV and results.json.")
     parser.add_argument("--output-dir", required=True, help="Directory containing review_*.md and meta_review.md.")
     parser.add_argument("--skip-pdf", action="store_true", help="Skip compiling the standardized PDF report.")
+    parser.add_argument(
+        "--no-ai-disclosure",
+        action="store_true",
+        help="Omit the AI-assistance disclosure from the PDF report (the referee handles disclosure).",
+    )
     args = parser.parse_args()
 
     out_dir = Path(args.output_dir).resolve()
@@ -359,7 +383,13 @@ def main() -> int:
 
     verdicts_list = [reviewer_metadata[c]["verdict"] for c in codenames]
     consensus = compute_consensus_verdict(verdicts_list)
-    reviewer_citation_audit = verify_reviewer_citations(reviewer_metadata)
+    paper_text_path = out_dir / "paper_text.txt"
+    paper_dois = (
+        manuscript_dois(paper_text_path.read_text(encoding="utf-8", errors="replace"))
+        if paper_text_path.exists()
+        else set()
+    )
+    reviewer_citation_audit = verify_reviewer_citations(reviewer_metadata, paper_dois=paper_dois)
 
     results_payload = {
         "individual_reviews": individual_reviews,
@@ -393,7 +423,7 @@ def main() -> int:
 
     if not args.skip_pdf and generate_pdf_report:
         try:
-            generate_pdf_report(out_dir)
+            generate_pdf_report(out_dir, ai_disclosure=not args.no_ai_disclosure)
         except Exception as e:
             print(f"Notice: Automatic PDF generation encountered: {e}", file=sys.stderr)
 
