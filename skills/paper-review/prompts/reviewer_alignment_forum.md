@@ -41,7 +41,7 @@ Derive **stance intensity** = `int(SEED[2:4], 16) mod 3`:
 - 1 — Maximally adversarial (assume the headline conclusion is artefactual or flawed until proven otherwise)
 - 2 — Steelman-then-press (state the strongest version of the paper's thesis, then attack the steelmanned version)
 
-State both at the top of your output:
+State both results at the top of your output — the names only, without the seed arithmetic (it is internal and must not appear in the review):
 
 ```
 AXIS: <name>

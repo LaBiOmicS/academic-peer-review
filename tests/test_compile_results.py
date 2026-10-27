@@ -104,3 +104,16 @@ def test_stale_reviews_outside_manifest_are_ignored(tmp_path, monkeypatch):
     results = _run(tmp_path, monkeypatch)
     assert set(results["verdict_summary"]["per_reviewer"]) == {"alfa", "beta"}
     assert results["verdict_summary"]["consensus"] == "Accept"
+
+
+def test_seed_arithmetic_is_stripped_from_lens_and_stance():
+    # Regression (real run): "LENS: Algorithmic & numerical reproducibility (int("46",16) = 70; 70 mod 6 = 4)"
+    # leaked the internal seed mechanics into the PDF panel table.
+    from compile_results import parse_single_review
+
+    meta = parse_single_review(
+        'SEED: 46ab12cd34ef5678\nLENS: Algorithmic & numerical reproducibility (int("46",16) = 70; 70 mod 6 = 4)\n'
+        "STANCE: Adversarial — int(SEED[2:4], 16) mod 3 = 1\n\n### Verdict\n**Reject** — x.\n"
+    )
+    assert meta["lens_or_axis"] == "Algorithmic & numerical reproducibility"
+    assert meta["stance"] == "Adversarial"

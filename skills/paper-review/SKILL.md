@@ -81,7 +81,7 @@ $PY {skill_dir}/scripts/extract_paper.py \
 
 The classification is keyword-based. When the extraction output (`classification`) reports `"needs_confirmation": true`, the evidence for the axes in `low_confidence_axes` was inconclusive, and a wrong axis sends reviewers after the wrong reporting standards (e.g. trial registration for a cross-sectional study). Skip this step for any axis the user set explicitly.
 
-1. Read the title, abstract and methods in `<output_dir>/paper_text.txt` and choose the right code for each flagged axis (codes in the Inputs table). Fix the article type too if it is plainly wrong.
+1. Read the title, abstract and methods in `<output_dir>/paper_text.txt` and choose the right code for each flagged axis (`area`, `article_type`, `research_approach`; codes in the Inputs table). Fix an unflagged axis too if it is plainly wrong.
 2. **Interactive session**: ask the user once to confirm, offering your choice first and the runner-up second (Claude Code: `AskUserQuestion`; Antigravity: ask in chat). **Headless / non-interactive run**: use your own choice without asking.
 3. Use the confirmed codes as `<area>`, `<article_type>` and `<research_approach>` in every later step (re-running the extraction is not needed), and say in Step 6 that the classification was confirmed or corrected.
 

@@ -483,7 +483,7 @@ RESEARCH_APPROACH_DEFINITIONS: dict[str, dict[str, Any]] = {
         "guidelines": ["ICZN / ICN / ICTV / ICNP", "Darwin Core"],
         "exempt_from_inferential_stats": False,
         "patterns": [
-            r"\b(?:field\s+experiment|randomized\s+complete\s+block|split-plot|transect\w*|quadrat\w*|voucher\s+specimen|herbarium|holotype|paratype|ICZN|delineamento\s+em\s+blocos\s+casualizados|\bDBC\b|inventário\s+florestal|amostragem\s+em\s+campo)\b",
+            r"\b(?:field\s+experiment|randomized\s+complete\s+block|split-plot|transect\w*|quadrats?|voucher\s+specimen|herbarium|holotype|paratype|ICZN|delineamento\s+em\s+blocos\s+casualizados|\bDBC\b|inventário\s+florestal|amostragem\s+em\s+campo)\b",
         ],
         "micro_rubric": (
             "- **Research Approach (`field_ecological_agronomic`)**: Audit spatial/seasonal replication (avoiding site pseudoreplication), "
@@ -706,8 +706,11 @@ def classify_article_type(text: str, explicit_type: str = "auto") -> dict[str, A
                 "guidelines": spec["guidelines"],
                 "exempt_from_inferential_stats": spec["exempt_from_inferential_stats"],
                 "matched_signals": ["explicit_override"],
+                "confidence": 1.0,
             }
 
+    # Cited titles ("...: a scoping review") say nothing about this paper's type.
+    text = strip_reference_list(text)
     head_text = text[:6000]
     type_scores: dict[str, int] = {}
     matched_signals: dict[str, list[str]] = {}
@@ -730,13 +733,23 @@ def classify_article_type(text: str, explicit_type: str = "auto") -> dict[str, A
             type_scores[code] = score
             matched_signals[code] = matches[:8]
 
-    if type_scores:
-        if "meta_analysis" in type_scores and type_scores["meta_analysis"] >= 2:
-            best_type = "meta_analysis"
-        else:
-            best_type = max(type_scores.items(), key=lambda kv: kv[1])[0]
+    best_score = max(type_scores.values(), default=0)
+    if type_scores and "meta_analysis" in type_scores and type_scores["meta_analysis"] >= 2:
+        best_type = "meta_analysis"
+    elif best_score >= MIN_ARTICLE_TYPE_EVIDENCE:
+        best_type = max(type_scores.items(), key=lambda kv: kv[1])[0]
     else:
+        # A stray mention in the body (not the title/abstract) is not enough to leave the default.
         best_type = "original_research"
+
+    if best_type == "original_research":
+        # Weaker competing signals make the default less certain.
+        confidence = round(1.0 - 0.5 * min(1.0, best_score / MIN_ARTICLE_TYPE_EVIDENCE), 2)
+    else:
+        confidence = round(
+            type_scores[best_type] / sum(type_scores.values()) * min(1.0, type_scores[best_type] / (2 * MIN_ARTICLE_TYPE_EVIDENCE)),
+            2,
+        )
 
     spec = ARTICLE_TYPE_DEFINITIONS[best_type]
     return {
@@ -745,6 +758,7 @@ def classify_article_type(text: str, explicit_type: str = "auto") -> dict[str, A
         "guidelines": spec["guidelines"],
         "exempt_from_inferential_stats": spec["exempt_from_inferential_stats"],
         "matched_signals": matched_signals.get(best_type, []),
+        "confidence": confidence,
     }
 
 
@@ -790,6 +804,9 @@ DESIGN_DECLARATIONS = {
     "mixed_methods": re.compile(r"\bmixed[\s-]methods?\s+(?:study|design|approach)\b|\bmétodos\s+mistos\b", re.IGNORECASE),
 }
 DESIGN_DECLARATION_WEIGHT = 25
+# One title/abstract hit scores 5 (4 + 1); body-only mentions need several.
+MIN_ARTICLE_TYPE_EVIDENCE = 5
+MIN_APPROACH_EVIDENCE = 25
 
 
 def classify_research_approach(text: str, best_area: str, explicit_approach: str = "auto") -> dict[str, Any]:
@@ -822,7 +839,9 @@ def classify_research_approach(text: str, best_area: str, explicit_approach: str
 
     if scores:
         best_approach = max(scores.items(), key=lambda kv: kv[1])[0]
-        confidence = round(scores[best_approach] / sum(scores.values()), 2)
+        # A lead built on a handful of hits (e.g. "mice" in a modelling paper) is not evidence of design.
+        evidence = min(1.0, scores[best_approach] / MIN_APPROACH_EVIDENCE)
+        confidence = round(scores[best_approach] / sum(scores.values()) * evidence, 2)
     else:
         confidence = 0.0  # no design signal at all: area default below
         default_by_area = {
@@ -894,6 +913,7 @@ def compose_rubric(area_info: dict[str, Any]) -> str:
 
 AREA_CONFIDENCE_THRESHOLD = 0.7
 APPROACH_CONFIDENCE_THRESHOLD = 0.6
+ARTICLE_TYPE_CONFIDENCE_THRESHOLD = 0.6
 
 
 def classify_manuscript(
@@ -945,6 +965,8 @@ def classify_manuscript(
     low_confidence_axes = []
     if confidence < AREA_CONFIDENCE_THRESHOLD:
         low_confidence_axes.append("area")
+    if article_type["confidence"] < ARTICLE_TYPE_CONFIDENCE_THRESHOLD:
+        low_confidence_axes.append("article_type")
     if research_approach["confidence"] < APPROACH_CONFIDENCE_THRESHOLD:
         low_confidence_axes.append("research_approach")
 

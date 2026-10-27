@@ -74,6 +74,17 @@ FALLBACK_JSON_REGEX = re.compile(
 )
 
 
+# Seed arithmetic a reviewer may echo after its lens/stance ("(int(\"46\",16) = 70; 70 mod 6 = 4)").
+SEED_ARITHMETIC_REGEX = re.compile(r"\s*[(\[—–-]*\s*(?:int\(|\d+\s*mod\s*\d|SEED\[).*$", re.IGNORECASE)
+
+
+def _clean_label(value: str | None) -> str | None:
+    if not value:
+        return None
+    cleaned = SEED_ARITHMETIC_REGEX.sub("", value).strip(" *`")
+    return cleaned or None
+
+
 def parse_single_review(text: str) -> dict[str, Any]:
     seed_m = SEED_REGEX.search(text)
     lens_m = LENS_REGEX.search(text)
@@ -116,8 +127,8 @@ def parse_single_review(text: str) -> dict[str, Any]:
 
     return {
         "seed": seed_m.group(1).strip() if seed_m else None,
-        "lens_or_axis": lens_m.group(1).strip() if lens_m else None,
-        "stance": stance_m.group(1).strip() if stance_m else None,
+        "lens_or_axis": _clean_label(lens_m.group(1)) if lens_m else None,
+        "stance": _clean_label(stance_m.group(1)) if stance_m else None,
         "verdict": verdict,
         "verdict_reason": verdict_reason,
         "external_citations": sorted(cited_ids),

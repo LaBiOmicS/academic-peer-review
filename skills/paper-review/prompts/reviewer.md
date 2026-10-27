@@ -42,7 +42,7 @@ Then deterministically derive two parameters from that seed using the **Area-Spe
 - 1 — Adversarial (assume the headline claim/conclusion is artefactual or flawed; what would falsify it?)
 - 2 — Steelman-then-press (state the strongest version of the paper's argument, then attack from there)
 
-State both derivations explicitly at the top of your review:
+State both results at the top of your review — the names only, without the seed arithmetic (it is internal and must not appear in the review):
 
 ```
 LENS: <name>

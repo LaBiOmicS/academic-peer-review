@@ -91,72 +91,91 @@ FIGURE_CAPTION_REGEX = re.compile(r"(?im)^\s*(?:Figure|Fig\.?|Figura)\s*(\d+[A-Z
 TABLE_CAPTION_REGEX = re.compile(r"(?im)^\s*(?:Table|Tab\.?|Tabela|Quadro)\s*(\d+[A-Za-z]?)[\s.:—-]+([^\n]{10,250})")
 
 
-def extract_pdf(path: Path) -> tuple[str, dict[str, Any]]:
-    meta: dict[str, Any] = {"backend": None, "pages": 0}
+GOOD_GLUED_RATIO = 0.005
 
-    try:
-        import fitz  # type: ignore
 
-        doc = fitz.open(str(path))
-        meta["backend"] = "pymupdf"
-        meta["pages"] = len(doc)
-        pages_text = []
-        for idx, page in enumerate(doc, start=1):
-            pages_text.append(f"\n--- [Page {idx}] ---\n" + page.get_text("text"))
-        text = "\n".join(pages_text)
-        if len(text.strip()) >= 500:
-            return text, meta
-    except Exception:
-        pass
+def glued_word_ratio(text: str) -> float:
+    """Share of alphabetic tokens of 20+ letters: words whose separating spaces were lost."""
+    words = re.findall(r"[A-Za-zÀ-ÿ]+", text)
+    if not words:
+        return 1.0
+    return sum(1 for w in words if len(w) >= 20) / len(words)
 
-    try:
-        import pdfplumber  # type: ignore
 
-        with pdfplumber.open(str(path)) as pdf:
-            meta["backend"] = "pdfplumber"
-            meta["pages"] = len(pdf.pages)
-            pages_text = []
-            for idx, page in enumerate(pdf.pages, start=1):
-                pages_text.append(f"\n--- [Page {idx}] ---\n" + (page.extract_text() or ""))
-            text = "\n".join(pages_text)
-            if len(text.strip()) >= 500:
-                return text, meta
-    except Exception:
-        pass
+def _with_page_markers(pages: list[str]) -> str:
+    return "\n".join(f"\n--- [Page {i}] ---\n{t}" for i, t in enumerate(pages, start=1))
 
-    try:
-        from pypdf import PdfReader  # type: ignore
 
-        reader = PdfReader(str(path))
-        meta["backend"] = "pypdf"
-        meta["pages"] = len(reader.pages)
-        pages_text = []
-        for idx, page in enumerate(reader.pages, start=1):
-            pages_text.append(f"\n--- [Page {idx}] ---\n" + (page.extract_text() or ""))
-        text = "\n".join(pages_text)
-        if len(text.strip()) >= 500:
-            return text, meta
-    except Exception:
-        pass
+def _read_pymupdf(path: Path) -> tuple[str, int]:
+    import fitz  # type: ignore
 
-    if shutil.which("pdftotext"):
-        try:
-            proc = subprocess.run(
-                ["pdftotext", "-layout", "--", str(path), "-"],
-                capture_output=True,
-                text=True,
-                check=True,
-                timeout=60,
-            )
-            meta["backend"] = "pdftotext"
-            meta["pages"] = proc.stdout.count("\f") + 1
-            return proc.stdout, meta
-        except Exception:
-            pass
+    with fitz.open(str(path)) as doc:
+        pages = [page.get_text("text") for page in doc]
+    return _with_page_markers(pages), len(pages)
 
-    raise RuntimeError(
-        f"Failed to extract text from PDF {path}. Ensure pypdf, pymupdf, or pdftotext is installed."
+
+def _read_pdftotext(path: Path) -> tuple[str, int]:
+    if not shutil.which("pdftotext"):
+        raise RuntimeError("pdftotext not installed")
+    # Reading-order mode (no -layout): -layout interleaves the lines of two-column pages.
+    proc = subprocess.run(
+        ["pdftotext", "-enc", "UTF-8", "--", str(path), "-"],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=60,
     )
+    pages = proc.stdout.split("\f")
+    if pages and not pages[-1].strip():
+        pages.pop()
+    return _with_page_markers(pages), len(pages)
+
+
+def _read_pdfplumber(path: Path) -> tuple[str, int]:
+    import pdfplumber  # type: ignore
+
+    with pdfplumber.open(str(path)) as pdf:
+        pages = [page.extract_text() or "" for page in pdf.pages]
+    return _with_page_markers(pages), len(pages)
+
+
+def _read_pypdf(path: Path) -> tuple[str, int]:
+    from pypdf import PdfReader  # type: ignore
+
+    pages = [page.extract_text() or "" for page in PdfReader(str(path)).pages]
+    return _with_page_markers(pages), len(pages)
+
+
+_PDF_BACKENDS = (
+    ("pymupdf", _read_pymupdf),
+    ("pdftotext", _read_pdftotext),
+    ("pdfplumber", _read_pdfplumber),
+    ("pypdf", _read_pypdf),
+)
+
+
+def extract_pdf(path: Path) -> tuple[str, dict[str, Any]]:
+    candidates: list[tuple[str, str, int]] = []  # (backend, text, pages)
+    for backend, reader in _PDF_BACKENDS:
+        try:
+            text, pages = reader(path)
+        except Exception:  # noqa: BLE001 - a missing or failing backend just yields no candidate
+            continue
+        if len(text.strip()) < 500:
+            continue
+        candidates.append((backend, text, pages))
+        if glued_word_ratio(text) <= GOOD_GLUED_RATIO:
+            break
+
+    if not candidates:
+        raise RuntimeError(
+            f"Failed to extract text from PDF {path}. Ensure pymupdf, pdftotext, pdfplumber or pypdf is installed."
+        )
+    # Backends are tried in order of typical reading-order quality; when none is clean, the one
+    # with the fewest glued words wins (two-column LaTeX PDFs often lose inter-word spaces).
+    backend, text, pages = min(candidates, key=lambda c: glued_word_ratio(c[1]))
+    meta = {"backend": backend, "pages": pages, "glued_word_ratio": round(glued_word_ratio(text), 4)}
+    return text, meta
 
 
 def extract_docx(path: Path) -> tuple[str, dict[str, Any]]:
@@ -443,6 +462,7 @@ def main() -> int:
             "research_approach": structure["scientific_area"]["research_approach"]["approach_code"],
             "transversal_flags": structure["scientific_area"]["transversal_flags"],
             "area_confidence": structure["scientific_area"]["confidence"],
+            "article_type_confidence": structure["scientific_area"]["article_type"]["confidence"],
             "research_approach_confidence": structure["scientific_area"]["research_approach"]["confidence"],
             "needs_confirmation": structure["scientific_area"]["needs_confirmation"],
             "low_confidence_axes": structure["scientific_area"]["low_confidence_axes"],

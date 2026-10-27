@@ -100,3 +100,41 @@ def test_explicit_axes_never_ask_for_confirmation():
 def test_clear_design_does_not_ask_for_confirmation():
     text = "We conducted a randomised controlled trial of 200 patients with hypertension; placebo arm; hospital clinic. " * 3
     assert not classify_manuscript(text)["needs_confirmation"]
+
+
+def test_thin_design_evidence_asks_for_confirmation():
+    # Regression (real arXiv modelling paper): a few mentions of "mice" made it "experimental_lab"
+    # with high confidence although no experiment was described.
+    text = "We reanalyse published time series from two mice using spectral and Fourier surrogate methods. " * 3
+    result = classify_manuscript(text)
+    assert "research_approach" in result["low_confidence_axes"]
+
+
+def test_quadratically_is_not_a_field_quadrat():
+    assert "field_ecological_agronomic" != classify_manuscript(
+        "The error grows quadratically with the step size of the numerical solver. " * 4
+    )["research_approach"]["approach_code"]
+
+
+def test_article_type_ignores_cited_titles():
+    # Regression (real SciELO-style paper): "uma revisão de escopo" in a cited title made an empirical
+    # interview study a scoping review.
+    body = (
+        "Resumo: Esta pesquisa qualitativa analisou entrevistas com pessoas idosas após oficinas de canto coral, "
+        "com análise de conteúdo de Bardin. " * 4
+    )
+    refs = "\n\nREFERÊNCIAS\n" + "LOPES, R. F. et al. As emoções na maturidade: uma revisão de escopo. Research, 2021.\n" * 3
+    result = classify_manuscript(body + refs)
+    assert result["article_type"]["type_code"] == "original_research"
+
+
+def test_single_body_mention_does_not_change_article_type():
+    text = ("We measured outcomes in 80 participants. " * 200) + "As noted in a previous scoping review, results vary."
+    assert classify_manuscript(text)["article_type"]["type_code"] == "original_research"
+
+
+def test_weak_article_type_signal_asks_for_confirmation():
+    text = "Title: a scoping review of choral singing. " + "Participants sang in a choir and were interviewed. " * 200
+    result = classify_manuscript(text)
+    assert result["article_type"]["type_code"] == "scoping_review"
+    assert "article_type" in result["low_confidence_axes"]

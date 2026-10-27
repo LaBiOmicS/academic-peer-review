@@ -39,7 +39,7 @@ Derive **stance intensity** = `int(SEED[2:4], 16) mod 3`:
 - 1 — Adversarial verification attempt (imagine trying to replicate or audit this tomorrow; where does it break?)
 - 2 — Steelman-then-audit (evaluate whether the manuscript's artifacts deliver on its strongest promised contribution)
 
-State both at the top of your output:
+State both results at the top of your output — the names only, without the seed arithmetic (it is internal and must not appear in the review):
 
 ```
 LENS: <name>

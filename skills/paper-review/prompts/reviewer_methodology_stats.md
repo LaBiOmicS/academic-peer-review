@@ -34,7 +34,7 @@ Derive **stance intensity** = `int(SEED[2:4], 16) mod 3`:
 - 1 — Adversarial methodologist (assume reported effects, proofs, or interpretations are methodological artefacts until proven otherwise)
 - 2 — Steelman-then-stress-test (grant the conceptual setup, then stress-test the analytical execution)
 
-State both at the top of your output:
+State both results at the top of your output — the names only, without the seed arithmetic (it is internal and must not appear in the review):
 
 ```
 LENS: <name>
