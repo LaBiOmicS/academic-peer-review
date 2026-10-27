@@ -25,6 +25,7 @@ Desenvolvido no **LaBiOmicS / UMC** sob coordenação do **Prof. Dr. Fabiano Bez
    - **Eixo 1 — 5 Grandes Áreas (`--area`)**: Biológicas/Ômicas/Agrárias, Saúde/Clínica, Exatas e da Terra, Engenharias e Humanas/Sociais.
    - **Eixo 2 — 15 Tipologias de Artigo (`--article-type`)**: Artigo Original, Revisão Sistemática, Metanálise, Scoping Review, Revisão Integrativa, Revisão Narrativa, Bibliometria, Diretriz Clínica/Consenso Delphi, Relato/Estudo de Caso, Data Paper, Software Paper, Protocolo, Ensaio Teórico e Comunicação Breve.
    - **Eixo 3 — 12 Abordagens de Pesquisa (`--research-approach`)**: Ensaio Clínico, Biomarcadores/Diagnóstico, Epidemiológico/Observacional, Campo/Ecológico/Agronômico, Bancada/Experimental, Computacional/In Silico, Quantitativo/Estatístico, Qualitativo, Métodos Mistos, DSR/Pesquisa-Ação, Documental/Histórico e Teórico-Formal.
+   - **Confirmação quando incerta**: a classificação é por palavras-chave. Quando a evidência de um eixo é fraca, ele é marcado como `needs_confirmation`, e o agente confere o título, o resumo e os métodos antes de montar o painel (em sessão interativa, pergunta ao usuário). Os eixos passados explicitamente não são reavaliados.
    - **Diretrizes Transversais**: Checagem automática de equidade de sexo/gênero (**SAGER**) e IA biomédica (**TRIPOD+AI / CONSORT-AI / CLAIM**).
 
 2. **Voz Profissional de Parecerista & Transparência sobre IA (Trilíngue: PT / EN / ES)**:
@@ -47,7 +48,7 @@ Desenvolvido no **LaBiOmicS / UMC** sob coordenação do **Prof. Dr. Fabiano Bez
 5. **Blindagem Ativa Contra Alucinações**:
    - **Âncora de Citação Literal (*Verbatim Anchor*)**: Obriga os pareceristas a citarem trechos literais exatos ao apontarem falhas metodológicas ou conceituais.
    - **Dupla Checagem contra Falsa Omissão (*Negative-Search Grounding*)**: Força varredura exaustiva por sinônimos antes de acusar que um tópico está ausente no manuscrito.
-   - **Auditoria Reversa de Citações no OpenAlex**: O compilador verifica ao vivo se os DOIs citados pelos próprios pareceristas são reais ou alucinados.
+   - **Auditoria Reversa de Citações no OpenAlex**: O compilador verifica ao vivo se os DOIs citados pelos próprios pareceristas são reais ou alucinados. DOIs ausentes do OpenAlex (comum em preprints recentes) são confirmados no registro do doi.org antes de serem tratados como inexistentes.
 
 6. **Validação de Escopo da Revista & Risco de Desk-Reject (`--journal`)**:
    - **Aderência a Aims & Scope**: Avalia a aderência temática e o nível de novidade conceitual/técnica frente ao perfil do periódico pretendido (via base de conhecimento curada e OpenAlex Sources API ao vivo).
@@ -70,7 +71,7 @@ Desenvolvido no **LaBiOmicS / UMC** sob coordenação do **Prof. Dr. Fabiano Bez
 - **`uv`** (recomendado): cada script declara suas dependências (PEP 723) e o `uv run` as instala isoladamente. Sem elas, a detecção de texto oculto em PDF/DOCX não roda, e a auditoria registra a verificação como **incompleta**.
 - **Utilitários Opcionais de Extração**:
   - `pandoc` (recomendado para DOCX, LaTeX e HTML).
-  - `pdftotext` (pacote `poppler-utils`, para extração otimizada de PDFs).
+  - `pdftotext` (pacote `poppler-utils`, para extração otimizada de PDFs). O extrator compara o resultado com o do `pypdf` e fica com o texto que tiver menos palavras coladas; o `pdftotext` roda em modo de leitura, que preserva a ordem das colunas.
 
 #### Custo e tempo
 Cada revisão consome tokens do modelo usado pelo agente: um parecer por parecerista, mais a metarrevisão. Como referência, uma revisão de um manuscrito curto (~1.000 palavras) com 3 pareceristas no Claude Sonnet custou cerca de **US$ 1** e levou poucos minutos. O custo cresce com o tamanho do manuscrito, o número de pareceristas (`num_reviewers`, de 3 a 8) e o modelo escolhido. Para reduzir, use `num_reviewers=3`.
@@ -137,6 +138,7 @@ Esta é a forma mais prática e natural. Basta abrir o chat da Antigravity, anex
 
 O agente coordenador executará automaticamente:
 1. Extração do texto completo e sanitização contra injeções de prompt (*Indirect Prompt Injection*).
+   - Se a classificação vier com confiança baixa, confirmação dos eixos pelo resumo e pelos métodos (com uma pergunta ao usuário, em sessão interativa).
 2. Pré-diagnóstico estatístico determinístico (`statcheck`), auditoria FAIR de repositórios/código, proveniência de IA e checagem de retratações na OpenAlex.
 3. Disparo paralelo de 4 pareceristas independentes (`Alfa`, `Beta`, `Gama`, `Delta`) com sementes e lentes distintas.
 4. Compilação dos pareceres, validação reversa de citações e geração da **Metarrevisão Editorial** com matriz de preocupações priorizadas.
@@ -262,6 +264,7 @@ Developed at **LaBiOmicS / UMC** under the leadership of **Prof. Dr. Fabiano Bez
 
 1. **3-Axis Composable Matrix**:
    - Classifies manuscripts across **5 Major Scientific Areas**, **15 Academic Article Types**, and **12 Research Approaches**, generating targeted (~12-line) micro-rubrics without polluting the prompt context.
+   - Classification is keyword-based. When the evidence for an axis is weak, the axis is flagged `needs_confirmation` and the agent checks the title, abstract and methods before building the panel (asking the user in interactive sessions). Axes set explicitly are not re-evaluated.
 2. **Professional Referee Voice & AI-Assistance Transparency (Trilingual: EN / PT / ES)**:
    - Reports use an authoritative academic referee voice in the manuscript's language (English, Portuguese, or Spanish), without chatbot phrasing or internal tool names.
    - Reports are **AI-assisted drafts** that a human referee or editor must verify and sign off on; the final PDF carries an **AI-assistance disclosure**.
@@ -270,7 +273,7 @@ Developed at **LaBiOmicS / UMC** under the leadership of **Prof. Dr. Fabiano Bez
    - Detects and flags evasive *"data available upon request"* statements.
    - Audits open repositories (Zenodo, GitHub, OSF, GEO/SRA), software dependency manifests (`requirements.txt`, `environment.yml`, Docker), and random seeds.
 4. **Anti-Hallucination Guardrails**:
-   - Enforces **Verbatim Anchoring** (mandatory direct quotes for criticisms), **Negative-Search Grounding** (double-check before claiming an element is omitted), and **Reverse Citation Checking** via OpenAlex in `compile_results.py`.
+   - Enforces **Verbatim Anchoring** (mandatory direct quotes for criticisms), **Negative-Search Grounding** (double-check before claiming an element is omitted), and **Reverse Citation Checking** via OpenAlex in `compile_results.py`. DOIs missing from OpenAlex (common for recent preprints) are confirmed against the doi.org registry before being treated as nonexistent.
 5. **Generative AI Provenance Audit (COPE / ICMJE / SciELO Standards)**:
    - Detects uncleaned chat artifacts, flags improper AI co-authorship, and measures synthetic stylistic tell densities.
 6. **Target Journal Scope & Desk-Reject Risk Audit (`--journal`)**:
@@ -286,7 +289,7 @@ Developed at **LaBiOmicS / UMC** under the leadership of **Prof. Dr. Fabiano Bez
 - **Python**: 3.10 or higher.
 - **Agent**: Antigravity CLI (`agy`) or Claude Code (`claude`), installed and authenticated.
 - **`uv`** (recommended): each script declares its dependencies (PEP 723) and `uv run` installs them in isolation. Without them the PDF/DOCX hidden-content checks cannot run, and the audit reports the scan as **incomplete**.
-- **Optional Tools**: `pandoc` (for DOCX/LaTeX) and `pdftotext` (for fast PDF extraction).
+- **Optional Tools**: `pandoc` (for DOCX/LaTeX) and `pdftotext` (for fast PDF extraction). The extractor compares its output with `pypdf` and keeps the text with fewer run-together words; `pdftotext` runs in reading mode, which keeps two-column layouts in order.
 
 #### Cost and time
 Each review spends tokens of the agent's model: one report per reviewer plus the meta-review. For reference, reviewing a short manuscript (~1,000 words) with 3 reviewers on Claude Sonnet cost about **US$ 1** and took a few minutes. Cost grows with manuscript length, the number of reviewers (`num_reviewers`, 3 to 8) and the model. To keep it down, use `num_reviewers=3`.

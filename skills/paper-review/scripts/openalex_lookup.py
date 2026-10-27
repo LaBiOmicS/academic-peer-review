@@ -76,9 +76,11 @@ def _doi_registered(doi: str, timeout: float) -> bool | None:
 
 
 def lookup_dois(dois: list[str], *, max_checks: int = 200, timeout: float = 10.0) -> dict[str, Any]:
-    """Look up DOIs in OpenAlex.
+    """Look up DOIs in OpenAlex, confirming the missing ones against the doi.org registry.
 
     Returns ``{"found": {doi: work}, "unresolvable": [doi], "unchecked": [doi], "invalid": [raw]}``.
+    ``unresolvable`` holds only DOIs that neither OpenAlex nor doi.org knows; registered DOIs that
+    OpenAlex lacks go to ``found`` with ``registry_only: True``.
     """
     ordered: list[str] = []
     invalid: list[str] = []

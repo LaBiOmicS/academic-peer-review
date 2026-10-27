@@ -19,6 +19,10 @@ Classifies any academic manuscript across three orthogonal dimensions:
 Also detects transversal triggers (`SAGER` sex/gender equity and `Clinical/Bio-AI`
 reporting guidelines: `TRIPOD+AI`, `CONSORT-AI`, `DECIDE-AI`, `CLAIM`) and composes
 a concise, non-redundant micro-rubric (~12 lines) injected into reviewer prompts.
+
+Every axis carries a ``confidence`` score that weighs both the margin over competing codes and
+the absolute amount of evidence. Axes below their threshold are listed in ``low_confidence_axes``
+and set ``needs_confirmation`` so the orchestrating agent can check them before the panel runs.
 """
 
 from __future__ import annotations
@@ -696,6 +700,11 @@ def resolve_research_approach_code(approach_hint: str | None) -> str | None:
 
 
 def classify_article_type(text: str, explicit_type: str = "auto") -> dict[str, Any]:
+    """Infer the article type, defaulting to ``original_research`` without enough evidence.
+
+    The reference list is ignored. ``confidence`` falls as competing signals grow (default type)
+    or as the winning type's evidence thins out.
+    """
     if explicit_type and explicit_type != "auto":
         forced = resolve_article_type_code(explicit_type)
         if forced:
@@ -810,6 +819,11 @@ MIN_APPROACH_EVIDENCE = 25
 
 
 def classify_research_approach(text: str, best_area: str, explicit_approach: str = "auto") -> dict[str, Any]:
+    """Infer the research approach; an explicit design declaration outweighs scattered keywords.
+
+    ``confidence`` is the winner's share of all scores, scaled down when its own score is below
+    ``MIN_APPROACH_EVIDENCE``. Without any signal, the area's default approach is used.
+    """
     if explicit_approach and explicit_approach != "auto":
         forced = resolve_research_approach_code(explicit_approach)
         if forced:
@@ -923,7 +937,10 @@ def classify_manuscript(
     explicit_article_type: str = "auto",
     explicit_research_approach: str = "auto",
 ) -> dict[str, Any]:
-    """Classify manuscript across all 3 orthogonal axes + transversal flags."""
+    """Classify manuscript across all 3 orthogonal axes + transversal flags.
+
+    Sets ``needs_confirmation`` and ``low_confidence_axes`` when any axis is below its threshold.
+    """
     forced_code = None
     if explicit_area and explicit_area != "auto":
         forced_code = resolve_area_code(explicit_area)

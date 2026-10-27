@@ -79,6 +79,7 @@ SEED_ARITHMETIC_REGEX = re.compile(r"\s*[(\[—–-]*\s*(?:int\(|\d+\s*mod\s*\d|
 
 
 def _clean_label(value: str | None) -> str | None:
+    """Strip echoed seed arithmetic and markdown emphasis from a LENS/STANCE value."""
     if not value:
         return None
     cleaned = SEED_ARITHMETIC_REGEX.sub("", value).strip(" *`")
