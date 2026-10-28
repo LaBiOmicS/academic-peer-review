@@ -32,16 +32,22 @@ copy_plugin_files() {
     fi
 }
 
+# Ferramentas em que o plugin foi registrado pelo próprio CLI, e avisos para o resumo final.
+INSTALLED=()
+NOTES=()
+
 echo "==> [3/4] Instalando e ativando no Antigravity CLI (Gemini)..."
 if command -v agy &> /dev/null; then
     agy plugin install "$PLUGIN_DIR"
     agy plugin enable academic-peer-review || true
     echo "✔ Plugin validado no Antigravity CLI:"
     agy plugin validate "$PLUGIN_DIR" --strict
+    INSTALLED+=("Antigravity CLI")
 else
     echo "Aviso: 'agy' CLI não encontrado no PATH. Copiando para diretórios padrão de plugins..."
     copy_plugin_files "$HOME/.gemini/antigravity-cli/plugins/academic-peer-review"
     copy_plugin_files "$HOME/.gemini/extensions/academic-peer-review"
+    NOTES+=("Antigravity/Gemini: arquivos copiados para ~/.gemini, sem validação nem ativação ('agy' não está no PATH).")
 fi
 
 echo "==> [4/4] Instalando no Claude Code (marketplace local 'labiomics')..."
@@ -49,17 +55,43 @@ if command -v claude &> /dev/null; then
     # Copiar arquivos para ~/.claude/plugins não registra o plugin; o caminho suportado é
     # registrar este diretório como marketplace e instalar a partir dele.
     claude plugin validate "$PLUGIN_DIR"
-    claude plugin marketplace add "$PLUGIN_DIR" 2>/dev/null || claude plugin marketplace update labiomics
+    # Se o repositório mudou de lugar, o marketplace continua apontando para o caminho antigo e o
+    # plugin deixa de carregar ("cache-miss"). Nesse caso o registro é refeito no caminho atual.
+    REGISTERED_PATH="$(claude plugin marketplace list --json 2>/dev/null | uv run --no-project python -c '
+import json, sys
+for m in json.load(sys.stdin):
+    if m.get("name") == "labiomics":
+        print(m.get("path") or m.get("installLocation") or "")
+' 2>/dev/null || true)"
+    if [ -n "$REGISTERED_PATH" ] && [ "$REGISTERED_PATH" != "$PLUGIN_DIR" ]; then
+        echo "Aviso: marketplace 'labiomics' registrado em $REGISTERED_PATH. Registrando de novo em $PLUGIN_DIR..."
+        claude plugin marketplace remove labiomics
+    fi
+    if [ "$REGISTERED_PATH" = "$PLUGIN_DIR" ]; then
+        claude plugin marketplace update labiomics
+    else
+        # Sem o caminho registrado (ex.: CLI sem --json), cai no comportamento anterior.
+        claude plugin marketplace add "$PLUGIN_DIR" || claude plugin marketplace update labiomics
+    fi
     claude plugin install academic-peer-review@labiomics
     echo "✔ Plugin instalado no Claude Code (reinicie a sessão para carregá-lo)."
+    INSTALLED+=("Claude Code")
 else
     echo "Aviso: 'claude' CLI não encontrado no PATH. Pulando integração com Claude Code."
+    NOTES+=("Claude Code: não instalado, 'claude' não está no PATH (rode este script de novo depois de instalá-lo).")
 fi
 
 echo ""
 echo "================================================================================"
-echo "✔ Instalação concluída com sucesso para Antigravity (Gemini) e Claude Code!"
-echo "  - Plugin registrado: academic-peer-review"
+if [ ${#INSTALLED[@]} -gt 0 ]; then
+    JOINED="$(printf '%s, ' "${INSTALLED[@]}")"
+    echo "✔ Plugin academic-peer-review registrado em: ${JOINED%, }"
+else
+    echo "Aviso: o plugin academic-peer-review não foi registrado em nenhum CLI."
+fi
+for note in "${NOTES[@]}"; do
+    echo "  - $note"
+done
 echo "  - Ambiente virtual uv: $PLUGIN_DIR/.venv"
 echo "  - Para testar: uv run skills/paper-review/scripts/stat_and_integrity_audit.py --help"
 echo "================================================================================"

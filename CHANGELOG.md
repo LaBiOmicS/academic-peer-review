@@ -9,6 +9,8 @@ Todas as mudanças relevantes deste plugin. O formato segue o [Keep a Changelog]
 
 ### Corrigido
 - A auditoria reversa de citações não acusa mais como alucinação os DOIs que os pareceristas copiam do próprio manuscrito (por exemplo, para apontar um DOI malformado nas referências). Eles ficam em `manuscript_dois_quoted` no `results.json`, já que a auditoria pré-revisão verifica os DOIs do manuscrito.
+- O `install.sh` informa ao final apenas os CLIs em que o plugin foi registrado. Quando falta o `agy` ou o `claude`, o resumo diz isso (a cópia de arquivos para `~/.gemini` não conta como instalação). Antes, anunciava sucesso para Antigravity e Claude Code mesmo quando um deles faltava.
+- O `install.sh` refaz o registro do marketplace `labiomics` quando ele aponta para outro diretório (ex.: depois de mover o repositório). Antes, o plugin deixava de carregar no Claude Code com o erro `cache-miss`.
 
 ## [1.0.0] — 2026-10-26
 
