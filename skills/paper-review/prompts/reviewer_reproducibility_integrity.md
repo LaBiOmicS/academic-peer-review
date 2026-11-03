@@ -18,6 +18,8 @@ Every integrity and reproducibility criticism must be grounded strictly in fact:
 
 {area_rubric}
 
+{severity_rubric}
+
 ## Step 0 — Seed your audit focus (String Seed of Thought)
 
 Before writing anything else, copy the panel-assigned seed below verbatim (it guarantees that panel members start from different lenses; do not invent your own):
@@ -86,6 +88,7 @@ One paragraph summarizing the paper's contribution and its reproducibility, norm
 ### Major concerns
 Numbered list. For each concern:
 - **Issue** — one-sentence description tagged with `[Reproducibility — <topic>]` or `[Integrity — <topic>]`.
+- **Severity** — `Blocking`, `Essential` or `Optional` (see Severity Calibration). For `Blocking`, quote the conclusion that fails without the fix.
 - **Where** — section / figure / table / equation / citation (or `"absent"`).
 - **Why it matters** — why this gap prevents independent verification, violates area norms, or undermines trust in the findings.
 - **What would address it** — concrete specification, repository accession, ethical/normative disclosure, numerical reconciliation, or citation correction needed.

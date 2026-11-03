@@ -506,12 +506,32 @@ OPENALEX_DOMAIN_AREAS = {
 }
 
 
-def _topic_in_text(topic: str, text_lower: str) -> bool:
+def _topic_words(topic: str) -> list[str]:
+    return [w for w in re.findall(r"[a-z][a-z-]{3,}", topic.lower()) if w not in _TOPIC_STOPWORDS]
+
+
+def _ubiquitous_topic_words(topics: list[dict[str, Any]]) -> frozenset[str]:
+    """Words shared by many of a journal's topics ("ecology" in an ecology journal).
+
+    Any manuscript in the journal's broad field contains them, so they cannot show a topic match.
+    """
+    names = [t.get("name", "") for t in topics]
+    if len(names) < 3:
+        return frozenset()
+    counts: dict[str, int] = {}
+    for name in names:
+        for w in set(_topic_words(name)):
+            counts[w] = counts.get(w, 0) + 1
+    limit = max(3, 0.4 * len(names))
+    return frozenset(w for w, c in counts.items() if c >= limit)
+
+
+def _topic_in_text(topic: str, text_lower: str, ignore: frozenset[str] = frozenset()) -> bool:
     """OpenAlex topic names are phrases ("Gut microbiota and health"): match them by content words."""
     topic_l = topic.lower()
     if re.search(rf"\b{re.escape(topic_l)}\b", text_lower):
         return True
-    words = [w for w in re.findall(r"[a-z][a-z-]{3,}", topic_l) if w not in _TOPIC_STOPWORDS]
+    words = [w for w in _topic_words(topic) if w not in ignore]
     if len(words) < 2:
         return False
     hits = sum(1 for w in words if re.search(rf"\b{re.escape(w.rstrip('s'))}", text_lower))
@@ -569,9 +589,12 @@ def audit_journal_scope(
     # --- 1. Topic & Keyword Matching ---
     matched_topics: list[str] = []
     all_topics = journal.get("topics", []) or journal.get("openalex_topics", [])
+    # Cited titles (e.g. "Journal of Environmental Management") are not the manuscript's topic.
+    body_lower = strip_reference_list(manuscript_text).lower()
+    shared_words = _ubiquitous_topic_words(all_topics)
     for top in all_topics:
         tname = top.get("name", "")
-        if len(tname) > 3 and _topic_in_text(tname, text_lower):
+        if len(tname) > 3 and _topic_in_text(tname, body_lower, shared_words):
             matched_topics.append(tname)
             adherence_points += 6
     if matched_topics:

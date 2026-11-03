@@ -96,6 +96,8 @@ def _clean_markdown_for_pdf(text: str) -> str:
     text = text.replace("</UNTRUSTED_MANUSCRIPT_CONTENT>", "")
     # Remove raw JSON block from meta_review if still present
     text = text.split("## CONCERNS_TABLE_DATA")[0]
+    # compile_results.py fences the audit figures with HTML comments, which ReportLab would print.
+    text = re.sub(r"<!--\s*audit-figures:(?:start|end)\s*-->\n?", "", text)
     return text.strip()
 
 
@@ -137,6 +139,8 @@ def assemble_consolidated_markdown(output_dir: Path, ai_disclosure: bool = True)
         "  - '\\usepackage{booktabs}'",
         "  - '\\usepackage{fancyhdr}'",
         "  - '\\pagestyle{fancy}'",
+        # Clear the default left/right marks (section titles), which overlap the centred header.
+        "  - '\\fancyhf{}'",
         "  - '\\fancyhead[CO,CE]{CONFIDENTIAL ACADEMIC PEER REVIEW}'",
         "  - '\\fancyfoot[C]{\\thepage}'",
         "---",
@@ -163,7 +167,7 @@ def assemble_consolidated_markdown(output_dir: Path, ai_disclosure: bool = True)
         "",
         "### Reviewer Panel Overview",
         "",
-        "| Reviewer | Recommendation | Dominant Analytical Lens | External Citations | Unresolvable DOIs |",
+        "| Reviewer | Recommendation | Dominant Analytical Lens | External Citations | Unresolvable IDs |",
         "|---|---|---|---|---|",
     ])
 
@@ -179,7 +183,7 @@ def assemble_consolidated_markdown(output_dir: Path, ai_disclosure: bool = True)
             doc.append(f"| **Reviewer {code.capitalize()}** | **{v}** | {lens} | {cits} cited | {bad} |")
 
     if flagged:
-        doc.extend(["", "**Unresolvable DOIs cited by reviewers** (not found in OpenAlex — verify before relying on them):", ""])
+        doc.extend(["", "**Unresolvable identifiers cited by reviewers** (DOIs unknown to OpenAlex and doi.org, or arXiv IDs unknown to arXiv — verify before relying on them):", ""])
         for code in GREEK_ORDER:
             for doi in flagged.get(code, []):
                 doc.append(f"- Reviewer {code.capitalize()}: `{_md_cell(doi)}`")
@@ -215,15 +219,25 @@ def assemble_consolidated_markdown(output_dir: Path, ai_disclosure: bool = True)
                 doc.extend([
                     "# Part II: Consolidated Major Concerns Matrix",
                     "",
-                    "The table below cross-tabulates distinct substantive concerns raised across independent referees:",
+                    "The table below cross-tabulates the Blocking and Essential concerns across referees "
+                    "(X = raised as a major concern; (m) = mentioned only in passing). All referees share one "
+                    "underlying model, so agreement is attribution, not independent corroboration:",
                     "",
                 ])
                 header = rows[0]
-                doc.append("| " + " | ".join(_md_cell(h) for h in header) + " |")
+                # Older bundles have no severity column: every column after the concern is a reviewer.
+                first_reviewer_col = 2 if len(header) > 1 and header[1] == "severity" else 1
+                doc.append("| " + " | ".join(_md_cell(h.capitalize() if h == "severity" else h) for h in header) + " |")
                 doc.append("| " + " | ".join(["---"] * len(header)) + " |")
                 for r in rows[1:]:
-                    cells = [_md_cell(r[0].removeprefix("'"))] if r else []
-                    cells += ["✓" if c.strip().lower() == "true" else "·" for c in r[1:]]
+                    if not r:
+                        continue
+                    cells = [_md_cell(r[0].removeprefix("'"))]
+                    if first_reviewer_col == 2:
+                        cells.append(_md_cell((r[1] if len(r) > 1 else "").capitalize() or "-"))
+                    for c in r[first_reviewer_col:]:
+                        v = c.strip().lower()
+                        cells.append("✓" if v in ("true", "major") else "(m)" if v == "minor" else "·")
                     doc.append("| " + " | ".join(cells) + " |")
                 doc.extend(["", "---", ""])
         except Exception:
@@ -275,6 +289,9 @@ def render_with_pandoc(markdown_content: str, output_pdf_path: Path) -> bool:
         return False
 
     temp_md = output_pdf_path.with_suffix(".temp.md")
+    # A broken TeX setup (e.g. a stale luaotfload font cache) makes one engine fail while the next
+    # works; errors are reported only if every engine fails, and a fallback is named in one line.
+    failures: list[str] = []
     try:
         for engine in engines:
             content = _pdflatex_safe(markdown_content) if engine == "pdflatex" else markdown_content
@@ -292,10 +309,15 @@ def render_with_pandoc(markdown_content: str, output_pdf_path: Path) -> bool:
             except (subprocess.TimeoutExpired, OSError):
                 continue
             if res.returncode == 0 and output_pdf_path.exists() and output_pdf_path.stat().st_size > 1000:
+                if failures:
+                    skipped = ", ".join(f.split(":", 1)[0] for f in failures)
+                    print(f"Notice: PDF rendered with {engine} ({skipped} failed on this TeX installation).", file=sys.stderr)
                 return True
-            print(f"Notice: pandoc/{engine} failed: {res.stderr.strip()[-300:]}", file=sys.stderr)
+            failures.append(f"{engine}: {res.stderr.strip()[-300:]}")
     finally:
         temp_md.unlink(missing_ok=True)
+    for failure in failures:
+        print(f"Notice: pandoc/{failure}", file=sys.stderr)
     return False
 
 

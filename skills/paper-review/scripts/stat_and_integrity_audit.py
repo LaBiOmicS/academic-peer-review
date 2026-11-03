@@ -11,10 +11,11 @@ Adapts its diagnostic checks across all 3 orthogonal dimensions:
   `umbrella_review`, `scoping_review`, `integrative_review`, `narrative_review`,
   `bibliometric_review`, `consensus_or_guideline`, `case_study`, `data_paper`, `software_paper`,
   `methods_or_protocol_paper`, `theoretical_essay_perspective`, `short_communication`)
-- Axis 3: 12 Research Approaches (`clinical_interventional`, `diagnostic_prognostic_biomarker`,
+- Axis 3: 13 Research Approaches (`clinical_interventional`, `diagnostic_prognostic_biomarker`,
   `epidemiological_observational`, `field_ecological_agronomic`, `experimental_lab`,
   `computational_in_silico`, `quantitative_statistical`, `qualitative`, `mixed_methods`,
-  `action_or_design_science`, `documentary_archival_historical`, `theoretical_formal_deductive`)
+  `action_or_design_science`, `documentary_archival_historical`, `bibliometric_scientometric`,
+  `theoretical_formal_deductive`)
 - Transversal Triggers: `SAGER Guidelines` (sex/gender equity) and `Clinical/Bio-AI` (`TRIPOD+AI`, `CONSORT-AI`, `DECIDE-AI`, `CLAIM`)
 """
 
@@ -31,6 +32,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from area_profiles import (  # noqa: E402
     ARTICLE_TYPE_DEFINITIONS,
+    METADATA_EVIDENCE_TYPES,
     RESEARCH_APPROACH_DEFINITIONS,
     classify_manuscript,
     sanitize_and_scan_manuscript,
@@ -349,6 +351,14 @@ def _has_boolean_search_string(text: str, window: int = 600) -> bool:
     return False
 
 
+# "Searches were performed in Scopus ... on 20 November 2025": a date within the sentence of a search.
+SEARCH_DATE_PATTERN = re.compile(
+    r"\b(?:search\w*|retriev\w*|busca\w*|búsqueda\w*|pesquisa\w*)\b[^.]{0,120}?\b(?:on|em|el|until|up\s+to|até|hasta)\s+"
+    r"(?:\d{1,2}(?:st|nd|rd|th)?\s+(?:de\s+)?[A-Za-zÀ-ú]+\.?\s+(?:de\s+)?\d{4}|[A-Z][a-z]+\.?\s+\d{1,2},?\s+\d{4}|\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{4})",
+    re.IGNORECASE,
+)
+
+
 def check_article_type_markers(text: str, type_code: str) -> dict[str, Any]:
     """Run deterministic checks specific to the detected Academic Article Type (Axis 2)."""
     if type_code in ("systematic_review", "meta_analysis"):
@@ -399,6 +409,8 @@ def check_article_type_markers(text: str, type_code: str) -> dict[str, Any]:
 
     if type_code == "bibliometric_review":
         return {
+            "search_query_reported": _has_boolean_search_string(text),
+            "search_date_reported": bool(SEARCH_DATE_PATTERN.search(text)),
             "bibliometric_databases_specified": bool(re.search(r"\b(?:Web\s+of\s+Science|(?-i:\bWoS\b)|Scopus|OpenAlex|Dimensions|Lens\.org)\b", text, re.IGNORECASE)),
             "science_mapping_software_cited": bool(re.search(r"\b(?:VOSviewer|bibliometrix|Biblioshiny|CiteSpace|Gephi|SciMAT|BibExcel)\b", text, re.IGNORECASE)),
             "metadata_cleaning_or_thesaurus": bool(re.search(r"\b(?:thesaurus|disambiguat\w+|data\s+cleaning|deduplicat\w+|tesauro|desambiguação|limpeza\s+de\s+dados)\b", text, re.IGNORECASE)),
@@ -504,6 +516,14 @@ def check_research_approach_markers(text: str, approach_code: str) -> dict[str, 
         return {
             "dsr_or_action_research_framework": bool(re.search(r"\b(?:Hevner|Peffers|Wieringa|Thiollent|Kemmis|CBPR|design\s+science\s+research|pesquisa-ação)\b", text, re.IGNORECASE)),
             "iterative_cycles_or_artifact_evaluation": bool(re.search(r"\b(?:iterative\s+cycle\w*|artifact\s+evaluation|ciclos?\s+iterativos?|avaliação\s+do\s+artefato)\b", text, re.IGNORECASE)),
+        }
+    if approach_code == "bibliometric_scientometric":
+        return {
+            "keyword_field_specified": bool(re.search(r"\b(?:author\s+keywords|index\s+keywords|indexed\s+keywords|Keywords\s+Plus|all\s+keywords|MeSH\s+terms|palavras-chave\s+(?:do\s+autor|indexadas))\b", text, re.IGNORECASE)),
+            "counting_or_country_attribution_rule": bool(re.search(r"\b(?:full\s+counting|fractional\s+counting|whole\s+counting|corresponding[\s-]author'?s?\s+countr\w+|country\s+of\s+the\s+corresponding\s+author|contagem\s+(?:completa|fracionada))\b", text, re.IGNORECASE)),
+            "citation_window_or_normalization": bool(re.search(r"\b(?:citation\s+window|field[\s-]normali[sz]ed|FWCI|normali[sz]ed\s+citation\w*|citations?\s+per\s+year|TC/year|janela\s+de\s+citação|citações\s+normalizadas)\b", text, re.IGNORECASE)),
+            "mapping_parameters_reported": bool(re.search(r"\b(?:association\s+strength|minimum\s+(?:number\s+of\s+)?occurrences?|minimum\s+cluster\s+size|clustering\s+resolution|resolution\s+parameter|threshold\s+of\s+\w+\s+occurrences|normali[sz]ation\s+method)\b", text, re.IGNORECASE)),
+            "sensitivity_or_robustness_analysis": bool(re.search(r"\b(?:sensitivity\s+analys\w+|robustness\s+(?:check|analys\w+)|análise\s+de\s+sensibilidade)\b", text, re.IGNORECASE)),
         }
     if approach_code == "documentary_archival_historical":
         return {
@@ -1062,16 +1082,27 @@ def format_markdown_report(audit: dict[str, Any]) -> str:
             val_str = (", ".join(v) if v else "None detected") if isinstance(v, list) else ("Yes" if v else "No")
             lines.append(f"- **{label}**: {val_str}")
 
+    metadata_only = at.get("type_code") in METADATA_EVIDENCE_TYPES
     lines.extend([
         "",
         f"## 4. Area-Specific & Methodological Signals (`{sa['area_code']}`)",
     ])
-    for k, v in ac.items():
+    if metadata_only:
+        # The evidence is bibliographic metadata: replicates, batch effects, accessions, power, FDR,
+        # effect sizes and CIs describe primary studies, so their absence is not a finding here.
+        lines.extend([
+            f"- **Not applicable**: `{at['type_code']}` analyses bibliographic metadata, so the primary-study checks of the area "
+            "(replicates, batch effects, accessions, power, multiple-comparison correction, effect sizes, confidence intervals) "
+            "were not assessed. Do NOT penalize their absence.",
+            f"- **Code/Data repository links**: {', '.join(mm['code_or_data_links']) if mm['code_or_data_links'] else 'None detected'}",
+            f"- **Reporting guidelines detected**: {', '.join(mm['reporting_guidelines']) if mm['reporting_guidelines'] else 'None detected'}",
+        ])
+    for k, v in ({} if metadata_only else ac).items():
         label = k.replace("_", " ").capitalize()
         val_str = (", ".join(v) if v else "None detected") if isinstance(v, list) else ("Yes" if v else "No")
         lines.append(f"- **{label}**: {val_str}")
 
-    lines.extend([
+    lines.extend([] if metadata_only else [
         f"- **Sample size / power / saturation justification**: {'Yes' if mm['power_or_sample_size_justification'] else 'No'}",
         f"- **Multiple-comparison correction (FDR/Bonferroni/Holm)**: {'Yes' if mm['multiple_comparison_correction'] else 'No'}",
         f"- **Effect sizes reported**: {'Yes' if mm['effect_size_reported'] else 'No'}",
@@ -1183,21 +1214,24 @@ def format_markdown_report(audit: dict[str, Any]) -> str:
             lines.append(f"- **Open / Reusable Formats**: {', '.join(rf['open_formats_detected'])}")
 
         comp = rf.get("computational_reproducibility", {})
-        lines.extend([
-            f"- **Computational Environment / Dependencies Locked**: {'Yes' if comp.get('dependency_or_container_declared') else 'No (Versions or manifest not explicitly pinned)'}",
-            f"- **Random Seeds / Determinism Specified**: {'Yes' if comp.get('random_seeds_declared') else 'No'}",
-        ])
+        lines.append(
+            f"- **Computational Environment / Dependencies Locked**: {'Yes' if comp.get('dependency_or_container_declared') else 'No (Versions or manifest not explicitly pinned)'}"
+        )
+        if not metadata_only:
+            lines.append(f"- **Random Seeds / Determinism Specified**: {'Yes' if comp.get('random_seeds_declared') else 'No'}")
         if comp.get("workflow_pipelines"):
             lines.append(f"- **Workflow Engines**: {', '.join(comp['workflow_pipelines'])}")
 
         exp = rf.get("experimental_specificity", {})
-        if exp.get("rrids") or exp.get("reagent_catalog_or_lot_numbers") or exp.get("primer_sequences_reported"):
+        if not metadata_only and (exp.get("rrids") or exp.get("reagent_catalog_or_lot_numbers") or exp.get("primer_sequences_reported")):
             lines.append(f"- **Experimental Rigor**: Catalog numbers (`{'Yes' if exp.get('reagent_catalog_or_lot_numbers') else 'No'}`) | RRIDs (`{', '.join(exp.get('rrids', [])) if exp.get('rrids') else 'None'}`) | Primers (`{'Yes' if exp.get('primer_sequences_reported') else 'No'}`)")
 
         trans = rf.get("transparency", {})
         lines.extend([
             f"- **Conflict of Interest Declared**: {'Yes' if trans.get('conflict_of_interest_declared') else 'No (Missing explicit COI declaration)'}",
-            f"- **Ethics Committee Approval Declared**: {'Yes' if trans.get('ethics_approval_or_committee_declared') else 'No / Not explicitly found'}",
+            "- **Ethics Committee Approval**: Not required (bibliographic metadata only, no human or animal subjects)"
+            if metadata_only and not trans.get("ethics_approval_or_committee_declared")
+            else f"- **Ethics Committee Approval Declared**: {'Yes' if trans.get('ethics_approval_or_committee_declared') else 'No / Not explicitly found'}",
         ])
 
     scope_audit = audit.get("journal_scope_audit")

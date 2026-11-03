@@ -4,6 +4,7 @@ import pytest
 
 from area_profiles import (
     classify_manuscript,
+    detect_transversal_flags,
     resolve_area_code,
     resolve_research_approach_code,
     sanitize_and_scan_manuscript,
@@ -45,6 +46,30 @@ def test_portuguese_word_sem_is_not_the_acronym_SEM():
 def test_randomised_trial_variants_are_clinical():
     text = "Patients were randomised to drug or placebo in a phase III trial (NCT01234567). " * 3
     assert classify_manuscript(text)["research_approach"]["approach_code"] == "clinical_interventional"
+
+
+def test_computational_biology_without_ai_is_not_clinical_ai():
+    # Regression: biologicas + computational_in_silico alone used to trigger the TRIPOD+AI/CLAIM
+    # rubric (patient-level splits, external validation) for plain sequence analysis.
+    text = "We assembled bacterial genomes and annotated resistance genes in silico with BLAST and Prokka. " * 5
+    flags = detect_transversal_flags(text, "biologicas", "computational_in_silico", "original_research")
+    assert not flags["clinical_or_bio_ai_applicable"]
+    flags = detect_transversal_flags(text + " A random forest classifier was trained.", "biologicas", "computational_in_silico", "original_research")
+    assert flags["clinical_or_bio_ai_applicable"]
+
+
+def test_word_claim_is_not_the_CLAIM_guideline():
+    text = "These data support the claim that resistance genes circulate among hosts. " * 5
+    assert not detect_transversal_flags(text, "saude", "epidemiological_observational", "original_research")["clinical_or_bio_ai_applicable"]
+    assert detect_transversal_flags("Reported following CLAIM.", "saude", "experimental_lab", "original_research")["clinical_or_bio_ai_applicable"]
+
+
+def test_bibliometric_review_has_no_sager_or_clinical_ai():
+    text = "We analysed 53 articles on resistant bacteria in insects and animals with Bibliometrix and VOSviewer. " * 5
+    flags = detect_transversal_flags(text, "biologicas", "computational_in_silico", "bibliometric_review")
+    assert not flags["sager_applicable"]
+    assert not flags["clinical_or_bio_ai_applicable"]
+    assert detect_transversal_flags(text, "biologicas", "experimental_lab", "original_research")["sager_applicable"]
 
 
 def test_unicode_tag_smuggling_is_stripped_and_reported():

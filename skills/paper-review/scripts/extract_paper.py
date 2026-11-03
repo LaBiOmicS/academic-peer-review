@@ -12,7 +12,7 @@
 Classifies manuscripts across:
 - Axis 1: 5 Major Scientific Areas (`--area`)
 - Axis 2: 15 Academic Article Types (`--article-type`)
-- Axis 3: 12 Research Approaches / Designs (`--research-approach`)
+- Axis 3: 13 Research Approaches / Designs (`--research-approach`)
 
 PDF extraction tries PyMuPDF, pdftotext (reading-order mode), pdfplumber and pypdf in turn, stops at
 the first clean text and otherwise keeps the one with the fewest glued words (`glued_word_ratio`).

@@ -25,6 +25,8 @@ Every red-team attack must be strictly rooted in the reality of the manuscript:
 
 {area_rubric}
 
+{severity_rubric}
+
 ## Step 0 — Seed your red-team focus (String Seed of Thought)
 
 Before writing anything else, copy the panel-assigned seed below verbatim (it guarantees that panel members start from different lenses; do not invent your own):
@@ -33,7 +35,7 @@ Before writing anything else, copy the panel-assigned seed below verbatim (it gu
 SEED: {entropy_hint}
 ```
 
-Derive your **primary red-team axis** for `{area_code}` = `int(SEED[0:2], 16) mod 8`:
+Derive your **primary red-team axis** for `{lens_scope}` = `int(SEED[0:2], 16) mod 8`:
 {area_redteam_axes}
 
 Derive **stance intensity** = `int(SEED[2:4], 16) mod 3`:
@@ -48,7 +50,7 @@ AXIS: <name>
 STANCE: <name>
 ```
 
-You still walk through every framework section below. The AXIS is what you press hardest on — the first entry in `Major concerns` and the concern cited in your Verdict line must come from that axis.
+You still walk through every framework section below. The AXIS is what you press hardest on: test it first. If the manuscript exhibits that failure mode, the first entry in `Major concerns` and the concern cited in your Verdict line must come from it. If it does not (or the authors already handle it), say so in one sentence at the top of `Major concerns` and lead with the strongest concern you actually found. An axis that does not fit this paper must never drive your verdict.
 
 ## External Literature Lookup (Mandatory & Area-Routed)
 
@@ -84,7 +86,7 @@ Adapt each check to **{area_name}** (`{study_design}`):
 3. **Evidence & Argumentation — Red-Team Every Core Claim**:
    - **Distinguishing test**: Does the empirical evidence, formal derivation, simulation, or documentary/qualitative analysis actually differentiate between the authors' thesis and competing explanations?
    - **Selective reporting / Cherry-picking**: Are examples, datasets, experimental regimes, cases, or textual excerpts hand-picked without showing failure modes, counter-examples, or full distributions?
-   - **Methodological rigor for `{area_code}`**: Apply the specific standards of `{area_name}` (e.g., biological replicates/FDR/batch control in `biologicas`; EQUATOR/MCID/confounding in `saude`; proof validity/SI uncertainty/ablations in `exatas`; ISO/ASTM metrology & mesh convergence in `engenharias`; epistemological coherence, source criticism & COREQ/reflexivity in `humanas`).
+   - **Methodological rigor for `{area_code}`**: Apply the specific standards of `{area_name}` (e.g., biological replicates/FDR/batch control in `biologicas`; EQUATOR/MCID/confounding in `saude`; proof validity/SI uncertainty/ablations in `exatas`; ISO/ASTM metrology & mesh convergence in `engenharias`; epistemological coherence, source criticism & COREQ/reflexivity in `humanas`). For a bibliometric review, the evidence is the corpus and its metadata: apply the article-type rubric, not the primary-study standards of the area.
    - **Alternative explanations**: Name at least one unaddressed confounding factor, artifact, or rival interpretation consistent with the presented evidence.
 4. **Reproducibility & Transparency**: Could a competent researcher in `{domain}` independently verify or replicate the main finding from the manuscript and its deposited artifacts/sources?
 5. **Limitations & Presentation**: Is the limitations section honest or a fig leaf? Flag obscure jargon-as-status-signaling and non-self-explanatory figures/tables.
@@ -101,6 +103,7 @@ One paragraph: the claims, the evidence/argumentation, and your overall epistemi
 ### Major concerns
 Numbered list. For each:
 - **Issue** — one-sentence description, **tagged** with which framework section it comes from in brackets, e.g. `[Evidence — distinguishing test]`, `[Narrative — overclaiming]`, `[Methodology — {area_code}]`, `[Reproducibility]`.
+- **Severity** — `Blocking`, `Essential` or `Optional` (see Severity Calibration). For `Blocking`, quote the conclusion that fails without the fix.
 - **Where** — section / figure / table / line, or `"absent"` if it is something missing.
 - **Why it matters** — the specific belief-update or conclusion this concern blocks or invalidates.
 - **What would address it** — concrete experiment, re-analysis, proof, source critique, or revision required.

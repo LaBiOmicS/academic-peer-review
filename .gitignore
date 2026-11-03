@@ -7,3 +7,6 @@ papers/
 .env
 .venv/
 .pytest_cache/
+
+# Manuscripts under review (confidential, never committed)
+test/

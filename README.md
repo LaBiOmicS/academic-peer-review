@@ -13,7 +13,7 @@
 
 ## Versão em Português
 
-Plugin oficial multiplataforma para **Gemini / Antigravity (`agy`)** e **Anthropic Claude Code (`claude`)** voltado para revisão acadêmica por pares independente, comitês de múltiplos revisores especializados sob codinomes gregos (`Alfa`, `Beta`, `Gama`, `Delta`, …), classificação tridimensional (**5 Grandes Áreas × 15 Tipologias de Artigo × 12 Abordagens de Pesquisa = 900 perfis**), auditoria estatística determinística (`statcheck`), integridade de dados FAIR, proveniência de IA generativa e síntese editorial com relatório oficial em PDF.
+Plugin oficial multiplataforma para **Gemini / Antigravity (`agy`)** e **Anthropic Claude Code (`claude`)** voltado para revisão acadêmica por pares independente, comitês de múltiplos revisores especializados sob codinomes gregos (`Alfa`, `Beta`, `Gama`, `Delta`, …), classificação tridimensional (**5 Grandes Áreas × 15 Tipologias de Artigo × 13 Abordagens de Pesquisa = 975 perfis**), auditoria estatística determinística (`statcheck`), integridade de dados FAIR, proveniência de IA generativa e síntese editorial com relatório oficial em PDF.
 
 Desenvolvido no **LaBiOmicS / UMC** sob coordenação do **Prof. Dr. Fabiano Bezerra Menegidio**.
 
@@ -24,7 +24,7 @@ Desenvolvido no **LaBiOmicS / UMC** sob coordenação do **Prof. Dr. Fabiano Bez
 1. **Classificação Tridimensional Inteligente (3 Eixos)**:
    - **Eixo 1 — 5 Grandes Áreas (`--area`)**: Biológicas/Ômicas/Agrárias, Saúde/Clínica, Exatas e da Terra, Engenharias e Humanas/Sociais.
    - **Eixo 2 — 15 Tipologias de Artigo (`--article-type`)**: Artigo Original, Revisão Sistemática, Metanálise, Scoping Review, Revisão Integrativa, Revisão Narrativa, Bibliometria, Diretriz Clínica/Consenso Delphi, Relato/Estudo de Caso, Data Paper, Software Paper, Protocolo, Ensaio Teórico e Comunicação Breve.
-   - **Eixo 3 — 12 Abordagens de Pesquisa (`--research-approach`)**: Ensaio Clínico, Biomarcadores/Diagnóstico, Epidemiológico/Observacional, Campo/Ecológico/Agronômico, Bancada/Experimental, Computacional/In Silico, Quantitativo/Estatístico, Qualitativo, Métodos Mistos, DSR/Pesquisa-Ação, Documental/Histórico e Teórico-Formal.
+   - **Eixo 3 — 13 Abordagens de Pesquisa (`--research-approach`)**: Ensaio Clínico, Biomarcadores/Diagnóstico, Epidemiológico/Observacional, Campo/Ecológico/Agronômico, Bancada/Experimental, Computacional/In Silico, Quantitativo/Estatístico, Qualitativo, Métodos Mistos, DSR/Pesquisa-Ação, Documental/Histórico, Bibliométrico/Cienciométrico e Teórico-Formal.
    - **Confirmação quando incerta**: a classificação é por palavras-chave. Quando a evidência de um eixo é fraca, ele é marcado como `needs_confirmation`, e o agente confere o título, o resumo e os métodos antes de montar o painel (em sessão interativa, pergunta ao usuário). Os eixos passados explicitamente não são reavaliados.
    - **Diretrizes Transversais**: Checagem automática de equidade de sexo/gênero (**SAGER**) e IA biomédica (**TRIPOD+AI / CONSORT-AI / CLAIM**).
 
@@ -48,7 +48,7 @@ Desenvolvido no **LaBiOmicS / UMC** sob coordenação do **Prof. Dr. Fabiano Bez
 5. **Blindagem Ativa Contra Alucinações**:
    - **Âncora de Citação Literal (*Verbatim Anchor*)**: Obriga os pareceristas a citarem trechos literais exatos ao apontarem falhas metodológicas ou conceituais.
    - **Dupla Checagem contra Falsa Omissão (*Negative-Search Grounding*)**: Força varredura exaustiva por sinônimos antes de acusar que um tópico está ausente no manuscrito.
-   - **Auditoria Reversa de Citações no OpenAlex**: O compilador verifica ao vivo se os DOIs citados pelos próprios pareceristas são reais ou alucinados. DOIs ausentes do OpenAlex (comum em preprints recentes) são confirmados no registro do doi.org antes de serem tratados como inexistentes.
+   - **Auditoria Reversa de Citações no OpenAlex**: O compilador verifica ao vivo se os DOIs citados pelos próprios pareceristas são reais ou alucinados. DOIs ausentes do OpenAlex (comum em preprints recentes) são confirmados no registro do doi.org antes de serem tratados como inexistentes. Identificadores arXiv citados pelos pareceristas são conferidos na API do arXiv.
 
 6. **Validação de Escopo da Revista & Risco de Desk-Reject (`--journal`)**:
    - **Aderência a Aims & Scope**: Avalia a aderência temática e o nível de novidade conceitual/técnica frente ao perfil do periódico pretendido (via base de conhecimento curada e OpenAlex Sources API ao vivo).
@@ -58,6 +58,13 @@ Desenvolvido no **LaBiOmicS / UMC** sob coordenação do **Prof. Dr. Fabiano Bez
 
 7. **Segurança da Informação e Defesa Cibernética**:
    - Defesa ativa contra *Indirect Prompt Injection* (texto oculto em LaTeX/CSS e comandos maliciosos embutidos).
+
+8. **Calibração de Severidade e Proporcionalidade**:
+   - Cada preocupação maior recebe um nível: **Bloqueante** (alguma conclusão publicada não se sustenta sem a correção), **Essencial** (relato e transparência) ou **Opcional** (ampliações de escopo, análises novas). São no máximo 5 bloqueantes por parecer.
+   - Antes de levantar uma crítica, o parecerista procura no texto as ressalvas que os autores já fizeram e confere a direção do viés que aponta (ex.: um ano incompleto subestima a contagem, não a infla). A lente ou o eixo sorteado é uma hipótese a testar, não uma conclusão.
+   - O painel inclui um **parecerista advogado do autor**, contrapeso do *red-team*: ele testa as críticas prováveis contra o manuscrito e aponta exigências desproporcionais ou importadas de outro gênero.
+   - Na metarrevisão, a concordância entre pareceristas não conta como evidência, pois todos rodam no mesmo modelo. Cada bloqueante passa por uma tabela de verificação contra o texto, e a matriz distingue a crítica maior da menção de passagem.
+   - Os números da auditoria (aderência ao escopo, risco, DOIs) entram na metarrevisão direto do arquivo de auditoria. O compilador avisa quando a metarrevisão cita números que a contradizem ou quando foi escrita antes da auditoria atual, e gera uma **carta curta aos autores** (`author_letter.md`) só com os itens bloqueantes e essenciais.
    - Sanitização de caracteres Unicode invisíveis/bidirecionais e isolamento estrito em `<UNTRUSTED_MANUSCRIPT_CONTENT>`.
    - Proteção contra OWASP *CSV Formula Injection* nas matrizes exportadas.
 
@@ -140,7 +147,7 @@ O agente coordenador executará automaticamente:
 1. Extração do texto completo e sanitização contra injeções de prompt (*Indirect Prompt Injection*).
    - Se a classificação vier com confiança baixa, confirmação dos eixos pelo resumo e pelos métodos (com uma pergunta ao usuário, em sessão interativa).
 2. Pré-diagnóstico estatístico determinístico (`statcheck`), auditoria FAIR de repositórios/código, proveniência de IA e checagem de retratações na OpenAlex.
-3. Disparo paralelo de 4 pareceristas independentes (`Alfa`, `Beta`, `Gama`, `Delta`) com sementes e lentes distintas.
+3. Disparo paralelo de 5 pareceristas independentes (`Alfa`, `Beta`, `Gama`, `Delta`, `Épsilon`) com sementes e lentes distintas: um crítico *red-team*, um advogado do autor, dois especialistas (métodos e reprodutibilidade) e um parecerista de domínio.
 4. Compilação dos pareceres, validação reversa de citações e geração da **Metarrevisão Editorial** com matriz de preocupações priorizadas.
 
 ---
@@ -237,7 +244,7 @@ academic-peer-review/
         │   ├── reviewer_reproducibility_integrity.md # Auditor de Reprodutibilidade, Ética e FAIR
         │   └── metareview.md                       # Síntese Editorial e Matriz de Decisão
         ├── scripts/
-        │   ├── area_profiles.py                    # Matriz 3D (900 perfis), microrrubricas e scanner AppSec
+        │   ├── area_profiles.py                    # Matriz 3D (975 perfis), microrrubricas e scanner AppSec
         │   ├── extract_paper.py                    # Extrator de PDFs, DOCX, TeX com defesas sandboxed
         │   ├── journal_scope.py                    # Auditor de aderência ao escopo da revista e risco de desk-reject
         │   ├── openalex_lookup.py                  # Consulta de DOIs em lote no OpenAlex (citações e retratações)
@@ -255,7 +262,7 @@ academic-peer-review/
 
 ## English Version
 
-Official multi-platform plugin for **Google Gemini / Antigravity (`agy`)** and **Anthropic Claude Code (`claude`)** for multi-reviewer independent academic peer review, specialized reviewer panels under Greek letter codenames (`Alfa`, `Beta`, `Gamma`, `Delta`, …), 3-axis classification (**5 Major Areas × 15 Article Types × 12 Research Approaches = 900 profiles**), deterministic statistical auditing (`statcheck`), FAIR data integrity, generative AI provenance auditing, and editorial meta-review synthesis with publication-grade PDF report generation.
+Official multi-platform plugin for **Google Gemini / Antigravity (`agy`)** and **Anthropic Claude Code (`claude`)** for multi-reviewer independent academic peer review, specialized reviewer panels under Greek letter codenames (`Alfa`, `Beta`, `Gamma`, `Delta`, …), 3-axis classification (**5 Major Areas × 15 Article Types × 13 Research Approaches = 975 profiles**), deterministic statistical auditing (`statcheck`), FAIR data integrity, generative AI provenance auditing, and editorial meta-review synthesis with publication-grade PDF report generation.
 
 Developed at **LaBiOmicS / UMC** under the leadership of **Prof. Dr. Fabiano Bezerra Menegidio**.
 
@@ -264,7 +271,7 @@ Developed at **LaBiOmicS / UMC** under the leadership of **Prof. Dr. Fabiano Bez
 ### Key Capabilities
 
 1. **3-Axis Composable Matrix**:
-   - Classifies manuscripts across **5 Major Scientific Areas**, **15 Academic Article Types**, and **12 Research Approaches**, generating targeted (~12-line) micro-rubrics without polluting the prompt context.
+   - Classifies manuscripts across **5 Major Scientific Areas**, **15 Academic Article Types**, and **13 Research Approaches**, generating targeted (~12-line) micro-rubrics without polluting the prompt context.
    - Classification is keyword-based. When the evidence for an axis is weak, the axis is flagged `needs_confirmation` and the agent checks the title, abstract and methods before building the panel (asking the user in interactive sessions). Axes set explicitly are not re-evaluated.
 2. **Professional Referee Voice & AI-Assistance Transparency (Trilingual: EN / PT / ES)**:
    - Reports use an authoritative academic referee voice in the manuscript's language (English, Portuguese, or Spanish), without chatbot phrasing or internal tool names.
@@ -274,13 +281,19 @@ Developed at **LaBiOmicS / UMC** under the leadership of **Prof. Dr. Fabiano Bez
    - Detects and flags evasive *"data available upon request"* statements.
    - Audits open repositories (Zenodo, GitHub, OSF, GEO/SRA), software dependency manifests (`requirements.txt`, `environment.yml`, Docker), and random seeds.
 4. **Anti-Hallucination Guardrails**:
-   - Enforces **Verbatim Anchoring** (mandatory direct quotes for criticisms), **Negative-Search Grounding** (double-check before claiming an element is omitted), and **Reverse Citation Checking** via OpenAlex in `compile_results.py`. DOIs missing from OpenAlex (common for recent preprints) are confirmed against the doi.org registry before being treated as nonexistent.
+   - Enforces **Verbatim Anchoring** (mandatory direct quotes for criticisms), **Negative-Search Grounding** (double-check before claiming an element is omitted), and **Reverse Citation Checking** via OpenAlex in `compile_results.py`. DOIs missing from OpenAlex (common for recent preprints) are confirmed against the doi.org registry before being treated as nonexistent. arXiv identifiers cited by reviewers are checked against the arXiv API.
 5. **Generative AI Provenance Audit (COPE / ICMJE / SciELO Standards)**:
    - Detects uncleaned chat artifacts, flags improper AI co-authorship, and measures synthetic stylistic tell densities.
 6. **Target Journal Scope & Desk-Reject Risk Audit (`--journal`)**:
    - Assesses thematic fit, conceptual novelty thresholds, and editorial audience alignment using a curated journal registry and live OpenAlex Sources API queries.
    - Detects classical desk-reject pitfalls (e.g., routine tool applications in algorithmic journals, unformatted submissions, missing prospective trial registrations).
    - Recommends 2-3 suitable alternative/cascading journals when scope misalignment is identified.
+7. **Severity Calibration & Proportionality**:
+   - Every major concern carries a tier: **Blocking** (a stated conclusion fails without the fix), **Essential** (reporting and transparency) or **Optional** (scope expansions, new analyses), with at most 5 blocking concerns per report.
+   - Before raising a concern, reviewers search the text for caveats the authors already wrote and check the direction of any bias they allege (e.g. an incomplete year undercounts; it does not inflate). The assigned lens or axis is a hypothesis to test, not a finding.
+   - The panel includes an **author-advocate reviewer**, the red-team critic's counterweight, which tests likely critiques against the manuscript and flags disproportionate or genre-mismatched demands (`--no-author-advocate` leaves it out).
+   - The meta-review does not count agreement as evidence, since all reviewers run on the same model. Every blocking concern goes through a verification table against the text, and the concerns matrix separates major concerns from passing mentions.
+   - Audit figures (scope adherence, risk, DOIs) enter the meta-review straight from the audit file. The compiler warns when the meta-review quotes figures that contradict the audit or predates it, and writes a short **author letter** (`author_letter.md`) with only the blocking and essential items.
 
 ---
 

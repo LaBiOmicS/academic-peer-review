@@ -51,6 +51,11 @@ def _run(out_dir, monkeypatch):
         "lookup_dois",
         lambda dois, max_checks=100: {"found": {}, "unresolvable": ["10.1038/nature12373"], "unchecked": [], "invalid": []},
     )
+    monkeypatch.setattr(
+        compile_results,
+        "lookup_arxiv_ids",
+        lambda ids, max_checks=100: {"found": {}, "unresolvable": [], "unchecked": list(ids), "invalid": []},
+    )
     monkeypatch.setattr(sys, "argv", ["compile_results.py", "--output-dir", str(out_dir), "--skip-pdf"])
     assert compile_results.main() == 0
     return json.loads((out_dir / "results.json").read_text(encoding="utf-8"))

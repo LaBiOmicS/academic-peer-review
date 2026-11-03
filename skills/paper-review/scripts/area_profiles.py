@@ -9,12 +9,12 @@ Classifies any academic manuscript across three orthogonal dimensions:
     `scoping_review`, `integrative_review`, `narrative_review`, `bibliometric_review`,
     `case_study`, `data_paper`, `software_paper`, `methods_or_protocol_paper`,
     `consensus_or_guideline`, `theoretical_essay_perspective`, `short_communication`
-- Axis 3 — 12 Research Approaches / Methodological Designs (`--research-approach`):
+- Axis 3 — 13 Research Approaches / Methodological Designs (`--research-approach`):
     `experimental_lab`, `clinical_interventional`, `epidemiological_observational`,
     `diagnostic_prognostic_biomarker`, `field_ecological_agronomic`,
     `quantitative_statistical`, `computational_in_silico`, `qualitative`,
-    `mixed_methods`, `documentary_archival_historical`, `action_or_design_science`,
-    `theoretical_formal_deductive`
+    `mixed_methods`, `documentary_archival_historical`, `bibliometric_scientometric`,
+    `action_or_design_science`, `theoretical_formal_deductive`
 
 Also detects transversal triggers (`SAGER` sex/gender equity and `Clinical/Bio-AI`
 reporting guidelines: `TRIPOD+AI`, `CONSORT-AI`, `DECIDE-AI`, `CLAIM`) and composes
@@ -282,6 +282,26 @@ ARTICLE_TYPE_DEFINITIONS: dict[str, dict[str, Any]] = {
             "exact query/date/filters, **thesaurus disambiguation** (author/affiliation/keyword cleaning), performance metrics + science mapping "
             "(`bibliometrix/VOSviewer/CiteSpace` co-citation, coupling, co-word clusters), and penalize superficial 'button-pushing' descriptive lists."
         ),
+        # The area lenses target primary studies (replicates, batch effects, accessions); a
+        # bibliometric review is judged on its corpus and indicators, whatever the area.
+        "ssot_lenses": [
+            "0 — Corpus delimitation & construct validity (query terms, databases, filters and eligibility vs. the field the title claims)",
+            "1 — Metadata quality & cleaning (deduplication, author/affiliation disambiguation, keyword thesaurus, author vs. indexer-assigned keywords)",
+            "2 — Indicator validity & normalization (full vs. fractional counting, country attribution, citation windows, field/year normalization)",
+            "3 — Science-mapping robustness (occurrence thresholds, normalization, clustering resolution, sensitivity of clusters and overlays)",
+            "4 — Inferential discipline (claims about practices, causes or policy that bibliographic metadata cannot show)",
+            "5 — Domain contribution & corpus composition (what the map adds for the field and the journal's readers; subfields, taxa or groups pooled)",
+        ],
+        "redteam_axes": [
+            "0 — Corpus artefact: the headline pattern reflects search terms, database coverage or language filters rather than the field",
+            "1 — Dominant-group effect: one lab or author network drives the country, journal or cluster structure",
+            "2 — Indexing artefact: indexer-assigned keywords or vocabulary drift masquerading as thematic or methodological change",
+            "3 — Incomplete final year or indexing lag: counts for the latest years are provisional and not comparable to closed years (check the direction: a truncated year usually undercounts)",
+            "4 — Unstable science mapping: clusters or overlays that change with threshold, normalization or resolution",
+            "5 — Misapplied bibliometric laws or tests (Lotka, Bradford, KS) on a corpus too small to inform them",
+            "6 — Narrative overreach: the Discussion attributes practices, motives or causal explanations the metadata cannot show",
+            "7 — Heterogeneous corpus: study types, document types (reviews vs. primary studies) or subfields pooled under one label",
+        ],
     },
     "integrative_review": {
         "code": "integrative_review",
@@ -562,6 +582,21 @@ RESEARCH_APPROACH_DEFINITIONS: dict[str, dict[str, Any]] = {
             "contextualization of historical/legal documents (avoiding anachronism or selective cherry-picking of rulings/texts), and verifiable archival references."
         ),
     },
+    "bibliometric_scientometric": {
+        "code": "bibliometric_scientometric",
+        "name": "Pesquisa Bibliométrica / Cienciométrica (Metadados Bibliográficos)",
+        "guidelines": ["BIBLIO Guideline", "Leiden Manifesto (Hicks et al. 2015)", "Donthu et al. (2021)"],
+        "exempt_from_inferential_stats": True,
+        "patterns": [
+            r"\b(?:bibliometric\w*|scientometric\w*|VOSviewer|bibliometrix|Biblioshiny|CiteSpace|co-citation|bibliographic\s+coupling|co-word|Bradford'?s\s+law|Lotka'?s\s+law|bibliométric\w*|cienciométric\w*)\b",
+        ],
+        "micro_rubric": (
+            "- **Research Approach (`bibliometric_scientometric`)**: Audit whether the query and filters operationalize the claimed field, the metadata "
+            "fields used (author vs. indexer-assigned keywords), counting and country-attribution rules, citation windows and normalization, the "
+            "informativeness of Lotka/Bradford fits at the corpus size, sensitivity of maps to thresholds and parameters, and claims limited to what "
+            "metadata can show (co-occurrence is not practice, transmission or causation)."
+        ),
+    },
     "qualitative": {
         "code": "qualitative",
         "name": "Pesquisa Qualitativa Empírica: Entrevistas, Grupos Focais, Etnografia, Discurso/Conteúdo (COREQ / SRQR)",
@@ -663,6 +698,7 @@ RESEARCH_APPROACH_ALIASES: dict[str, str] = {
     "computational": "computational_in_silico", "in silico": "computational_in_silico", "bioinformatics": "computational_in_silico", "simulation": "computational_in_silico",
     "mixed": "mixed_methods", "mixed_methods": "mixed_methods", "quanti-quali": "mixed_methods", "metodos mistos": "mixed_methods",
     "action": "action_or_design_science", "dsr": "action_or_design_science", "design science": "action_or_design_science", "pesquisa-acao": "action_or_design_science",
+    "bibliometric": "bibliometric_scientometric", "scientometric": "bibliometric_scientometric", "bibliometria": "bibliometric_scientometric", "cienciometria": "bibliometric_scientometric",
     "documentary": "documentary_archival_historical", "archival": "documentary_archival_historical", "documental": "documentary_archival_historical", "historiografica": "documentary_archival_historical",
     "qualitative": "qualitative", "qualitativa": "qualitative",
     "theoretical": "theoretical_formal_deductive", "teorica": "theoretical_formal_deductive", "formal": "theoretical_formal_deductive",
@@ -877,19 +913,43 @@ def classify_research_approach(text: str, best_area: str, explicit_approach: str
     }
 
 
-def detect_transversal_flags(text: str, area_code: str, approach_code: str) -> dict[str, bool]:
+# Article types whose own evidence is bibliographic metadata: their research approach is the
+# bibliometric analysis, and bench/omics/inferential checks of the area do not apply.
+BIBLIOMETRIC_APPROACH_TYPES = {"bibliometric_review"}
+METADATA_EVIDENCE_TYPES = {"bibliometric_review"}
+
+# Article types without human participants, animals or cell lines of their own: SAGER does not apply.
+NO_SUBJECTS_ARTICLE_TYPES = {"bibliometric_review", "theoretical_essay_perspective", "software_paper"}
+
+AI_MODEL_PATTERN = re.compile(
+    r"\b(?:machine\s+learning|deep\s+learning|neural\s+network|random\s+forest|XGBoost|"
+    r"aprendizado\s+de\s+m[aá]quina|aprendizagem\s+profunda|redes?\s+neurais?)\b",
+    re.IGNORECASE,
+)
+# Case-sensitive: under IGNORECASE "CLAIM" matched the ordinary word "claim".
+AI_GUIDELINE_PATTERN = re.compile(r"(?:\bTRIPOD\+AI|\bCONSORT-AI\b|\bDECIDE-AI\b|\bCLAIM\b)")
+
+
+def detect_transversal_flags(text: str, area_code: str, approach_code: str, article_type_code: str = "") -> dict[str, bool]:
     """Detect transversal reporting dimensions (SAGER sex/gender equity & Clinical/Bio-AI)."""
-    involves_subjects_or_bio = area_code in ("biologicas", "saude") or bool(
-        re.search(r"\b(?:patients|participants|mice|rats|animals|cohort|pacientes|participantes|camundongos)\b", text, re.IGNORECASE)
+    involves_subjects_or_bio = article_type_code not in NO_SUBJECTS_ARTICLE_TYPES and (
+        area_code in ("biologicas", "saude")
+        or bool(
+            re.search(r"\b(?:patients|participants|mice|rats|animals|cohort|pacientes|participantes|camundongos)\b", text, re.IGNORECASE)
+        )
     )
     sex_or_gender_reported = bool(
         re.search(r"\b(?:male\s+and\s+female|sex-disaggregated|biological\s+sex|gender\s+distribution|SAGER|sexo\s+biológico|masculino\s+e\s+feminino)\b", text, re.IGNORECASE)
     )
+    # A computational approach alone (e.g. sequence analysis, bibliometrics) is not AI: the
+    # TRIPOD+AI/CLAIM checks need an actual prediction model or an AI reporting guideline.
     is_clinical_or_bio_ai = (
         area_code in ("saude", "biologicas")
+        and article_type_code != "bibliometric_review"
         and (
-            approach_code in ("computational_in_silico", "diagnostic_prognostic_biomarker")
-            or bool(re.search(r"\b(?:machine\s+learning|deep\s+learning|neural\s+network|random\s+forest|XGBoost|TRIPOD\+AI|CONSORT-AI|DECIDE-AI|CLAIM)\b", text, re.IGNORECASE))
+            approach_code == "diagnostic_prognostic_biomarker"
+            or bool(AI_MODEL_PATTERN.search(text))
+            or bool(AI_GUIDELINE_PATTERN.search(text))
         )
     )
     return {
@@ -908,9 +968,17 @@ def compose_rubric(area_info: dict[str, Any]) -> str:
     app_spec = RESEARCH_APPROACH_DEFINITIONS.get(app_code, RESEARCH_APPROACH_DEFINITIONS["quantitative_statistical"])
     tf = area_info.get("transversal_flags", {})
 
+    area_line = area_spec["micro_rubric"]
+    if type_code in METADATA_EVIDENCE_TYPES:
+        # The area rubric audits primary studies (replicates, accessions); here it only sets the domain.
+        area_line = (
+            f"- **Area (`{area_info['area_code']}`)**: Domain context only. Judge the manuscript by the article-type and "
+            "research-approach rubrics below; the area's primary-study standards (replicates, batch effects, data accessions, "
+            "ethics registries) apply to the literature it maps, not to this manuscript."
+        )
     lines = [
         "### Tailored 3-Axis Evaluation Rubric (Area × Article Type × Research Approach)",
-        area_spec["micro_rubric"],
+        area_line,
         type_spec["micro_rubric"],
         app_spec["micro_rubric"],
     ]
@@ -923,6 +991,19 @@ def compose_rubric(area_info: dict[str, Any]) -> str:
             "- **Transversal (`Clinical/Bio-AI — TRIPOD+AI / CONSORT-AI / CLAIM`)**: Audit cohort partitioning (patient-level split to prevent data leakage), subgroup fairness/calibration, feature explainability caveats, and external validation."
         )
     return "\n".join(lines)
+
+
+def get_lens_tables(area_code: str, type_code: str) -> tuple[list[str], list[str], str]:
+    """Return the (reviewer lenses, red-team axes, scope label) the panel draws from.
+
+    Article types that define their own tables (e.g. bibliometric reviews) override the area's,
+    whose lenses assume a primary study.
+    """
+    area_spec = AREA_DEFINITIONS.get(area_code, AREA_DEFINITIONS["exatas"])
+    type_spec = ARTICLE_TYPE_DEFINITIONS.get(type_code, {})
+    if type_spec.get("ssot_lenses") and type_spec.get("redteam_axes"):
+        return type_spec["ssot_lenses"], type_spec["redteam_axes"], f"{area_code} × {type_code}"
+    return area_spec["ssot_lenses"], area_spec["redteam_axes"], area_code
 
 
 AREA_CONFIDENCE_THRESHOLD = 0.7
@@ -971,8 +1052,16 @@ def classify_manuscript(
             best_code = "exatas"
 
     article_type = classify_article_type(text, explicit_type=explicit_article_type)
-    research_approach = classify_research_approach(text, best_code, explicit_approach=explicit_research_approach)
-    transversal = detect_transversal_flags(text, best_code, research_approach["approach_code"])
+    if article_type["type_code"] in BIBLIOMETRIC_APPROACH_TYPES and explicit_research_approach in ("", "auto", None):
+        # A bibliometric review's method is the bibliometric analysis itself; keyword scoring would
+        # otherwise pick an approach from the reviewed literature's vocabulary (e.g. "metagenomics").
+        research_approach = classify_research_approach(text, best_code, explicit_approach="bibliometric_scientometric")
+        research_approach["confidence"] = article_type["confidence"]
+    else:
+        research_approach = classify_research_approach(text, best_code, explicit_approach=explicit_research_approach)
+    transversal = detect_transversal_flags(
+        text, best_code, research_approach["approach_code"], article_type["type_code"]
+    )
 
     total_score = sum(scores.values()) or 1
     confidence = round(min(0.99, max(0.35, scores[best_code] / total_score)), 2) if not forced_code else 1.0

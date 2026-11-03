@@ -8,7 +8,7 @@
 Designed for Gemini / Antigravity (`agy`) and Claude Code (`claude`):
 1. Multi-runner support (`--runner auto|agy|gemini|claude`).
 2. Greek letter reviewer codenames (`alfa`, `beta`, `gamma`, `delta`, `epsilon`, `zeta`, `eta`, `theta`).
-3. 3-Axis Composable Classification (`5 Areas × 15 Article Types × 12 Research Approaches`).
+3. 3-Axis Composable Classification (`5 Areas × 15 Article Types × 13 Research Approaches`).
 4. Information Security Hardening:
    - Single-pass regex template rendering (prevents cross-placeholder template injection).
    - Cryptographic CSPRNG (`secrets.SystemRandom`) for archetype assignment and SSoT entropy hints.
@@ -39,8 +39,8 @@ from area_profiles import (  # noqa: E402
     RESEARCH_APPROACH_DEFINITIONS,
     classify_manuscript,
     compose_rubric,
-    get_area_profile,
     get_article_type_profile,
+    get_lens_tables,
     get_research_approach_profile,
     sanitize_and_scan_manuscript,
 )
@@ -157,6 +157,26 @@ def build_sanitized_env(runner: str = "gemini") -> dict[str, str]:
     return env
 
 
+# Shared by every reviewer template through the {severity_rubric} placeholder, so the whole panel
+# grades concerns on the same scale and the meta-review can merge them.
+MAX_BLOCKING_CONCERNS = 5
+
+SEVERITY_RUBRIC = f"""## Severity Calibration & Proportionality (Mandatory)
+
+Finding problems is half the job; weighting them correctly is the other half. A review that turns every gap into a condition for acceptance is as unhelpful as one that finds nothing.
+
+1. **Tag every Major concern with exactly one severity tier**:
+   - `Blocking` — a stated conclusion of the paper is wrong, unsupported or uninterpretable unless this is fixed. Name the conclusion (quote it).
+   - `Essential` — the conclusions may stand, but reporting, transparency or clarity falls below the standard of the article type (e.g. a missing search string, an undefined counting rule, a missing declaration).
+   - `Optional` — would strengthen or extend the paper but asks for new data collection, new analyses beyond the paper's stated question, or a different paper. Scope expansions (extra databases, regions, networks, sub-analyses the authors did not set out to do) are `Optional` unless their absence makes a stated conclusion false.
+2. **Test before you tag `Blocking`**: *"If the authors change nothing here, which published sentence becomes false or unsupported?"* If you cannot quote one, the concern is not `Blocking`.
+3. **At most {MAX_BLOCKING_CONCERNS} `Blocking` concerns.** If you have more, merge or demote; list the rest as `Essential` or `Optional`.
+4. **Check what the authors already say.** Before raising a concern, search the manuscript for an existing caveat, limitation or explanation of it. If the authors already acknowledge it, either drop the concern or explain why their treatment is insufficient, quoting it.
+5. **Check the direction of every bias you allege.** State whether the problem inflates or deflates the reported result, and verify that direction against the text (e.g. a search run before the year closed undercounts that year; it does not inflate it).
+6. **Your lens or axis is a hypothesis to test, not a finding.** If the manuscript does not exhibit the failure mode your lens names, say so in one line and lead with the strongest concern you actually found.
+7. **Proportionality**: ask for the minimum that makes the conclusions defensible for this article type, study size and target outlet — not the paper you would have written. Remedies must be feasible for the authors with the data they already have, unless the concern is `Blocking`.
+"""
+
 # Templates derive the lens from int(SEED[0:2], 16) mod 6 (mod 8 for the red-team critic).
 # A first byte of the form 24*k + slot keeps lenses distinct across the panel for both moduli.
 LENS_PERIOD = 24
@@ -175,19 +195,29 @@ def assign_templates(
     *,
     alignment_critic: bool = True,
     specialist_panel: bool = True,
+    author_advocate: bool = True,
 ) -> list[tuple[str, Path]]:
+    """Fill ``n`` panel slots by priority, then shuffle so codenames do not reveal roles.
+
+    Priority: red-team critic, author advocate (the critic's counterweight), statistics auditor,
+    reproducibility inspector, then domain reviewers. Every reviewer runs the same model, so
+    without the advocate the panel has no member whose job is to check the critiques themselves.
+    """
     prompts_dir = skill_dir / "prompts"
     standard = ("domain-reviewer", prompts_dir / "reviewer.md")
     af_critic = ("epistemic-redteam-critic", prompts_dir / "reviewer_alignment_forum.md")
+    advocate = ("author-advocate", prompts_dir / "reviewer_author_advocate.md")
     stats_auditor = ("methodology-stats-auditor", prompts_dir / "reviewer_methodology_stats.md")
     repro_inspector = ("reproducibility-integrity-inspector", prompts_dir / "reviewer_reproducibility_integrity.md")
 
     slots: list[tuple[str, Path]] = []
     if alignment_critic and af_critic[1].exists():
         slots.append(af_critic)
-    if specialist_panel and n >= 3 and stats_auditor[1].exists():
+    if author_advocate and advocate[1].exists():
+        slots.append(advocate)
+    if specialist_panel and stats_auditor[1].exists():
         slots.append(stats_auditor)
-    if specialist_panel and n >= 4 and repro_inspector[1].exists():
+    if specialist_panel and repro_inspector[1].exists():
         slots.append(repro_inspector)
 
     while len(slots) < n:
@@ -210,14 +240,14 @@ def build_prompt(
     entropy_hint: str,
     target_journal: str = "",
 ) -> str:
-    area_profile = get_area_profile(area_info["area_code"])
     type_code = area_info["article_type"]["type_code"]
     type_profile = get_article_type_profile(type_code)
     approach_code = area_info["research_approach"]["approach_code"]
     approach_profile = get_research_approach_profile(approach_code)
 
-    lenses_block = "\n".join(f"- {ln}" for ln in area_profile["ssot_lenses"])
-    redteam_block = "\n".join(f"- {ax}" for ax in area_profile["redteam_axes"])
+    lenses, redteam_axes, lens_scope = get_lens_tables(area_info["area_code"], type_code)
+    lenses_block = "\n".join(f"- {ln}" for ln in lenses)
+    redteam_block = "\n".join(f"- {ax}" for ax in redteam_axes)
     composed_rubric = compose_rubric(area_info)
     study_design_label = (
         f"{approach_profile['name']} [{approach_code}] | "
@@ -247,9 +277,11 @@ def build_prompt(
         "article_type_name": type_profile["name"],
         "research_approach_code": approach_code,
         "research_approach_name": approach_profile["name"],
+        "lens_scope": lens_scope,
         "area_ssot_lenses": lenses_block,
         "area_redteam_axes": redteam_block,
         "area_rubric": composed_rubric,
+        "severity_rubric": SEVERITY_RUBRIC,
         "entropy_hint": entropy_hint,
         "pre_review_audit": audit_text,
         "paper_text": paper_text,
@@ -275,11 +307,18 @@ def main() -> int:
     p.add_argument("--paper-text-file", required=True, help="Path to extracted paper text.")
     p.add_argument("--output-dir", required=True, help="Directory where review_<codename>.md files are written.")
     p.add_argument("--skill-dir", required=True, help="Root directory of the paper-review skill.")
-    p.add_argument("--num-reviewers", type=int, default=4, help="Number of reviewers (3 to 8, default 4).")
+    p.add_argument("--num-reviewers", type=int, default=5, help="Number of reviewers (3 to 8, default 5).")
     p.add_argument("--alignment-critic", dest="alignment_critic", action="store_true", default=True)
     p.add_argument("--no-alignment-critic", dest="alignment_critic", action="store_false")
     p.add_argument("--specialist-panel", dest="specialist_panel", action="store_true", default=True)
     p.add_argument("--no-specialist-panel", dest="specialist_panel", action="store_false")
+    p.add_argument("--author-advocate", dest="author_advocate", action="store_true", default=True)
+    p.add_argument(
+        "--no-author-advocate",
+        dest="author_advocate",
+        action="store_false",
+        help="Leave out the author-advocate reviewer, which checks the panel's likely critiques for proportionality.",
+    )
     p.add_argument("--audit-file", help="Optional path to pre_review_audit.md to include as context.")
     p.add_argument(
         "--area",
@@ -382,6 +421,7 @@ def main() -> int:
         skill_dir,
         alignment_critic=args.alignment_critic,
         specialist_panel=args.specialist_panel,
+        author_advocate=args.author_advocate,
     )
 
     manifest: dict[str, Any] = {

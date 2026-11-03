@@ -1,4 +1,4 @@
-# Gemini Peer Review — 3-Axis Matrix Reference (`5 Areas × 15 Article Types × 12 Research Approaches`)
+# Gemini Peer Review — 3-Axis Matrix Reference (`5 Areas × 15 Article Types × 13 Research Approaches`)
 
 ## 1. Axis 1: 5 Major Scientific Areas (`--area`)
 
@@ -34,7 +34,7 @@
 
 ---
 
-## 3. Axis 3: 12 Research Approaches (`--research-approach`)
+## 3. Axis 3: 13 Research Approaches (`--research-approach`)
 
 | Approach Code | Research Approach / Study Design | Methodological Guidelines & Focus |
 |---|---|---|
@@ -49,6 +49,7 @@
 | `mixed_methods` | **Métodos Mistos (*Mixed Methods* — Quali-Quanti)** | **GRAMMS / Creswell & Plano Clark**: explicit design typology (convergent parallel, explanatory/exploratory sequential), parity of rigor in both strands, and *joint displays* / meta-inferences. |
 | `action_or_design_science` | **Pesquisa-Ação / Participante (`CBPR`) ou *Design Science Research* (`DSR`)** | **Hevner / Peffers DSR & Thiollent**: problem relevance, iterative build-evaluate or diagnose-act-reflect cycles, stakeholder co-participation, and naturalistic artifact validation. |
 | `documentary_archival_historical` | **Pesquisa Documental, Arquivística, Histórica, Filológica ou Jurisprudencial** | **Archival & Source Criticism**: corpus delimitation, primary sources / archives / case-law repositories, internal & external source criticism, historical contextualization & anti-anachronism. |
+| `bibliometric_scientometric` | **Pesquisa Bibliométrica / Cienciométrica (Metadados Bibliográficos)** *(set automatically for `bibliometric_review`)* | **BIBLIO / Leiden Manifesto**: query and filters vs. the claimed field, author vs. indexer-assigned keywords, counting and country-attribution rules, citation windows & normalization, Lotka/Bradford informativeness at the corpus size, map sensitivity to thresholds/parameters. Area primary-study checks (replicates, batch effects, accessions, power, FDR) are not applied, and the panel draws its lenses and red-team axes from the article type instead of the area. |
 | `theoretical_formal_deductive` | **Teórica, Formal-Dedutiva, Matemática, Filosófica ou Dogmático-Normativa** | **Formal / Epistemic Rigor**: explicit axioms/definitions/premises, step-by-step formal or normative derivation, edge-case & counterexample analysis, and internal consistency. |
 
 ---
@@ -57,3 +58,35 @@
 
 1. **`SAGER Guidelines` (Sex and Gender Equity in Research)**: Triggered in biological, preclinical, clinical, and human studies to verify whether biological sex/gender of cells, animals, or human participants is reported and analyzed without unjustified single-sex bias.
 2. **`Clinical/Bio-AI` (`TRIPOD+AI`, `CONSORT-AI`, `DECIDE-AI`, `CLAIM`)**: Triggered at the intersection of Health/Biology and Machine Learning/AI to audit patient-level cohort splitting, calibration, subgroup fairness, and external clinical validation.
+
+---
+
+## 5. Panel Composition & Severity Calibration
+
+**Panel slots** are filled in priority order and then shuffled, so codenames do not reveal roles:
+
+| Priority | Role | Template | Disable with |
+|---|---|---|---|
+| 1 | Epistemic red-team critic | `reviewer_alignment_forum.md` | `--no-alignment-critic` |
+| 2 | Author advocate (the critic's counterweight) | `reviewer_author_advocate.md` | `--no-author-advocate` |
+| 3 | Methodology & statistics auditor | `reviewer_methodology_stats.md` | `--no-specialist-panel` |
+| 4 | Reproducibility & integrity inspector | `reviewer_reproducibility_integrity.md` | `--no-specialist-panel` |
+| 5+ | Domain reviewers | `reviewer.md` | — |
+
+The default panel has 5 reviewers, one per role. With `--num-reviewers 3`, the panel keeps the critic, the advocate and the statistics auditor.
+
+**Severity tiers** (shared by every template through `{severity_rubric}`, defined in `spawn_reviewers.py`):
+
+| Tier | Meaning | Test |
+|---|---|---|
+| `Blocking` | A stated conclusion is wrong or unsupported without the fix | The reviewer must quote the conclusion that fails. At most 5 per report. |
+| `Essential` | Reporting, transparency or clarity below the article type's standard | The conclusions may stand. |
+| `Optional` | New data, analyses beyond the stated question, scope expansions | The authors may decline with a one-line justification. |
+
+Reviewers must also check what the authors already wrote, verify the direction of any bias they allege, and treat their seeded lens or axis as a hypothesis to test rather than a finding.
+
+**Meta-review safeguards**:
+- Reviewer agreement is attribution, not evidence: all reviewers run on the same model.
+- Every candidate `Blocking` concern goes through the `## Blocking-concern verification` table before it reaches the roadmap.
+- The concerns matrix records each concern's tier and, per reviewer, `major` (in `Major concerns`), `minor` (passing mention) or blank.
+- `compile_results.py` inserts the audit figures into the meta-review from `pre_review_audit.json`, stores the audit's SHA-256 in `results.json` (`audit_provenance`), warns when the meta-review contradicts or predates the audit, and writes `author_letter.md` with only the Blocking and Essential items.

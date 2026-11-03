@@ -17,22 +17,31 @@
    replaces the raw JSON block in `meta_review.md` with a clean Markdown matrix.
    Re-running is safe: once the JSON block has been consumed, the matrix is reloaded from
    `concerns_matrix.json` instead of being overwritten with an empty table.
-3. Merges `<output_dir>/pre_review_audit.json` (if present) and writes `<output_dir>/results.json`.
-4. Prints a compact per-reviewer verdict summary table to stdout.
+   Each concern carries its severity tier and, per reviewer, whether it was raised as a major
+   concern or only mentioned (``"major"`` / ``"minor"`` / ``""``).
+3. Inserts the authoritative pre-review audit figures into the meta-review (between
+   ``<!-- audit-figures:start -->`` markers) and warns when the meta-review was written against
+   an older audit or contradicts its figures.
+4. Writes ``author_letter.md``: the decision plus the Blocking and Essential roadmap items only.
+5. Merges `<output_dir>/pre_review_audit.json` (if present) and writes `<output_dir>/results.json`.
+6. Prints a compact per-reviewer verdict summary table to stdout.
 """
 
 from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import re
 import sys
+import textwrap
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from arxiv_lookup import lookup_arxiv_ids, normalize_arxiv_id  # noqa: E402
 from openalex_lookup import lookup_dois, normalize_doi  # noqa: E402
 
 try:
@@ -150,14 +159,55 @@ def manuscript_dois(paper_text: str) -> set[str]:
     return {d for m in DOI_CITE_REGEX.finditer(paper_text) if (d := normalize_doi(m.group(1)))}
 
 
-def verify_reviewer_citations(
-    reviewer_metadata: dict[str, Any], max_checks: int = 100, paper_dois: set[str] | None = None
-) -> dict[str, Any]:
-    """Audit external DOIs cited by reviewers (batched OpenAlex lookup) to detect hallucinated references.
+def manuscript_arxiv_ids(paper_text: str) -> set[str]:
+    """arXiv identifiers printed in the manuscript itself, normalized like reviewer citations."""
+    return {a for m in ARXIV_CITE_REGEX.finditer(paper_text) if (a := normalize_arxiv_id(m.group(1)))}
 
-    DOIs that also appear in the manuscript are quotes of its reference list (often to point out a
-    malformed DOI), not reviewer citations: they are reported separately and never flagged, since the
-    pre-review audit already verifies the manuscript's own DOIs.
+
+def verify_reviewer_arxiv(
+    reviewer_metadata: dict[str, Any], max_checks: int = 100, paper_arxiv: set[str] | None = None
+) -> dict[str, Any]:
+    """Check reviewer-cited arXiv IDs against the arXiv API; IDs quoted from the manuscript are skipped."""
+    paper_arxiv = paper_arxiv or set()
+    per_reviewer: dict[str, list[str]] = {}
+    all_ids: list[str] = []
+    for code, meta in reviewer_metadata.items():
+        ids = sorted({
+            a for c in meta.get("external_citations", [])
+            if c.startswith("arXiv:") and (a := normalize_arxiv_id(c[6:])) and a not in paper_arxiv
+        })
+        if ids:
+            per_reviewer[code] = ids
+            all_ids.extend(ids)
+    res = lookup_arxiv_ids(all_ids, max_checks=max_checks) if all_ids else {"found": {}, "unresolvable": [], "unchecked": []}
+    flagged = {
+        code: [f"arXiv:{a}" for a in ids if a in res["unresolvable"]]
+        for code, ids in per_reviewer.items()
+        if any(a in res["unresolvable"] for a in ids)
+    }
+    return {
+        "arxiv_checked_count": len(res["found"]) + len(res["unresolvable"]),
+        "verified_arxiv": [
+            {"arxiv_id": a, "title": w.get("title") or "Untitled", "year": w.get("year")} for a, w in res["found"].items()
+        ],
+        "unresolvable_arxiv": res["unresolvable"],
+        "unchecked_arxiv": res["unchecked"],
+        "flagged": flagged,
+    }
+
+
+def verify_reviewer_citations(
+    reviewer_metadata: dict[str, Any],
+    max_checks: int = 100,
+    paper_dois: set[str] | None = None,
+    paper_arxiv: set[str] | None = None,
+) -> dict[str, Any]:
+    """Audit external DOIs (OpenAlex/doi.org) and arXiv IDs (arXiv API) cited by reviewers.
+
+    DOIs and arXiv IDs that also appear in the manuscript are quotes of its reference list (often to
+    point out a malformed DOI), not reviewer citations: they are reported separately and never flagged,
+    since the pre-review audit already verifies the manuscript's own references. ``flagged_reviewers``
+    lists bare DOIs and ``arXiv:``-prefixed IDs that could not be resolved.
     """
     paper_dois = paper_dois or set()
     reviewer_dois: dict[str, list[str]] = {}
@@ -187,6 +237,10 @@ def verify_reviewer_citations(
         if hallucinated_hits:
             hallucinating_reviewers[code] = hallucinated_hits
 
+    arxiv_audit = verify_reviewer_arxiv(reviewer_metadata, max_checks=max_checks, paper_arxiv=paper_arxiv)
+    for code, ids in arxiv_audit.pop("flagged").items():
+        hallucinating_reviewers.setdefault(code, []).extend(ids)
+
     return {
         "dois_checked_count": len(res["found"]) + len(unresolvable),
         "verified_citations": verified,
@@ -194,7 +248,23 @@ def verify_reviewer_citations(
         "unchecked_dois": res["unchecked"],
         "flagged_reviewers": hallucinating_reviewers,
         "manuscript_dois_quoted": quoted_from_manuscript,
+        **arxiv_audit,
     }
+
+
+SEVERITY_TIERS = ("blocking", "essential", "optional")
+
+
+def concern_cell(val: Any) -> str:
+    """Normalize one reviewer cell to "major", "minor" or "" (legacy booleans: true -> major)."""
+    if isinstance(val, bool):
+        return "major" if val else ""
+    text = str(val or "").strip().lower()
+    if text in ("major", "true", "1", "yes", "x", "✓"):
+        return "major"
+    if text in ("minor", "mentioned", "partial", "~"):
+        return "minor"
+    return ""
 
 
 def _normalize_concern_rows(raw_items: list[Any], codenames: list[str]) -> list[dict[str, Any]]:
@@ -203,11 +273,10 @@ def _normalize_concern_rows(raw_items: list[Any], codenames: list[str]) -> list[
         if not isinstance(item, dict):
             continue
         row: dict[str, Any] = {"concern": " ".join(str(item.get("concern", "")).splitlines()).strip()}
+        severity = str(item.get("severity") or "").strip().lower()
+        row["severity"] = severity if severity in SEVERITY_TIERS else ""
         for code in codenames:
-            val = item.get(code, False)
-            if isinstance(val, str):
-                val = val.strip().lower() in ("true", "1", "yes", "x", "✓")
-            row[code] = bool(val)
+            row[code] = concern_cell(item.get(code, ""))
         if row["concern"]:
             rows.append(row)
     return rows
@@ -215,10 +284,10 @@ def _normalize_concern_rows(raw_items: list[Any], codenames: list[str]) -> list[
 
 def _write_concerns_csv(rows: list[dict[str, Any]], codenames: list[str], csv_path: Path) -> None:
     with open(csv_path, "w", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(fh, fieldnames=["concern"] + codenames)
+        writer = csv.DictWriter(fh, fieldnames=["concern", "severity"] + codenames)
         writer.writeheader()
         for row in rows:
-            csv_row = {"concern": _sanitize_csv_cell(row["concern"])}
+            csv_row = {"concern": _sanitize_csv_cell(row["concern"]), "severity": row.get("severity", "")}
             csv_row.update({code: row[code] for code in codenames})
             writer.writerow(csv_row)
 
@@ -244,18 +313,26 @@ def _load_previous_concerns(json_path: Path, csv_path: Path) -> list[Any]:
     return []
 
 
+CELL_MARKS = {"major": "✓", "minor": "(m)", "": "·"}
+
+
 def _concerns_markdown(rows: list[dict[str, Any]], codenames: list[str]) -> str:
+    # Reviewers share one model, so the count is attribution, not corroboration: the legend says so.
     lines = [
         "## Major Concerns Matrix",
         "",
-        "| Major Concern | " + " | ".join(codenames) + " | Total |",
-        "|---|" + "|".join([":---:" for _ in codenames]) + "|:---:|",
+        "✓ = raised as a major concern; (m) = mentioned only in passing or as a minor point. "
+        "Reviewers share one underlying model, so agreement is attribution, not independent corroboration.",
+        "",
+        "| Concern | Tier | " + " | ".join(codenames) + " | Raised as major |",
+        "|---|:---:|" + "|".join([":---:" for _ in codenames]) + "|:---:|",
     ]
     for r in rows:
-        marks = ["✓" if r[c] else "·" for c in codenames]
-        count = sum(1 for c in codenames if r[c])
+        marks = [CELL_MARKS[r[c]] for c in codenames]
+        count = sum(1 for c in codenames if r[c] == "major")
         safe_concern = r["concern"].replace("|", "\\|")
-        lines.append(f"| {safe_concern} | " + " | ".join(marks) + f" | {count}/{len(codenames)} |")
+        tier = (r.get("severity") or "—").capitalize()
+        lines.append(f"| {safe_concern} | {tier} | " + " | ".join(marks) + f" | {count}/{len(codenames)} |")
     return "\n".join(lines) + "\n"
 
 
@@ -297,6 +374,154 @@ def extract_and_clean_concerns(
     if suffix:
         cleaned_meta += "\n" + suffix + "\n"
     return cleaned_meta, rows
+
+
+AUDIT_SECTION = "## Statistical, Provenance & Reproducibility Audit Highlights"
+AUDIT_START = "<!-- audit-figures:start -->"
+AUDIT_END = "<!-- audit-figures:end -->"
+AUDIT_BLOCK_REGEX = re.compile(re.escape(AUDIT_START) + r".*?" + re.escape(AUDIT_END) + r"\n?", re.DOTALL)
+RISK_REGEX = re.compile(r"\b(Low|Moderate|High|Critical)\s+(?:desk[- ]reject(?:ion)?\s+)?Risk\b", re.IGNORECASE)
+ADHERENCE_PCT_REGEX = re.compile(
+    r"(\d{1,3})\s*%[^.\n]{0,40}\b(?:adherence|fit|scope)\b|\b(?:adherence|fit|scope)\b[^.\n]{0,40}?(\d{1,3})\s*%",
+    re.IGNORECASE,
+)
+
+
+def audit_figures_lines(pre_audit: dict[str, Any]) -> list[str]:
+    """Authoritative audit figures, rendered from pre_review_audit.json."""
+    lines: list[str] = []
+    scope = pre_audit.get("journal_scope_audit") or {}
+    if scope:
+        score = scope.get("adherence_score_pct")
+        lines.append(
+            f"- **Journal scope ({scope.get('target_journal') or 'target journal'})**: "
+            f"{score if score is not None else 'n/a'}% adherence, {scope.get('fit_category') or 'n/a'}; "
+            f"desk-reject risk: {scope.get('desk_reject_risk') or 'n/a'} (automated estimate)."
+        )
+    cit = pre_audit.get("citation_audit") or {}
+    if cit:
+        lines.append(
+            f"- **Manuscript DOIs**: {cit.get('verified_count', 0)} of {cit.get('checked_count', 0)} resolved; "
+            f"{len(cit.get('unresolvable_dois') or [])} unresolvable; {len(cit.get('retracted_works') or [])} retracted."
+        )
+    stat = pre_audit.get("statcheck") or {}
+    if stat:
+        lines.append(
+            f"- **Statistical recalculation**: {stat.get('tests_checked', 0)} tests checked; "
+            f"{stat.get('inconsistencies_count', 0)} inconsistencies; {stat.get('decision_errors_count', 0)} decision errors."
+        )
+    ai = pre_audit.get("ai_provenance_audit") or {}
+    if ai:
+        lines.append(
+            f"- **AI provenance**: disclosure {'present' if ai.get('has_ai_disclosure') else 'absent'}; "
+            f"{ai.get('uncleaned_llm_artifacts_count', 0)} uncleaned LLM artifacts."
+        )
+    fair = pre_audit.get("reproducibility_and_fair_audit") or {}
+    if fair.get("data_status"):
+        lines.append(f"- **Data/code availability**: {fair['data_status']}.")
+    return lines
+
+
+def inject_audit_figures(meta_text: str, pre_audit: dict[str, Any] | None) -> str:
+    """Insert (or refresh) the audit-figures block at the end of the audit-highlights section."""
+    meta_text = AUDIT_BLOCK_REGEX.sub("", meta_text)
+    lines = audit_figures_lines(pre_audit or {})
+    if not lines or AUDIT_SECTION not in meta_text:
+        return meta_text
+    block = "\n".join([AUDIT_START, "", "**Audit figures (from the automated audit file):**", "", *lines, "", AUDIT_END]) + "\n"
+    start = meta_text.index(AUDIT_SECTION) + len(AUDIT_SECTION)
+    nxt = meta_text.find("\n## ", start)
+    end = len(meta_text) if nxt == -1 else nxt + 1
+    body = meta_text[start:end].rstrip("\n")
+    return meta_text[:start] + body + "\n\n" + block + ("\n" if nxt != -1 else "") + meta_text[end:]
+
+
+def audit_consistency_warnings(
+    meta_text: str, pre_audit: dict[str, Any] | None, meta_mtime: float | None = None, audit_mtime: float | None = None
+) -> list[str]:
+    """Flag a meta-review written against an older audit, or prose contradicting the audit figures."""
+    warnings: list[str] = []
+    if meta_mtime is not None and audit_mtime is not None and audit_mtime > meta_mtime + 1:
+        warnings.append(
+            "pre_review_audit was regenerated after meta_review.md was written; re-check the meta-review against it."
+        )
+    scope = (pre_audit or {}).get("journal_scope_audit") or {}
+    if not scope:
+        return warnings
+    prose = AUDIT_BLOCK_REGEX.sub("", meta_text)
+    score = scope.get("adherence_score_pct")
+    if score is not None:
+        quoted = {int(a or b) for a, b in ADHERENCE_PCT_REGEX.findall(prose)}
+        wrong = sorted(q for q in quoted if q != int(score))
+        if wrong:
+            warnings.append(
+                f"meta-review cites a scope adherence of {', '.join(f'{w}%' for w in wrong)}, but the audit reports {score}%."
+            )
+    risk = str(scope.get("desk_reject_risk") or "")
+    risk_level = risk.split()[0].lower() if risk else ""
+    if risk_level:
+        mentioned = {m.lower() for m in RISK_REGEX.findall(prose)}
+        if mentioned and risk_level not in mentioned:
+            warnings.append(
+                f"meta-review describes the automated desk-reject risk as {', '.join(sorted(mentioned))}, "
+                f"but the audit reports '{risk}'."
+            )
+    return warnings
+
+
+ROADMAP_SECTION_REGEX = re.compile(r"^##\s+Actionable Revision Roadmap\s*$(.*?)(?=^##\s|\Z)", re.MULTILINE | re.DOTALL)
+TIER_HEADING_REGEX = re.compile(r"^\s*\d+\.\s*\*\*([^*]+)\*\*.*$", re.MULTILINE)
+VERDICT_SECTION_REGEX = re.compile(r"^##\s+Verdict synthesis\s*$(.*?)(?=^##\s|\Z)", re.MULTILINE | re.DOTALL)
+
+
+def roadmap_tiers(meta_text: str) -> list[tuple[str, str]]:
+    """Split the roadmap into (tier heading, body) pairs, in document order."""
+    m = ROADMAP_SECTION_REGEX.search(meta_text)
+    if not m:
+        return []
+    section = m.group(1)
+    heads = list(TIER_HEADING_REGEX.finditer(section))
+    tiers = []
+    for i, h in enumerate(heads):
+        body_end = heads[i + 1].start() if i + 1 < len(heads) else len(section)
+        tiers.append((h.group(1).strip(), section[h.end() : body_end].strip("\n")))
+    return tiers
+
+
+def _tier_key(heading: str) -> str:
+    head = heading.lower()
+    if head.startswith("blocking"):
+        return "blocking"
+    if head.startswith("essential"):
+        return "essential"
+    return "optional"
+
+
+def build_author_letter(meta_text: str, consensus: str) -> str | None:
+    """Short author-facing letter: the decision, its rationale and the Blocking/Essential items only."""
+    tiers = roadmap_tiers(meta_text)
+    if not tiers:
+        return None
+    verdict_m = VERDICT_SECTION_REGEX.search(meta_text)
+    rationale = verdict_m.group(1).strip() if verdict_m else ""
+    decision_m = VERDICT_LABEL_REGEX.search(rationale)
+    decision = " ".join(decision_m.group(1).split()).capitalize() if decision_m else consensus
+    out = ["# Decision letter to the authors", "", f"**Editorial recommendation: {decision}**", ""]
+    if rationale:
+        out += [rationale, ""]
+    optional_items = 0
+    for heading, body in tiers:
+        if _tier_key(heading) == "optional":
+            optional_items += len(re.findall(r"^\s*[-*]\s", body, re.MULTILINE))
+            continue
+        out += [f"## {heading}", "", textwrap.dedent(body.strip("\n")).strip(), ""]
+    if optional_items:
+        out += [
+            f"*{optional_items} optional suggestion(s) are listed in the full editorial report. "
+            "The authors may decline any of them with a one-line justification.*",
+            "",
+        ]
+    return "\n".join(out).rstrip() + "\n"
 
 
 def compute_consensus_verdict(verdicts: list[str]) -> str:
@@ -367,29 +592,44 @@ def main() -> int:
     cleaned_meta = ""
     concerns_matrix: list[dict[str, Any]] = []
 
-    if meta_path.exists():
-        raw_meta = meta_path.read_text(encoding="utf-8", errors="replace")
-        cleaned_meta, concerns_matrix = extract_and_clean_concerns(raw_meta, codenames, csv_path)
-        if cleaned_meta != raw_meta:
-            meta_path.write_text(cleaned_meta, encoding="utf-8")
-
     pre_audit = None
     audit_path = out_dir / "pre_review_audit.json"
+    audit_sha256 = None
     if audit_path.exists():
         try:
-            pre_audit = json.loads(audit_path.read_text(encoding="utf-8"))
+            audit_bytes = audit_path.read_bytes()
+            audit_sha256 = hashlib.sha256(audit_bytes).hexdigest()
+            pre_audit = json.loads(audit_bytes.decode("utf-8"))
         except Exception:
             pass
+
+    audit_warnings: list[str] = []
+    if meta_path.exists():
+        raw_meta = meta_path.read_text(encoding="utf-8", errors="replace")
+        # A meta-review compiled before already carries the audit block, so its mtime is ours, not the LLM's.
+        first_compile = AUDIT_START not in raw_meta
+        audit_warnings = audit_consistency_warnings(
+            raw_meta,
+            pre_audit,
+            meta_mtime=meta_path.stat().st_mtime if first_compile else None,
+            audit_mtime=audit_path.stat().st_mtime if audit_path.exists() else None,
+        )
+        cleaned_meta, concerns_matrix = extract_and_clean_concerns(raw_meta, codenames, csv_path)
+        cleaned_meta = inject_audit_figures(cleaned_meta, pre_audit)
+        if cleaned_meta != raw_meta:
+            meta_path.write_text(cleaned_meta, encoding="utf-8")
 
     verdicts_list = [reviewer_metadata[c]["verdict"] for c in codenames]
     consensus = compute_consensus_verdict(verdicts_list)
     paper_text_path = out_dir / "paper_text.txt"
-    paper_dois = (
-        manuscript_dois(paper_text_path.read_text(encoding="utf-8", errors="replace"))
-        if paper_text_path.exists()
-        else set()
+    paper_text = paper_text_path.read_text(encoding="utf-8", errors="replace") if paper_text_path.exists() else ""
+    reviewer_citation_audit = verify_reviewer_citations(
+        reviewer_metadata, paper_dois=manuscript_dois(paper_text), paper_arxiv=manuscript_arxiv_ids(paper_text)
     )
-    reviewer_citation_audit = verify_reviewer_citations(reviewer_metadata, paper_dois=paper_dois)
+
+    author_letter = build_author_letter(cleaned_meta, consensus) if cleaned_meta else None
+    if author_letter:
+        (out_dir / "author_letter.md").write_text(author_letter, encoding="utf-8")
 
     results_payload = {
         "individual_reviews": individual_reviews,
@@ -403,6 +643,7 @@ def main() -> int:
         "concerns_matrix": concerns_matrix,
         "pre_review_audit": pre_audit,
         "reviewer_citation_audit": reviewer_citation_audit,
+        "audit_provenance": {"pre_review_audit_sha256": audit_sha256, "warnings": audit_warnings},
     }
 
     results_path = out_dir / "results.json"
@@ -419,7 +660,12 @@ def main() -> int:
     if reviewer_citation_audit.get("flagged_reviewers"):
         print("\n⚠️  CITATION HALLUCINATION ALERT:")
         for r_code, h_dois in reviewer_citation_audit["flagged_reviewers"].items():
-            print(f"  - Reviewer '{r_code}' cited unresolvable/hallucinated DOI(s): {', '.join(h_dois)}")
+            print(f"  - Reviewer '{r_code}' cited unresolvable/hallucinated identifier(s): {', '.join(h_dois)}")
+
+    if audit_warnings:
+        print("\n⚠️  META-REVIEW / AUDIT MISMATCH:")
+        for w in audit_warnings:
+            print(f"  - {w}")
 
     if not args.skip_pdf and generate_pdf_report:
         try:
