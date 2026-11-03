@@ -10,3 +10,6 @@ papers/
 
 # Manuscripts under review (confidential, never committed)
 test/
+
+# Drafts and proposals for other plugins (kept local)
+docs/PROPOSAL_*.md
