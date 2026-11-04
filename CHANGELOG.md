@@ -6,6 +6,10 @@ Todas as mudanças relevantes deste plugin. O formato segue o [Keep a Changelog]
 
 ### Adicionado
 - Selo e aviso de versão beta no topo da página do projeto e dos três READMEs, com link para relatar problemas.
+- Animações na página: o terminal do topo digita o pedido e mostra a revisão acontecendo, com os cinco pareceristas em paralelo; em "Como funciona", as cinco etapas acendem em sequência, cada uma com uma pequena ilustração (classificação, checagens da auditoria, painel, níveis de severidade, arquivos gerados). Começam quando aparecem na tela, têm botão para repetir e ficam estáticas para quem pediu ao sistema menos movimento.
+
+### Corrigido
+- Em telas de 320 px, o cartão de exemplo da metarrevisão e a tabela de composição do painel passavam da largura da página.
 
 ## [1.3.2] — 2026-11-04
 
