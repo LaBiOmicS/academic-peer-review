@@ -192,7 +192,7 @@ uv run $SKILL/scripts/compile_results.py --output-dir $OUT
 
 ### Coste y tiempo
 
-Cada revisión cuesta una llamada al modelo por revisor, más la metarrevisión. Como referencia, un manuscrito de ~1.000 palabras con 3 revisores en Claude Sonnet costó unos US$ 1. Un artículo de ~9.000 palabras tarda de 3 a 5 minutos por revisor, con los revisores en paralelo.
+Cada revisión cuesta una llamada al modelo por revisor, más la metarrevisión. Como referencia, un manuscrito de unas 1.000 palabras con 3 revisores en Claude Sonnet costó unos US$ 1. En un artículo de unas 9.000 palabras, cada revisor tarda de 3 a 5 minutos, y todos trabajan al mismo tiempo.
 
 ## Parámetros
 

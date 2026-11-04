@@ -99,7 +99,7 @@ A metarrevisão não conta concordância entre pareceristas como evidência. Tod
 | Módulo | Verificações |
 |---|---|
 | `statcheck` | Recalcula valores-p a partir de *t*, *F*, *r*, χ² e *z*; aponta inconsistências, erros de decisão e valores frágeis |
-| Checagens do perfil | Itens de relato da tipologia e da abordagem (PRISMA, CONSORT, STROBE, ARRIVE, COREQ, BIBLIO etc.), inclusive se a string de busca está no texto, num protocolo externo ou no suplemento |
+| Checagens do perfil | Itens de relato da tipologia e da abordagem (PRISMA, CONSORT, STROBE, ARRIVE, COREQ, BIBLIO etc.), inclusive se a string de busca está no texto, em um protocolo externo ou no suplemento |
 | FAIR e reprodutibilidade | Repositórios e identificadores persistentes, declarações de disponibilidade evasivas, travamento de dependências, sementes aleatórias, RRIDs, números de catálogo |
 | IA generativa | Restos de conversa com chatbot, IA listada como autora, presença de declaração de uso de IA |
 | Citações | DOIs conferidos no OpenAlex e no doi.org; retratações; IDs do arXiv na API do arXiv |
@@ -192,7 +192,7 @@ uv run $SKILL/scripts/compile_results.py --output-dir $OUT
 
 ### Custo e tempo
 
-Cada revisão custa uma chamada de modelo por parecerista, mais a metarrevisão. Como referência, um manuscrito de ~1.000 palavras com 3 pareceristas no Claude Sonnet custou cerca de US$ 1. Um artigo de ~9.000 palavras leva de 3 a 5 minutos por parecerista, com os pareceristas em paralelo.
+Cada revisão custa uma chamada de modelo por parecerista, mais a metarrevisão. Como referência, um manuscrito de cerca de 1.000 palavras com 3 pareceristas no Claude Sonnet custou cerca de US$ 1. Em um artigo de cerca de 9.000 palavras, cada parecerista leva de 3 a 5 minutos, e todos trabalham ao mesmo tempo.
 
 ## Parâmetros
 

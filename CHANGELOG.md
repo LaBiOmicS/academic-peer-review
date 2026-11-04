@@ -10,7 +10,7 @@ Todas as mudanças relevantes deste plugin. O formato segue o [Keep a Changelog]
 
 ### Corrigido
 - Tabelas largas do relatório em PDF (como a de verificação dos bloqueantes, com várias colunas de texto) eram ilegíveis na página retrato. Agora vão para páginas paisagem, no LaTeX (`pdflscape`) e no ReportLab. As colunas passam a ter largura proporcional ao conteúdo: antes, todas tinham a mesma largura no pandoc, e a coluna da crítica ficava espremida. No ReportLab, as tabelas deixaram de sair como texto corrido separado por `|`.
-- A Parte II do PDF afirmava que todos os pareceristas usam o mesmo modelo mesmo num painel com modelos diferentes; o texto agora segue o `results.json`.
+- A Parte II do PDF afirmava que todos os pareceristas usam o mesmo modelo mesmo em um painel com modelos diferentes; o texto agora segue o `results.json`.
 
 ## [1.2.0] — 2026-11-04
 
@@ -22,7 +22,7 @@ Todas as mudanças relevantes deste plugin. O formato segue o [Keep a Changelog]
 - O runner `agy` falhava em todo painel headless: a versão atual lê o prompt como valor de `-p` e tomava `--effort` por prompt. O `-p` vai agora no fim do comando, seguido do prompt; um prompt grande demais para um argumento (128 KiB no Linux) é trocado por uma instrução para ler o arquivo do prompt.
 - Repetir o `spawn_reviewers.py` para completar pareceristas que falharam sorteava os papéis de novo. Os pareceres já prontos ficavam com papéis antigos, e o painel podia terminar com dois críticos *red-team* e sem advogado do autor. Agora a nova execução mantém os papéis e as sementes do manifesto anterior (`--overwrite` começa um painel novo).
 - As lentes 3 e 4 do auditor de reprodutibilidade dependem do perfil do manuscrito. Uma revisão bibliométrica não recebe mais pedidos de acessos SRA/GEO nem de aprovação CEUA: são cobrados o depósito do corpus e dos parâmetros dos mapas e os itens do BIBLIO. Revisões de literatura não recebem normas de pesquisa com animais, e a lente normativa cita as diretrizes da tipologia e da abordagem.
-- A auditoria distingue a string de busca ausente da string publicada só num protocolo externo (protocols.io, OSF, PROSPERO) ou no material suplementar.
+- A auditoria distingue a string de busca ausente da string publicada apenas em um protocolo externo (protocols.io, OSF, PROSPERO) ou no material suplementar.
 - Periódicos sem perfil curado não recebem mais alertas genéricos ("Failure to meet standard reporting…"). A auditoria diz que os requisitos não foram verificados, indica a página do periódico e cita seus tópicos mais frequentes. Quando o OpenAlex não lista a editora, aparece a sociedade ou o país e a plataforma, em vez de "Unknown Publisher".
 - O SAGER deixou de se aplicar a todo artigo de Biológicas: agora exige menção a pessoas ou animais (um estudo de solo ou de plantas não tem sujeitos). Experimentos de campo com parcelas, testemunhos de solo e safras passaram a ser reconhecidos como abordagem de campo.
 - Testes para `extract_paper.py` e `literature_search.py` (cobertura total de 70% para 81%).
@@ -45,10 +45,10 @@ Todas as mudanças relevantes deste plugin. O formato segue o [Keep a Changelog]
 
 ### Corrigido
 - README: a composição do painel por número de pareceristas está documentada (com 3 ou 4 não há parecerista de domínio), os papéis aparecem como sorteados entre os codinomes, e a tabela de artefatos inclui `author_letter.md`, a matriz com níveis de severidade e o painel com modelos misturados.
-- Revisões bibliométricas eram classificadas pela abordagem do vocabulário da literatura revisada (ex.: `computational_in_silico` com confiança de 0,97 num estudo bibliométrico sobre metagenômica). Agora recebem `bibliometric_scientometric`.
+- Revisões bibliométricas eram classificadas pela abordagem do vocabulário da literatura revisada (ex.: `computational_in_silico` com confiança de 0,97 em um estudo bibliométrico sobre metagenômica). Agora recebem `bibliometric_scientometric`.
 - Revisões bibliométricas não recebem mais as checagens de estudo primário da área (réplicas, efeito de lote, acessos, poder, FDR, tamanho de efeito, sementes aleatórias), e a aprovação ética aparece como não exigida.
 - O critério *Clinical/Bio-AI* (TRIPOD+AI/CLAIM) exige um modelo de IA ou uma diretriz de IA no texto; antes, qualquer artigo de Biológicas com abordagem computacional o ativava. A palavra comum "*claim*" deixou de ativar a diretriz CLAIM, e o SAGER não se aplica mais a revisões bibliométricas, ensaios e artigos de software.
-- A aderência ao escopo do periódico comparava os tópicos com o texto inteiro, inclusive as referências, e contava palavras comuns a quase todos os tópicos do periódico (ex.: "ecology" numa revista de ecologia). Um artigo sobre resistência antimicrobiana em insetos chegava a 83% e "Low Risk" na *Ecología Austral* por tópicos sem relação. Agora a comparação usa só o corpo do texto e descarta essas palavras.
+- A aderência ao escopo do periódico comparava os tópicos com o texto inteiro, inclusive as referências, e contava palavras comuns a quase todos os tópicos do periódico (ex.: "ecology" em uma revista de ecologia). Um artigo sobre resistência antimicrobiana em insetos chegava a 83% e "Low Risk" na *Ecología Austral* por tópicos sem relação. Agora a comparação usa só o corpo do texto e descarta essas palavras.
 - O cabeçalho do PDF não sobrepõe mais o título da seção ao texto central.
 - O PDF não falha mais quando um parecer tem uma linha `---` seguida de texto: o pandoc a lia como início de um bloco YAML (`Unknown alias`). No *fallback* ReportLab, itálico dentro de negrito (`**Fit with *Ecología Austral***`) gerava tags mal aninhadas e abortava o relatório inteiro; agora aninha corretamente, e uma linha malformada cai para texto simples em vez de derrubar o PDF.
 - Quando uma engine do LaTeX falha e a seguinte gera o PDF (ex.: `lualatex` com cache de fontes quebrado), o `generate_pdf_report.py` informa em uma linha qual engine foi usada. Antes, imprimia o erro completo da engine que falhou, como se o PDF não tivesse sido gerado.
@@ -82,7 +82,7 @@ Primeira versão pública e estável.
 - Classificação com confiança baixa (área ou abordagem) é marcada como `needs_confirmation`: o agente confirma os eixos pelo resumo e pelos métodos e, em sessão interativa, pergunta ao usuário antes de preparar o painel. Sem confirmação, a auditoria avisa os pareceristas.
 - README: estimativa de custo e tempo por revisão.
 - Extração de PDF escolhe o melhor extrator pela proporção de palavras coladas e usa o `pdftotext` em modo de leitura (o modo `-layout` misturava as colunas de PDFs em duas colunas).
-- A confiança da abordagem considera a quantidade de evidência: poucos termos soltos (ex.: "mice" num artigo de modelagem) pedem confirmação. Corrigido o padrão "quadrat", que casava com "quadratically".
+- A confiança da abordagem considera a quantidade de evidência: poucos termos soltos (ex.: "mice" em um artigo de modelagem) pedem confirmação. Corrigido o padrão "quadrat", que casava com "quadratically".
 - O cálculo interno da semente não vaza mais para a lente/postura dos pareceristas no relatório.
 - O tipo de artigo ignora a lista de referências, exige evidência mínima para sair de "pesquisa original" e passa pelo passo de confirmação quando incerto (antes, um título citado como "revisão de escopo" reclassificava um estudo empírico).
 - DOIs ausentes do OpenAlex são confirmados no registro do doi.org antes de serem tratados como inexistentes (antes, um DOI legítimo de preprint da JMIR foi acusado de alucinação).

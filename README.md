@@ -192,7 +192,7 @@ uv run $SKILL/scripts/compile_results.py --output-dir $OUT
 
 ### Cost
 
-Each review costs one model call per reviewer plus the meta-review. As a reference, a ~1,000-word manuscript with 3 reviewers on Claude Sonnet cost about US$ 1. A ~9,000-word article takes 3–5 minutes per reviewer, with reviewers running in parallel.
+Each review costs one model call per reviewer plus the meta-review. As a reference, a manuscript of about 1,000 words with 3 reviewers on Claude Sonnet cost about US$ 1. For an article of about 9,000 words, each reviewer takes 3 to 5 minutes, and all of them work at the same time.
 
 ## Parameters
 
