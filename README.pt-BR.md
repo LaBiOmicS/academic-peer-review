@@ -267,7 +267,7 @@ As mudanças estão registradas em [CHANGELOG.md](CHANGELOG.md).
   author  = {Menegidio, Fabiano Bezerra},
   title   = {academic-peer-review: AI-assisted academic peer review with deterministic audits},
   year    = {2026},
-  version = {1.3.2},
+  version = {1.3.3},
   url     = {https://github.com/LaBiOmicS/academic-peer-review},
   note    = {LaBiOmicS, Universidade de Mogi das Cruzes}
 }

@@ -24,7 +24,7 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
-USER_AGENT = "academic-peer-review/1.3.2 (LaBiOmicS - UMC; mailto:fabianomenegidio@umc.br)"
+USER_AGENT = "academic-peer-review/1.3.3 (LaBiOmicS - UMC; mailto:fabianomenegidio@umc.br)"
 BATCH_SIZE = 50
 MAX_REGISTRY_CHECKS = 30  # one request per DOI; the rest stay unchecked rather than accused
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
