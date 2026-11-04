@@ -98,6 +98,9 @@ def _clean_markdown_for_pdf(text: str) -> str:
     text = text.split("## CONCERNS_TABLE_DATA")[0]
     # compile_results.py fences the audit figures with HTML comments, which ReportLab would print.
     text = re.sub(r"<!--\s*audit-figures:(?:start|end)\s*-->\n?", "", text)
+    # A "---" rule followed directly by text opens a YAML metadata block in pandoc (a review ending
+    # in "---\n*This report is…*" broke the PDF with "Unknown alias"); blank lines make it a rule.
+    text = re.sub(r"(?m)^[ \t]*-{3,}[ \t]*\n", "\n---\n\n", text)
     return text.strip()
 
 
@@ -330,7 +333,8 @@ def _strip_front_matter(markdown_content: str) -> str:
 def _inline_markup(text: str) -> str:
     """Escape text for ReportLab's mini-HTML and translate **bold**, *italic* and `code`."""
     out = xml_escape(text)
-    out = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", out)
+    # The closing "**" may not be followed by "*", so "**Fit with *Journal***" nests <i> inside <b>.
+    out = re.sub(r"\*\*(.+?)\*\*(?!\*)", r"<b>\1</b>", out)
     out = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"<i>\1</i>", out)
     out = re.sub(r"`([^`]+)`", r'<font name="Courier">\1</font>', out)
     return out
@@ -408,6 +412,13 @@ def render_with_reportlab(markdown_content: str, output_pdf_path: Path, results:
         HRFlowable(width="100%", thickness=1.5, color=primary_color, spaceAfter=14),
     ]
 
+    def para(markup: str, style: ParagraphStyle) -> Paragraph:
+        # One malformed line must not abort the whole report: fall back to its plain text.
+        try:
+            return Paragraph(markup, style)
+        except ValueError:
+            return Paragraph(xml_escape(re.sub(r"<[^>]+>", "", markup)), style)
+
     for line_s in _strip_front_matter(markdown_content).splitlines():
         line_s = line_s.strip()
         if not line_s or re.fullmatch(r"-{3,}|\*{3,}|_{3,}", line_s):
@@ -416,24 +427,24 @@ def render_with_reportlab(markdown_content: str, output_pdf_path: Path, results:
             if re.fullmatch(r"\|?(\s*:?-{3,}:?\s*\|)+\s*:?-*:?\s*", line_s):
                 continue  # table separator row
             cells = [c.strip() for c in re.split(r"(?<!\\)\|", line_s.strip("|"))]
-            story.append(Paragraph(" | ".join(_inline_markup(c.replace("\\|", "|")) for c in cells), body_style))
+            story.append(para(" | ".join(_inline_markup(c.replace("\\|", "|")) for c in cells), body_style))
             continue
         heading = re.match(r"(#{1,6})\s+(.*)", line_s)
         if heading:
             level, title = len(heading.group(1)), _inline_markup(heading.group(2))
             if level == 1:
                 story.append(Spacer(1, 8))
-                story.append(Paragraph(title, h1_style))
+                story.append(para(title, h1_style))
             elif level == 2:
                 story.append(Spacer(1, 6))
-                story.append(Paragraph(title, h2_style))
+                story.append(para(title, h2_style))
             else:
                 story.append(Spacer(1, 4))
-                story.append(Paragraph(f"<b>{title}</b>", body_style))
+                story.append(para(f"<b>{title}</b>", body_style))
         elif line_s.startswith(("- ", "* ", "+ ")):
-            story.append(Paragraph(f"• {_inline_markup(line_s[2:].strip())}", body_style))
+            story.append(para(f"• {_inline_markup(line_s[2:].strip())}", body_style))
         else:
-            story.append(Paragraph(_inline_markup(line_s), body_style))
+            story.append(para(_inline_markup(line_s), body_style))
             story.append(Spacer(1, 3))
 
     doc.build(story)

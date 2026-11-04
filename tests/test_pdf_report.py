@@ -87,3 +87,23 @@ def test_concerns_matrix_rendered_once_and_bad_dois_listed(tmp_path):
     assert md.count("| Data |") == 0  # the meta-review copy is gone; Part II comes from the CSV
     assert "alfa first." in md  # content after the matrix is kept
     assert "Reviewer Alfa: `10.1/x`" in md
+
+
+def test_rule_followed_by_text_does_not_open_yaml_block(tmp_path):
+    # Regression: a review ending in "---\n*This report is…*" made pandoc parse a YAML block and
+    # fail with "Unknown alias `This`".
+    _make_bundle(tmp_path)
+    (tmp_path / "review_alfa.md").write_text("### Verdict\nReject.\n\n---\n*This report is a draft.*\n", encoding="utf-8")
+    md, _ = assemble_consolidated_markdown(tmp_path)
+    body = md.split("# Part IV", 1)[1]
+    assert "---\n*This" not in body and "---\n\n*This report is a draft.*" in body
+
+
+def test_italic_inside_bold_nests_and_bad_markup_does_not_abort(tmp_path):
+    from generate_pdf_report import _inline_markup
+
+    assert _inline_markup("**Fit with *Ecología Austral***") == "<b>Fit with <i>Ecología Austral</i></b>"
+    pytest.importorskip("reportlab")
+    out = tmp_path / "r.pdf"
+    md = "# T\n\n- **Fit with *Journal***: ok\n- a **b *c** d*\n" + "text\n" * 50
+    assert render_with_reportlab(md, out, {})
