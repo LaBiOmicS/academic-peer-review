@@ -2,7 +2,7 @@
 
 Todas as mudanças relevantes deste plugin. O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [SemVer](https://semver.org/lang/pt-BR/).
 
-## [Não lançado]
+## [1.3.2] — 2026-11-04
 
 ### Corrigido
 - No PDF, o cabeçalho de cada parecer (`SEED`, `LENS`/`AXIS`, `STANCE`) vinha em bloco de código, que o LaTeX não quebra; um eixo longo do crítico red-team passava da margem direita. O cabeçalho agora sai como lista.
