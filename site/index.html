@@ -81,7 +81,15 @@ nav.links a:hover { color: var(--ink); }
 .seg button { font: 500 .8rem var(--sans); color: var(--ink-2); background: none; border: 0; border-radius: 999px; padding: 5px 11px; cursor: pointer; white-space: nowrap; }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 .top .seg button { font-family: var(--mono); font-size: .74rem; padding: 4px 8px; }
-@media (max-width: 980px) { nav.links { display: none; } .toggles { margin-left: auto; } }
+/* Narrow screens: the menu moves to a second, horizontally scrollable row instead of disappearing. */
+@media (max-width: 980px) {
+  .top .wrap { flex-wrap: wrap; height: auto; padding-top: 10px; gap: 8px 14px; }
+  .toggles { margin-left: auto; }
+  nav.links { order: 3; width: 100%; margin: 0; gap: 18px; overflow-x: auto; padding: 2px 0 10px; scrollbar-width: none; }
+  nav.links::-webkit-scrollbar { display: none; }
+  html { scroll-padding-top: 110px; }
+  .pickers { top: 98px; }
+}
 @media (max-width: 420px) { .brand span { display: none; } }
 
 /* Hero */
