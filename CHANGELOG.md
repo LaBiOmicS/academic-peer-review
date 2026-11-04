@@ -5,7 +5,7 @@ Todas as mudanças relevantes deste plugin. O formato segue o [Keep a Changelog]
 ## [Não lançado]
 
 ### Documentação
-- README separado em três arquivos: inglês (`README.md`), português (`README.pt-BR.md`) e espanhol (`README.es.md`), com seletor de idioma no topo. O texto foi reescrito em tom técnico: tabela de visão geral, diagrama do fluxo, definição dos níveis de severidade, módulos da auditoria, modelo de segurança, parâmetros, limitações e citação em BibTeX.
+- README separado em três arquivos: inglês (`README.md`), português (`README.pt-BR.md`) e espanhol (`README.es.md`), com seletor de idioma no topo. A página do projeto ganhou a versão em espanhol e um seletor PT · EN · ES; o idioma inicial segue o do navegador. O texto foi reescrito em tom técnico: tabela de visão geral, diagrama do fluxo, definição dos níveis de severidade, módulos da auditoria, modelo de segurança, parâmetros, limitações e citação em BibTeX.
 
 ### Corrigido
 - O runner `agy` falhava em todo painel headless: a versão atual lê o prompt como valor de `-p` e tomava `--effort` por prompt. O `-p` vai agora no fim do comando, seguido do prompt; um prompt grande demais para um argumento (128 KiB no Linux) é trocado por uma instrução para ler o arquivo do prompt.

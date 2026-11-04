@@ -60,7 +60,9 @@ body {
   margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans);
   font-size: 17px; line-height: 1.6; -webkit-font-smoothing: antialiased;
 }
-html[data-lang="pt"] [lang="en"], html[data-lang="en"] [lang="pt"] { display: none !important; }
+html[data-lang="pt"] [lang="en"], html[data-lang="pt"] [lang="es"],
+html[data-lang="en"] [lang="pt"], html[data-lang="en"] [lang="es"],
+html[data-lang="es"] [lang="pt"], html[data-lang="es"] [lang="en"] { display: none !important; }
 a { color: var(--cyan); text-decoration-thickness: 1px; text-underline-offset: 3px; }
 code, pre { font-family: var(--mono); }
 code { font-size: .88em; background: var(--surface-2); padding: .1em .35em; border-radius: 5px; }
@@ -89,6 +91,9 @@ nav.links a:hover { color: var(--ink); }
   border-radius: 999px; padding: 6px 11px; cursor: pointer;
 }
 .chip-btn:hover { border-color: var(--muted); }
+.lang-switch { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.lang-switch .chip-btn { border-color: transparent; padding: 4px 9px; }
+.lang-switch .chip-btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 @media (max-width: 860px) { nav.links { display: none; } .toggles { margin-left: auto; } }
 
 /* Hero */
@@ -259,14 +264,14 @@ footer a { color: var(--ink-2); }
   <div class="wrap">
     <a class="brand" href="#"><img src="assets/logo-180.png" alt="" width="32" height="32"><span>academic-peer-review</span></a>
     <nav class="links">
-      <a href="#como"><span lang="pt">Como funciona</span><span lang="en">How it works</span></a>
-      <a href="#painel"><span lang="pt">Painel</span><span lang="en">Panel</span></a>
-      <a href="#auditoria"><span lang="pt">Auditoria</span><span lang="en">Audit</span></a>
-      <a href="#instalar"><span lang="pt">Instalar</span><span lang="en">Install</span></a>
+      <a href="#como"><span lang="pt">Como funciona</span><span lang="en">How it works</span><span lang="es">Cómo funciona</span></a>
+      <a href="#painel"><span lang="pt">Painel</span><span lang="en">Panel</span><span lang="es">Panel</span></a>
+      <a href="#auditoria"><span lang="pt">Auditoria</span><span lang="en">Audit</span><span lang="es">Auditoría</span></a>
+      <a href="#instalar"><span lang="pt">Instalar</span><span lang="en">Install</span><span lang="es">Instalar</span></a>
       <a href="https://github.com/LaBiOmicS/academic-peer-review">GitHub</a>
     </nav>
     <div class="toggles">
-      <button class="chip-btn" id="lang-btn" type="button" aria-label="Switch language"><span lang="pt">EN</span><span lang="en">PT</span></button>
+      <div class="lang-switch" role="group" aria-label="Language"><button class="chip-btn" type="button" data-set-lang="pt">PT</button><button class="chip-btn" type="button" data-set-lang="en">EN</button><button class="chip-btn" type="button" data-set-lang="es">ES</button></div>
       <button class="chip-btn" id="theme-btn" type="button" aria-label="Toggle dark mode">◐</button>
     </div>
   </div>
@@ -276,16 +281,16 @@ footer a { color: var(--ink-2); }
 <section class="hero">
   <div class="wrap">
     <div>
-      <div class="eyebrow"><span lang="pt">Plugin para Claude Code e Antigravity</span><span lang="en">Plugin for Claude Code and Antigravity</span></div>
+      <div class="eyebrow"><span lang="pt">Plugin para Claude Code e Antigravity</span><span lang="en">Plugin for Claude Code and Antigravity</span><span lang="es">Plugin para Claude Code y Antigravity</span></div>
       <h1 lang="pt">Auditoria <em>antes</em> da opinião.</h1>
-      <h1 lang="en">Audit <em>before</em> opinion.</h1>
+      <h1 lang="en">Audit <em>before</em> opinion.</h1><h1 lang="es">Auditoría <em>antes</em> que opinión.</h1>
       <p class="lede" lang="pt">Um painel de pareceristas independentes, cada um com um papel distinto, avalia o seu manuscrito depois de uma auditoria determinística de estatística, citações, dados, uso de IA e escopo do periódico. O resultado é uma metarrevisão editorial com severidade calibrada e um relatório em PDF, pronto para um parecerista humano revisar e assinar.</p>
-      <p class="lede" lang="en">A panel of independent reviewers, each with a distinct role, evaluates your manuscript after a deterministic audit of statistics, citations, data, AI use and journal scope. The result is a calibrated editorial meta-review and a PDF report, ready for a human referee to check and sign.</p>
+      <p class="lede" lang="en">A panel of independent reviewers, each with a distinct role, evaluates your manuscript after a deterministic audit of statistics, citations, data, AI use and journal scope. The result is a calibrated editorial meta-review and a PDF report, ready for a human referee to check and sign.</p><p class="lede" lang="es">Un panel de revisores independientes, cada uno con un rol distinto, evalúa su manuscrito después de una auditoría determinista de la estadística, las citas, los datos, el uso de IA y el alcance de la revista. El resultado es una metarrevisión editorial con severidad calibrada y un informe en PDF, listo para que un revisor humano lo verifique y lo firme.</p>
       <div class="cta">
-        <a class="btn primary" href="#instalar"><span lang="pt">Instalar</span><span lang="en">Install</span></a>
+        <a class="btn primary" href="#instalar"><span lang="pt">Instalar</span><span lang="en">Install</span><span lang="es">Instalar</span></a>
         <a class="btn ghost" href="https://github.com/LaBiOmicS/academic-peer-review">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-          <span lang="pt">Código no GitHub</span><span lang="en">Source on GitHub</span>
+          <span lang="pt">Código no GitHub</span><span lang="en">Source on GitHub</span><span lang="es">Código en GitHub</span>
         </a>
       </div>
       <div class="meta-row">
@@ -294,19 +299,19 @@ footer a { color: var(--ink-2); }
     </div>
 
     <aside class="report" aria-label="Exemplo de resumo do relatório">
-      <div class="rhead"><b lang="pt">Metarrevisão editorial</b><b lang="en">Editorial meta-review</b><small lang="pt">exemplo ilustrativo</small><small lang="en">illustrative example</small></div>
-      <div class="rev"><code>alfa</code><span class="role" lang="pt">reprodutibilidade e FAIR</span><span class="role" lang="en">reproducibility &amp; FAIR</span><span class="verdict">Major revision</span></div>
-      <div class="rev"><code>beta</code><span class="role" lang="pt">métodos e estatística</span><span class="role" lang="en">methods &amp; statistics</span><span class="verdict">Major revision</span></div>
-      <div class="rev"><code>gamma</code><span class="role" lang="pt">advogado do autor</span><span class="role" lang="en">author advocate</span><span class="verdict">Minor revision</span></div>
-      <div class="rev"><code>delta</code><span class="role" lang="pt">crítico red-team</span><span class="role" lang="en">red-team critic</span><span class="verdict">Major revision</span></div>
-      <div class="rev"><code>epsilon</code><span class="role" lang="pt">especialista de domínio</span><span class="role" lang="en">domain reviewer</span><span class="verdict">Major revision</span></div>
+      <div class="rhead"><b lang="pt">Metarrevisão editorial</b><b lang="en">Editorial meta-review</b><b lang="es">Metarrevisión editorial</b><small lang="pt">exemplo ilustrativo</small><small lang="en">illustrative example</small><small lang="es">ejemplo ilustrativo</small></div>
+      <div class="rev"><code>alfa</code><span class="role" lang="pt">reprodutibilidade e FAIR</span><span class="role" lang="en">reproducibility &amp; FAIR</span><span class="role" lang="es">reproducibilidad y FAIR</span><span class="verdict">Major revision</span></div>
+      <div class="rev"><code>beta</code><span class="role" lang="pt">métodos e estatística</span><span class="role" lang="en">methods &amp; statistics</span><span class="role" lang="es">métodos y estadística</span><span class="verdict">Major revision</span></div>
+      <div class="rev"><code>gamma</code><span class="role" lang="pt">advogado do autor</span><span class="role" lang="en">author advocate</span><span class="role" lang="es">abogado del autor</span><span class="verdict">Minor revision</span></div>
+      <div class="rev"><code>delta</code><span class="role" lang="pt">crítico red-team</span><span class="role" lang="en">red-team critic</span><span class="role" lang="es">crítico red-team</span><span class="verdict">Major revision</span></div>
+      <div class="rev"><code>epsilon</code><span class="role" lang="pt">especialista de domínio</span><span class="role" lang="en">domain reviewer</span><span class="role" lang="es">revisor de dominio</span><span class="verdict">Major revision</span></div>
       <div class="tiers">
-        <div class="tier t-block"><b>1</b><span lang="pt">bloqueante</span><span lang="en">blocking</span></div>
-        <div class="tier t-ess"><b>7</b><span lang="pt">essenciais</span><span lang="en">essential</span></div>
-        <div class="tier t-opt"><b>4</b><span lang="pt">opcionais</span><span lang="en">optional</span></div>
+        <div class="tier t-block"><b>1</b><span lang="pt">bloqueante</span><span lang="en">blocking</span><span lang="es">bloqueante</span></div>
+        <div class="tier t-ess"><b>7</b><span lang="pt">essenciais</span><span lang="en">essential</span><span lang="es">esenciales</span></div>
+        <div class="tier t-opt"><b>4</b><span lang="pt">opcionais</span><span lang="en">optional</span><span lang="es">opcionales</span></div>
       </div>
       <div class="foot" lang="pt">✓ todos os DOIs resolvidos · 0 retratações · sem conteúdo oculto</div>
-      <div class="foot" lang="en">✓ all DOIs resolved · 0 retractions · no hidden content</div>
+      <div class="foot" lang="en">✓ all DOIs resolved · 0 retractions · no hidden content</div><div class="foot" lang="es">✓ todos los DOI resueltos · 0 retractaciones · sin contenido oculto</div>
     </aside>
   </div>
 </section>
@@ -314,42 +319,42 @@ footer a { color: var(--ink-2); }
 <section id="como" class="alt">
   <div class="wrap">
     <div class="sec-head">
-      <div class="eyebrow"><span lang="pt">Como funciona</span><span lang="en">How it works</span></div>
+      <div class="eyebrow"><span lang="pt">Como funciona</span><span lang="en">How it works</span><span lang="es">Cómo funciona</span></div>
       <h2 lang="pt">Cinco etapas, do arquivo ao parecer.</h2>
-      <h2 lang="en">Five steps, from file to report.</h2>
+      <h2 lang="en">Five steps, from file to report.</h2><h2 lang="es">Cinco etapas, del archivo al dictamen.</h2>
       <p lang="pt">As etapas de extração, auditoria e compilação são determinísticas e testadas. Os modelos de linguagem entram só onde o julgamento é necessário: nos pareceres e na metarrevisão.</p>
-      <p lang="en">Extraction, audit and compilation are deterministic and tested. Language models come in only where judgement is needed: the reviews and the meta-review.</p>
+      <p lang="en">Extraction, audit and compilation are deterministic and tested. Language models come in only where judgement is needed: the reviews and the meta-review.</p><p lang="es">La extracción, la auditoría y la compilación son deterministas y están probadas. Los modelos de lenguaje intervienen solo donde hace falta juicio: en los dictámenes y en la metarrevisión.</p>
     </div>
     <div class="pipeline">
       <div class="step">
-        <h3 lang="pt">Extração</h3><h3 lang="en">Extraction</h3>
+        <h3 lang="pt">Extração</h3><h3 lang="en">Extraction</h3><h3 lang="es">Extracción</h3>
         <p lang="pt">PDF, DOCX, LaTeX, Markdown ou HTML. Varre conteúdo oculto e classifica o manuscrito em 3 eixos.</p>
-        <p lang="en">PDF, DOCX, LaTeX, Markdown or HTML. Scans for hidden content and classifies the manuscript on 3 axes.</p>
+        <p lang="en">PDF, DOCX, LaTeX, Markdown or HTML. Scans for hidden content and classifies the manuscript on 3 axes.</p><p lang="es">PDF, DOCX, LaTeX, Markdown o HTML. Busca contenido oculto y clasifica el manuscrito en 3 ejes.</p>
       </div>
       <div class="step">
-        <h3 lang="pt">Auditoria</h3><h3 lang="en">Audit</h3>
+        <h3 lang="pt">Auditoria</h3><h3 lang="en">Audit</h3><h3 lang="es">Auditoría</h3>
         <p lang="pt"><code>statcheck</code>, checagens do perfil, FAIR, uso de IA, DOIs e retratações, escopo do periódico.</p>
-        <p lang="en"><code>statcheck</code>, profile checks, FAIR, AI use, DOIs and retractions, journal scope.</p>
+        <p lang="en"><code>statcheck</code>, profile checks, FAIR, AI use, DOIs and retractions, journal scope.</p><p lang="es"><code>statcheck</code>, controles del perfil, FAIR, uso de IA, DOI y retractaciones, alcance de la revista.</p>
       </div>
       <div class="step llm">
-        <h3 lang="pt">Painel</h3><h3 lang="en">Panel</h3>
+        <h3 lang="pt">Painel</h3><h3 lang="en">Panel</h3><h3 lang="es">Panel</h3>
         <p lang="pt">3 a 8 pareceristas em paralelo, cada um com papel, semente e lente próprios. Ninguém lê o parecer dos outros.</p>
-        <p lang="en">3 to 8 reviewers in parallel, each with its own role, seed and lens. None reads the others' reports.</p>
+        <p lang="en">3 to 8 reviewers in parallel, each with its own role, seed and lens. None reads the others' reports.</p><p lang="es">De 3 a 8 revisores en paralelo, cada uno con su propio rol, semilla y lente. Ninguno lee los dictámenes de los demás.</p>
       </div>
       <div class="step llm">
-        <h3 lang="pt">Metarrevisão</h3><h3 lang="en">Meta-review</h3>
+        <h3 lang="pt">Metarrevisão</h3><h3 lang="en">Meta-review</h3><h3 lang="es">Metarrevisión</h3>
         <p lang="pt">Cada bloqueante é verificado contra o texto antes de entrar no roteiro de correções em três níveis.</p>
-        <p lang="en">Every blocking concern is checked against the text before it enters the three-tier revision roadmap.</p>
+        <p lang="en">Every blocking concern is checked against the text before it enters the three-tier revision roadmap.</p><p lang="es">Cada punto bloqueante se contrasta con el texto antes de entrar en la hoja de ruta de correcciones en tres niveles.</p>
       </div>
       <div class="step">
-        <h3 lang="pt">Compilação</h3><h3 lang="en">Compilation</h3>
+        <h3 lang="pt">Compilação</h3><h3 lang="en">Compilation</h3><h3 lang="es">Compilación</h3>
         <p lang="pt">Confere as citações dos pareceristas e o contrato de severidade; gera a matriz, a carta aos autores e o PDF.</p>
-        <p lang="en">Checks reviewer citations and the severity contract; writes the matrix, the author letter and the PDF.</p>
+        <p lang="en">Checks reviewer citations and the severity contract; writes the matrix, the author letter and the PDF.</p><p lang="es">Comprueba las citas de los revisores y el contrato de severidad; genera la matriz, la carta a los autores y el PDF.</p>
       </div>
     </div>
     <div class="legend">
-      <span><i></i><span lang="pt">determinístico (Python)</span><span lang="en">deterministic (Python)</span></span>
-      <span><i class="l-llm"></i><span lang="pt">modelo de linguagem</span><span lang="en">language model</span></span>
+      <span><i></i><span lang="pt">determinístico (Python)</span><span lang="en">deterministic (Python)</span><span lang="es">determinista (Python)</span></span>
+      <span><i class="l-llm"></i><span lang="pt">modelo de linguagem</span><span lang="en">language model</span><span lang="es">modelo de lenguaje</span></span>
     </div>
   </div>
 </section>
@@ -358,54 +363,54 @@ footer a { color: var(--ink-2); }
   <div class="wrap grid-2">
     <div>
       <div class="sec-head" style="margin-bottom:24px">
-        <div class="eyebrow"><span lang="pt">O painel</span><span lang="en">The panel</span></div>
+        <div class="eyebrow"><span lang="pt">O painel</span><span lang="en">The panel</span><span lang="es">El panel</span></div>
         <h2 lang="pt">Papéis distintos, não cópias do mesmo parecer.</h2>
-        <h2 lang="en">Distinct roles, not copies of one review.</h2>
+        <h2 lang="en">Distinct roles, not copies of one review.</h2><h2 lang="es">Roles distintos, no copias del mismo dictamen.</h2>
         <p lang="pt">Os papéis são preenchidos por prioridade e sorteados entre os codinomes gregos, para que a letra não revele o papel. Cada parecerista recebe uma semente que define sua lente de análise e sua postura.</p>
-        <p lang="en">Roles are filled by priority and shuffled across Greek codenames, so a letter does not reveal its role. Each reviewer gets a seed that sets its analytical lens and stance.</p>
+        <p lang="en">Roles are filled by priority and shuffled across Greek codenames, so a letter does not reveal its role. Each reviewer gets a seed that sets its analytical lens and stance.</p><p lang="es">Los roles se asignan por prioridad y se barajan entre nombres en clave griegos, de modo que la letra no revela el rol. Cada revisor recibe una semilla que define su lente analítica y su postura.</p>
       </div>
       <table class="comp">
-        <thead><tr><th lang="pt">Pareceristas</th><th lang="en">Reviewers</th><th lang="pt">Composição</th><th lang="en">Panel</th></tr></thead>
+        <thead><tr><th lang="pt">Pareceristas</th><th lang="en">Reviewers</th><th lang="es">Revisores</th><th lang="pt">Composição</th><th lang="en">Panel</th><th lang="es">Composición</th></tr></thead>
         <tbody>
-          <tr><td>3</td><td><span lang="pt">red-team, advogado do autor, métodos e estatística</span><span lang="en">red-team, author advocate, methods &amp; statistics</span></td></tr>
-          <tr><td>4</td><td><span lang="pt">+ reprodutibilidade, ética e FAIR</span><span lang="en">+ reproducibility, ethics &amp; FAIR</span></td></tr>
-          <tr><td>5 <span lang="pt">(padrão)</span><span lang="en">(default)</span></td><td><span lang="pt">+ especialista de domínio</span><span lang="en">+ domain reviewer</span></td></tr>
-          <tr><td>6–8</td><td><span lang="pt">+ especialistas de domínio adicionais</span><span lang="en">+ further domain reviewers</span></td></tr>
+          <tr><td>3</td><td><span lang="pt">red-team, advogado do autor, métodos e estatística</span><span lang="en">red-team, author advocate, methods &amp; statistics</span><span lang="es">red-team, abogado del autor, métodos y estadística</span></td></tr>
+          <tr><td>4</td><td><span lang="pt">+ reprodutibilidade, ética e FAIR</span><span lang="en">+ reproducibility, ethics &amp; FAIR</span><span lang="es">+ reproducibilidad, ética y FAIR</span></td></tr>
+          <tr><td>5 <span lang="pt">(padrão)</span><span lang="en">(default)</span><span lang="es">(por defecto)</span></td><td><span lang="pt">+ especialista de domínio</span><span lang="en">+ domain reviewer</span><span lang="es">+ revisor de dominio</span></td></tr>
+          <tr><td>6–8</td><td><span lang="pt">+ especialistas de domínio adicionais</span><span lang="en">+ further domain reviewers</span><span lang="es">+ otros revisores de dominio</span></td></tr>
         </tbody>
       </table>
       <div class="note" lang="pt"><b>Painel com modelos misturados.</b> Pareceristas no mesmo modelo compartilham os mesmos pontos cegos. Com <code>panel_models=claude:opus,agy,claude:sonnet</code>, cada um roda num modelo, e só a concordância entre modelos diferentes ganha algum peso.</div>
-      <div class="note" lang="en"><b>Mixed-model panels.</b> Reviewers on one model share its blind spots. With <code>panel_models=claude:opus,agy,claude:sonnet</code> each runs on its own model, and only agreement across models carries any weight.</div>
+      <div class="note" lang="en"><b>Mixed-model panels.</b> Reviewers on one model share its blind spots. With <code>panel_models=claude:opus,agy,claude:sonnet</code> each runs on its own model, and only agreement across models carries any weight.</div><div class="note" lang="es"><b>Paneles con varios modelos.</b> Los revisores que usan el mismo modelo comparten sus puntos ciegos. Con <code>panel_models=claude:opus,agy,claude:sonnet</code>, cada uno se ejecuta en su propio modelo, y solo el acuerdo entre modelos distintos tiene algún peso.</div>
     </div>
     <div class="roles">
       <div class="role-card">
         <div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg></div>
-        <div><h3 lang="pt">Crítico red-team</h3><h3 lang="en">Red-team critic</h3>
+        <div><h3 lang="pt">Crítico red-team</h3><h3 lang="en">Red-team critic</h3><h3 lang="es">Crítico red-team</h3>
         <p lang="pt">Procura a falha que derruba a conclusão principal, num eixo de ataque adaptado à área e ao tipo de artigo.</p>
-        <p lang="en">Looks for the flaw that brings down the main conclusion, along an attack axis adapted to the field and article type.</p></div>
+        <p lang="en">Looks for the flaw that brings down the main conclusion, along an attack axis adapted to the field and article type.</p><p lang="es">Busca el fallo que derriba la conclusión principal, siguiendo un eje de ataque adaptado al área y al tipo de artículo.</p></div>
       </div>
       <div class="role-card">
         <div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></div>
-        <div><h3 lang="pt">Advogado do autor</h3><h3 lang="en">Author advocate</h3>
+        <div><h3 lang="pt">Advogado do autor</h3><h3 lang="en">Author advocate</h3><h3 lang="es">Abogado del autor</h3>
         <p lang="pt">Contrapeso do red-team: mostra, com citação, o que o texto já resolve e barra exigências desproporcionais.</p>
-        <p lang="en">The red-team's counterweight: shows, with quotes, what the text already addresses and blocks disproportionate demands.</p></div>
+        <p lang="en">The red-team's counterweight: shows, with quotes, what the text already addresses and blocks disproportionate demands.</p><p lang="es">El contrapeso del red-team: muestra, con citas, lo que el texto ya resuelve y frena las exigencias desproporcionadas.</p></div>
       </div>
       <div class="role-card">
         <div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div>
-        <div><h3 lang="pt">Métodos e estatística</h3><h3 lang="en">Methods &amp; statistics</h3>
+        <div><h3 lang="pt">Métodos e estatística</h3><h3 lang="en">Methods &amp; statistics</h3><h3 lang="es">Métodos y estadística</h3>
         <p lang="pt">Desenho, validade dos indicadores, testes e inferência, segundo a microrrubrica do perfil do manuscrito.</p>
-        <p lang="en">Design, indicator validity, tests and inference, following the manuscript profile's micro-rubric.</p></div>
+        <p lang="en">Design, indicator validity, tests and inference, following the manuscript profile's micro-rubric.</p><p lang="es">Diseño, validez de los indicadores, pruebas e inferencia, según la microrrúbrica del perfil del manuscrito.</p></div>
       </div>
       <div class="role-card">
         <div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h10"/><circle cx="19" cy="17" r="2.5"/></svg></div>
-        <div><h3 lang="pt">Reprodutibilidade, ética e FAIR</h3><h3 lang="en">Reproducibility, ethics &amp; FAIR</h3>
+        <div><h3 lang="pt">Reprodutibilidade, ética e FAIR</h3><h3 lang="en">Reproducibility, ethics &amp; FAIR</h3><h3 lang="es">Reproducibilidad, ética y FAIR</h3>
         <p lang="pt">Confere números entre texto e tabelas, dados e código depositados, declarações e diretrizes de relato.</p>
-        <p lang="en">Cross-checks numbers between text and tables, deposited data and code, declarations and reporting guidelines.</p></div>
+        <p lang="en">Cross-checks numbers between text and tables, deposited data and code, declarations and reporting guidelines.</p><p lang="es">Contrasta las cifras entre el texto y las tablas, los datos y el código depositados, las declaraciones y las guías de notificación.</p></div>
       </div>
       <div class="role-card">
         <div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5V5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M8 7h7M8 11h5"/></svg></div>
-        <div><h3 lang="pt">Especialista de domínio</h3><h3 lang="en">Domain reviewer</h3>
+        <div><h3 lang="pt">Especialista de domínio</h3><h3 lang="en">Domain reviewer</h3><h3 lang="es">Revisor de dominio</h3>
         <p lang="pt">Mérito na área: novidade, literatura relevante (com identificadores verificáveis) e adequação ao periódico.</p>
-        <p lang="en">Field-specific merit: novelty, relevant literature (with verifiable identifiers) and journal fit.</p></div>
+        <p lang="en">Field-specific merit: novelty, relevant literature (with verifiable identifiers) and journal fit.</p><p lang="es">Mérito en el área: originalidad, literatura relevante (con identificadores verificables) y adecuación a la revista.</p></div>
       </div>
     </div>
   </div>
@@ -414,33 +419,33 @@ footer a { color: var(--ink-2); }
 <section id="calibracao" class="alt">
   <div class="wrap">
     <div class="sec-head">
-      <div class="eyebrow"><span lang="pt">Calibração</span><span lang="en">Calibration</span></div>
+      <div class="eyebrow"><span lang="pt">Calibração</span><span lang="en">Calibration</span><span lang="es">Calibración</span></div>
       <h2 lang="pt">Severidade proporcional, não uma lista de exigências.</h2>
-      <h2 lang="en">Proportionate severity, not a wish list.</h2>
+      <h2 lang="en">Proportionate severity, not a wish list.</h2><h2 lang="es">Severidad proporcional, no una lista de deseos.</h2>
       <p lang="pt">Cada preocupação maior recebe um nível. O compilador confere o contrato e avisa quando ele não é cumprido.</p>
-      <p lang="en">Every major concern carries a tier. The compiler checks the contract and warns when it is broken.</p>
+      <p lang="en">Every major concern carries a tier. The compiler checks the contract and warns when it is broken.</p><p lang="es">Cada crítica principal tiene un nivel. El compilador verifica el contrato y avisa cuando no se cumple.</p>
     </div>
     <div class="cal">
       <div class="cal-card">
-        <span class="lbl t-block" lang="pt">Bloqueante</span><span class="lbl t-block" lang="en">Blocking</span>
+        <span class="lbl t-block" lang="pt">Bloqueante</span><span class="lbl t-block" lang="en">Blocking</span><span class="lbl t-block" lang="es">Bloqueante</span>
         <p lang="pt">Uma conclusão publicada não se sustenta sem a correção. No máximo 5 por parecer, cada um com a frase em jogo citada.</p>
-        <p lang="en">A stated conclusion fails without the fix. At most 5 per report, each quoting the sentence at stake.</p>
+        <p lang="en">A stated conclusion fails without the fix. At most 5 per report, each quoting the sentence at stake.</p><p lang="es">Una conclusión declarada no se sostiene sin la corrección. Como máximo 5 por dictamen, cada uno citando la frase en juego.</p>
         <p class="ex" lang="pt">Ex.: tendência de métodos inferida de palavras-chave atribuídas por indexadores.</p>
-        <p class="ex" lang="en">E.g. a method trend inferred from indexer-assigned keywords.</p>
+        <p class="ex" lang="en">E.g. a method trend inferred from indexer-assigned keywords.</p><p class="ex" lang="es">Ej.: una tendencia de métodos inferida de palabras clave asignadas por los indexadores.</p>
       </div>
       <div class="cal-card">
-        <span class="lbl t-ess" lang="pt">Essencial</span><span class="lbl t-ess" lang="en">Essential</span>
+        <span class="lbl t-ess" lang="pt">Essencial</span><span class="lbl t-ess" lang="en">Essential</span><span class="lbl t-ess" lang="es">Esencial</span>
         <p lang="pt">Relato, transparência e declarações no padrão do tipo de artigo.</p>
-        <p lang="en">Reporting, transparency and declarations at the standard of the article type.</p>
+        <p lang="en">Reporting, transparency and declarations at the standard of the article type.</p><p lang="es">Notificación, transparencia y declaraciones al nivel exigido para el tipo de artículo.</p>
         <p class="ex" lang="pt">Ex.: string de busca só num protocolo externo; regra de contagem por país não declarada.</p>
-        <p class="ex" lang="en">E.g. search string only in an external protocol; undeclared country counting rule.</p>
+        <p class="ex" lang="en">E.g. search string only in an external protocol; undeclared country counting rule.</p><p class="ex" lang="es">Ej.: cadena de búsqueda solo en un protocolo externo; regla de conteo por país no declarada.</p>
       </div>
       <div class="cal-card">
-        <span class="lbl t-opt" lang="pt">Opcional</span><span class="lbl t-opt" lang="en">Optional</span>
+        <span class="lbl t-opt" lang="pt">Opcional</span><span class="lbl t-opt" lang="en">Optional</span><span class="lbl t-opt" lang="es">Opcional</span>
         <p lang="pt">Ampliações de escopo e análises novas que os autores podem recusar com uma justificativa.</p>
-        <p lang="en">Scope expansions and new analyses the authors may decline with a one-line justification.</p>
+        <p lang="en">Scope expansions and new analyses the authors may decline with a one-line justification.</p><p lang="es">Ampliaciones de alcance y análisis nuevos que los autores pueden rechazar con una justificación de una línea.</p>
         <p class="ex" lang="pt">Ex.: incluir mais bases de dados ou outro idioma.</p>
-        <p class="ex" lang="en">E.g. adding databases or another language.</p>
+        <p class="ex" lang="en">E.g. adding databases or another language.</p><p class="ex" lang="es">Ej.: añadir bases de datos u otro idioma.</p>
       </div>
     </div>
     <ul class="rules" lang="pt">
@@ -454,6 +459,11 @@ footer a { color: var(--ink-2); }
       <li><b>Bias direction is checked.</b> An incomplete year undercounts, it does not inflate; reviewers check before alleging.</li>
       <li><b>A lens is a hypothesis.</b> If the paper does not show the failure a lens suggests, the reviewer says so and moves on.</li>
       <li><b>Audit figures come from the audit.</b> The compiler inserts them and warns when the meta-review contradicts them.</li>
+    </ul><ul class="rules" lang="es">
+      <li><b>El acuerdo no es evidencia.</b> Los revisores que usan el mismo modelo coinciden por construcción; lo que cuenta es la verificación contra el texto.</li>
+      <li><b>Se comprueba la dirección del sesgo.</b> Un año incompleto subestima el recuento, no lo infla; el revisor lo comprueba antes de alegarlo.</li>
+      <li><b>La lente es una hipótesis.</b> Si el manuscrito no presenta el fallo que sugiere la lente, el revisor lo dice y sigue con lo que encontró.</li>
+      <li><b>Las cifras de la auditoría vienen de la auditoría.</b> El compilador las inserta y avisa cuando la metarrevisión las contradice.</li>
     </ul>
   </div>
 </section>
@@ -461,46 +471,46 @@ footer a { color: var(--ink-2); }
 <section id="auditoria">
   <div class="wrap">
     <div class="sec-head">
-      <div class="eyebrow"><span lang="pt">Auditoria determinística</span><span lang="en">Deterministic audit</span></div>
+      <div class="eyebrow"><span lang="pt">Auditoria determinística</span><span lang="en">Deterministic audit</span><span lang="es">Auditoría determinista</span></div>
       <h2 lang="pt">O que pode ser verificado é verificado, não opinado.</h2>
-      <h2 lang="en">What can be checked is checked, not opined on.</h2>
+      <h2 lang="en">What can be checked is checked, not opined on.</h2><h2 lang="es">Lo que se puede verificar se verifica, no se opina.</h2>
     </div>
     <div class="audit">
       <div class="a-card">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 19L19 5M7 5h.01M17 19h.01"/><circle cx="7" cy="5" r="2"/><circle cx="17" cy="19" r="2"/></svg>
         <h3>statcheck</h3>
         <p lang="pt">Recalcula valores-p a partir de t, F, r, χ² e z relatados e aponta inconsistências e valores frágeis.</p>
-        <p lang="en">Recomputes p-values from reported t, F, r, χ² and z, flagging inconsistencies and fragile values.</p>
+        <p lang="en">Recomputes p-values from reported t, F, r, χ² and z, flagging inconsistencies and fragile values.</p><p lang="es">Recalcula valores p a partir de t, F, r, χ² y z notificados, y señala inconsistencias y valores frágiles.</p>
       </div>
       <div class="a-card">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.7-1.7"/></svg>
-        <h3 lang="pt">Citações e retratações</h3><h3 lang="en">Citations &amp; retractions</h3>
+        <h3 lang="pt">Citações e retratações</h3><h3 lang="en">Citations &amp; retractions</h3><h3 lang="es">Citas y retractaciones</h3>
         <p lang="pt">DOIs do manuscrito e dos pareceristas conferidos no OpenAlex e no doi.org; arXiv na API do arXiv.</p>
-        <p lang="en">DOIs from the manuscript and the reviewers checked against OpenAlex and doi.org; arXiv IDs against arXiv.</p>
+        <p lang="en">DOIs from the manuscript and the reviewers checked against OpenAlex and doi.org; arXiv IDs against arXiv.</p><p lang="es">Los DOI del manuscrito y de los revisores se contrastan con OpenAlex y doi.org; los identificadores de arXiv, con arXiv.</p>
       </div>
       <div class="a-card">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
-        <h3 lang="pt">Dados FAIR</h3><h3 lang="en">FAIR data</h3>
+        <h3 lang="pt">Dados FAIR</h3><h3 lang="en">FAIR data</h3><h3 lang="es">Datos FAIR</h3>
         <p lang="pt">Repositórios e identificadores persistentes, declarações evasivas, dependências travadas, sementes, RRIDs.</p>
-        <p lang="en">Repositories and persistent IDs, evasive statements, locked dependencies, seeds, RRIDs.</p>
+        <p lang="en">Repositories and persistent IDs, evasive statements, locked dependencies, seeds, RRIDs.</p><p lang="es">Repositorios e identificadores persistentes, declaraciones evasivas, dependencias fijadas, semillas, RRID.</p>
       </div>
       <div class="a-card">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6v6H9z"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/></svg>
-        <h3 lang="pt">IA generativa</h3><h3 lang="en">Generative AI</h3>
+        <h3 lang="pt">IA generativa</h3><h3 lang="en">Generative AI</h3><h3 lang="es">IA generativa</h3>
         <p lang="pt">Resíduos de chat no texto, coautoria atribuída a IA e declaração de uso (COPE, ICMJE, SciELO).</p>
-        <p lang="en">Leftover chat artifacts, AI co-authorship and AI-use statements (COPE, ICMJE, SciELO).</p>
+        <p lang="en">Leftover chat artifacts, AI co-authorship and AI-use statements (COPE, ICMJE, SciELO).</p><p lang="es">Restos de chat en el texto, coautoría atribuida a la IA y declaraciones de uso de IA (COPE, ICMJE, SciELO).</p>
       </div>
       <div class="a-card">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/></svg>
-        <h3 lang="pt">Conteúdo oculto</h3><h3 lang="en">Hidden content</h3>
+        <h3 lang="pt">Conteúdo oculto</h3><h3 lang="en">Hidden content</h3><h3 lang="es">Contenido oculto</h3>
         <p lang="pt">Texto branco, microscópico ou fora da página dirigido a revisores de IA. É denunciado ao editor e nunca decide o veredito.</p>
-        <p lang="en">White, microscopic or off-page text aimed at AI reviewers. It is reported to the editor and never decides the verdict.</p>
+        <p lang="en">White, microscopic or off-page text aimed at AI reviewers. It is reported to the editor and never decides the verdict.</p><p lang="es">Texto blanco, microscópico o fuera de página dirigido a revisores de IA. Se informa al editor y nunca decide el veredicto.</p>
       </div>
       <div class="a-card">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4h12l4 4v12H4z"/><path d="M8 12h8M8 16h5"/></svg>
-        <h3 lang="pt">Escopo do periódico</h3><h3 lang="en">Journal scope</h3>
+        <h3 lang="pt">Escopo do periódico</h3><h3 lang="en">Journal scope</h3><h3 lang="es">Alcance de la revista</h3>
         <p lang="pt">Aderência aos tópicos do periódico-alvo (OpenAlex), requisitos formais e risco de <i>desk reject</i>.</p>
-        <p lang="en">Fit with the target journal's topics (OpenAlex), formal requirements and desk-reject risk.</p>
+        <p lang="en">Fit with the target journal's topics (OpenAlex), formal requirements and desk-reject risk.</p><p lang="es">Adecuación a los temas de la revista destino (OpenAlex), requisitos formales y riesgo de <i>desk reject</i>.</p>
       </div>
     </div>
   </div>
@@ -509,46 +519,46 @@ footer a { color: var(--ink-2); }
 <section class="alt">
   <div class="wrap">
     <div class="sec-head">
-      <div class="eyebrow"><span lang="pt">Classificação</span><span lang="en">Classification</span></div>
+      <div class="eyebrow"><span lang="pt">Classificação</span><span lang="en">Classification</span><span lang="es">Clasificación</span></div>
       <h2 lang="pt">Cada manuscrito é julgado pelo padrão do seu gênero.</h2>
-      <h2 lang="en">Each manuscript is judged by the standard of its genre.</h2>
+      <h2 lang="en">Each manuscript is judged by the standard of its genre.</h2><h2 lang="es">Cada manuscrito se juzga según el estándar de su género.</h2>
       <p lang="pt">A combinação dos três eixos define a rubrica, as checagens da auditoria e as lentes dos pareceristas. Uma revisão bibliométrica não é cobrada por réplicas biológicas; um ensaio clínico é cobrado por CONSORT.</p>
-      <p lang="en">The three axes together set the rubric, the audit checks and the reviewers' lenses. A bibliometric review is not asked for biological replicates; a clinical trial is held to CONSORT.</p>
+      <p lang="en">The three axes together set the rubric, the audit checks and the reviewers' lenses. A bibliometric review is not asked for biological replicates; a clinical trial is held to CONSORT.</p><p lang="es">Los tres ejes juntos definen la rúbrica, los controles de la auditoría y las lentes de los revisores. A una revisión bibliométrica no se le piden réplicas biológicas; a un ensayo clínico se le exige CONSORT.</p>
     </div>
     <div class="axes">
-      <div class="axis"><div class="n">5</div><h3 lang="pt">grandes áreas</h3><h3 lang="en">major areas</h3>
+      <div class="axis"><div class="n">5</div><h3 lang="pt">grandes áreas</h3><h3 lang="en">major areas</h3><h3 lang="es">grandes áreas</h3>
         <div class="chips" lang="pt"><span>Biológicas e Agrárias</span><span>Saúde</span><span>Exatas e da Terra</span><span>Engenharias</span><span>Humanas e Sociais</span></div>
-        <div class="chips" lang="en"><span>Life &amp; agricultural</span><span>Health</span><span>Physical &amp; earth</span><span>Engineering</span><span>Humanities &amp; social</span></div>
+        <div class="chips" lang="en"><span>Life &amp; agricultural</span><span>Health</span><span>Physical &amp; earth</span><span>Engineering</span><span>Humanities &amp; social</span></div><div class="chips" lang="es"><span>Biológicas y agrarias</span><span>Salud</span><span>Exactas y de la tierra</span><span>Ingenierías</span><span>Humanidades y sociales</span></div>
       </div>
-      <div class="axis"><div class="n">15</div><h3 lang="pt">tipologias de artigo</h3><h3 lang="en">article types</h3>
+      <div class="axis"><div class="n">15</div><h3 lang="pt">tipologias de artigo</h3><h3 lang="en">article types</h3><h3 lang="es">tipologías de artículo</h3>
         <div class="chips" lang="pt"><span>Original</span><span>Revisão sistemática</span><span>Metanálise</span><span>Scoping</span><span>Integrativa</span><span>Narrativa</span><span>Bibliométrica</span><span>Diretriz / Delphi</span><span>Relato de caso</span><span>Data paper</span><span>Software paper</span><span>Protocolo</span><span>Ensaio teórico</span><span>Comunicação breve</span><span>…</span></div>
-        <div class="chips" lang="en"><span>Original</span><span>Systematic review</span><span>Meta-analysis</span><span>Scoping</span><span>Integrative</span><span>Narrative</span><span>Bibliometric</span><span>Guideline / Delphi</span><span>Case report</span><span>Data paper</span><span>Software paper</span><span>Protocol</span><span>Theoretical essay</span><span>Short communication</span><span>…</span></div>
+        <div class="chips" lang="en"><span>Original</span><span>Systematic review</span><span>Meta-analysis</span><span>Scoping</span><span>Integrative</span><span>Narrative</span><span>Bibliometric</span><span>Guideline / Delphi</span><span>Case report</span><span>Data paper</span><span>Software paper</span><span>Protocol</span><span>Theoretical essay</span><span>Short communication</span><span>…</span></div><div class="chips" lang="es"><span>Original</span><span>Revisión sistemática</span><span>Metaanálisis</span><span>Scoping</span><span>Integradora</span><span>Narrativa</span><span>Bibliométrica</span><span>Guía / Delphi</span><span>Caso clínico</span><span>Data paper</span><span>Software paper</span><span>Protocolo</span><span>Ensayo teórico</span><span>Comunicación breve</span><span>…</span></div>
       </div>
-      <div class="axis"><div class="n">13</div><h3 lang="pt">abordagens de pesquisa</h3><h3 lang="en">research approaches</h3>
+      <div class="axis"><div class="n">13</div><h3 lang="pt">abordagens de pesquisa</h3><h3 lang="en">research approaches</h3><h3 lang="es">enfoques de investigación</h3>
         <div class="chips" lang="pt"><span>Ensaio clínico</span><span>Diagnóstico</span><span>Observacional</span><span>Campo / ecológico</span><span>Bancada</span><span>In silico</span><span>Quantitativa</span><span>Qualitativa</span><span>Métodos mistos</span><span>DSR / ação</span><span>Documental</span><span>Bibliométrica</span><span>Teórico-formal</span></div>
-        <div class="chips" lang="en"><span>Clinical trial</span><span>Diagnostic</span><span>Observational</span><span>Field / ecological</span><span>Bench</span><span>In silico</span><span>Quantitative</span><span>Qualitative</span><span>Mixed methods</span><span>DSR / action</span><span>Documentary</span><span>Bibliometric</span><span>Formal-theoretical</span></div>
+        <div class="chips" lang="en"><span>Clinical trial</span><span>Diagnostic</span><span>Observational</span><span>Field / ecological</span><span>Bench</span><span>In silico</span><span>Quantitative</span><span>Qualitative</span><span>Mixed methods</span><span>DSR / action</span><span>Documentary</span><span>Bibliometric</span><span>Formal-theoretical</span></div><div class="chips" lang="es"><span>Ensayo clínico</span><span>Diagnóstico</span><span>Observacional</span><span>Campo / ecológico</span><span>Laboratorio</span><span>In silico</span><span>Cuantitativo</span><span>Cualitativo</span><span>Métodos mixtos</span><span>DSR / acción</span><span>Documental</span><span>Bibliométrico</span><span>Teórico-formal</span></div>
       </div>
     </div>
-    <p class="product">5 × 15 × 13 = <b>975</b> <span lang="pt">perfis de avaliação</span><span lang="en">evaluation profiles</span></p>
+    <p class="product">5 × 15 × 13 = <b>975</b> <span lang="pt">perfis de avaliação</span><span lang="en">evaluation profiles</span><span lang="es">perfiles de evaluación</span></p>
   </div>
 </section>
 
 <section>
   <div class="wrap">
     <div class="sec-head">
-      <div class="eyebrow"><span lang="pt">Saídas</span><span lang="en">Outputs</span></div>
+      <div class="eyebrow"><span lang="pt">Saídas</span><span lang="en">Outputs</span><span lang="es">Salidas</span></div>
       <h2 lang="pt">Tudo o que um editor precisa, em arquivos abertos.</h2>
-      <h2 lang="en">Everything an editor needs, in open files.</h2>
+      <h2 lang="en">Everything an editor needs, in open files.</h2><h2 lang="es">Todo lo que un editor necesita, en archivos abiertos.</h2>
     </div>
     <div class="files">
-      <div class="file"><code>editorial_peer_review_report.pdf</code><span lang="pt">Relatório consolidado: metarrevisão, matriz, auditoria e pareceres.</span><span lang="en">Consolidated report: meta-review, matrix, audit and reports.</span></div>
-      <div class="file"><code>meta_review.md</code><span lang="pt">Vereditos, verificação dos bloqueantes, roteiro em 3 níveis.</span><span lang="en">Verdicts, blocking-concern verification, three-tier roadmap.</span></div>
-      <div class="file"><code>author_letter.md</code><span lang="pt">Carta curta aos autores com os itens bloqueantes e essenciais.</span><span lang="en">Short letter to the authors with blocking and essential items.</span></div>
-      <div class="file"><code>review_&lt;codinome&gt;.md</code><span lang="pt">Um parecer por parecerista.</span><span lang="en">One report per reviewer.</span></div>
-      <div class="file"><code>pre_review_audit.md</code><span lang="pt">Auditoria determinística legível (e <code>.json</code>).</span><span lang="en">Readable deterministic audit (and <code>.json</code>).</span></div>
-      <div class="file"><code>concerns_table.csv</code><span lang="pt">Matriz de preocupações por severidade e parecerista.</span><span lang="en">Concerns matrix by severity and reviewer.</span></div>
-      <div class="file"><code>results.json</code><span lang="pt">Vereditos, papéis, modelos, citações verificadas e contrato de severidade.</span><span lang="en">Verdicts, roles, models, verified citations and severity contract.</span></div>
-      <div class="file"><code>consolidated_editorial_report.md</code><span lang="pt">Versão Markdown do relatório.</span><span lang="en">Markdown version of the report.</span></div>
+      <div class="file"><code>editorial_peer_review_report.pdf</code><span lang="pt">Relatório consolidado: metarrevisão, matriz, auditoria e pareceres.</span><span lang="en">Consolidated report: meta-review, matrix, audit and reports.</span><span lang="es">Informe consolidado: metarrevisión, matriz, auditoría y dictámenes.</span></div>
+      <div class="file"><code>meta_review.md</code><span lang="pt">Vereditos, verificação dos bloqueantes, roteiro em 3 níveis.</span><span lang="en">Verdicts, blocking-concern verification, three-tier roadmap.</span><span lang="es">Veredictos, verificación de los bloqueantes, hoja de ruta en 3 niveles.</span></div>
+      <div class="file"><code>author_letter.md</code><span lang="pt">Carta curta aos autores com os itens bloqueantes e essenciais.</span><span lang="en">Short letter to the authors with blocking and essential items.</span><span lang="es">Carta breve a los autores con los puntos bloqueantes y esenciales.</span></div>
+      <div class="file"><code>review_&lt;codinome&gt;.md</code><span lang="pt">Um parecer por parecerista.</span><span lang="en">One report per reviewer.</span><span lang="es">Un dictamen por revisor.</span></div>
+      <div class="file"><code>pre_review_audit.md</code><span lang="pt">Auditoria determinística legível (e <code>.json</code>).</span><span lang="en">Readable deterministic audit (and <code>.json</code>).</span><span lang="es">Auditoría determinista legible (y <code>.json</code>).</span></div>
+      <div class="file"><code>concerns_table.csv</code><span lang="pt">Matriz de preocupações por severidade e parecerista.</span><span lang="en">Concerns matrix by severity and reviewer.</span><span lang="es">Matriz de críticas por severidad y revisor.</span></div>
+      <div class="file"><code>results.json</code><span lang="pt">Vereditos, papéis, modelos, citações verificadas e contrato de severidade.</span><span lang="en">Verdicts, roles, models, verified citations and severity contract.</span><span lang="es">Veredictos, roles, modelos, citas verificadas y contrato de severidad.</span></div>
+      <div class="file"><code>consolidated_editorial_report.md</code><span lang="pt">Versão Markdown do relatório.</span><span lang="en">Markdown version of the report.</span><span lang="es">Versión Markdown del informe.</span></div>
     </div>
   </div>
 </section>
@@ -556,15 +566,15 @@ footer a { color: var(--ink-2); }
 <section id="instalar" class="alt">
   <div class="wrap">
     <div class="sec-head">
-      <div class="eyebrow"><span lang="pt">Instalação</span><span lang="en">Installation</span></div>
+      <div class="eyebrow"><span lang="pt">Instalação</span><span lang="en">Installation</span><span lang="es">Instalación</span></div>
       <h2 lang="pt">Dois comandos no Claude Code.</h2>
-      <h2 lang="en">Two commands in Claude Code.</h2>
+      <h2 lang="en">Two commands in Claude Code.</h2><h2 lang="es">Dos comandos en Claude Code.</h2>
     </div>
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" aria-selected="true" data-tab="cc">Claude Code</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="script">install.sh</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="agy">Antigravity</button>
-      <button class="tab" role="tab" aria-selected="false" data-tab="use"><span lang="pt">Uso</span><span lang="en">Usage</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="use"><span lang="pt">Uso</span><span lang="en">Usage</span><span lang="es">Uso</span></button>
     </div>
     <div class="panel on" id="tab-cc"><div class="code"><button class="copy" type="button">copy</button><pre><span class="p">&gt; </span>/plugin marketplace add LaBiOmicS/academic-peer-review
 <span class="p">&gt; </span>/plugin install academic-peer-review@labiomics</pre></div></div>
@@ -581,9 +591,9 @@ footer a { color: var(--ink-2); }
 <span class="c"># or just ask</span>
 <span class="p">&gt; </span>Run a blind peer review of ./manuscript.pdf for PLOS ONE</pre></div></div>
     <div class="req">
-      <div><b lang="pt">Requisitos</b><b lang="en">Requirements</b><span lang="pt">Python 3.10+, <code>uv</code> e Claude Code ou Antigravity autenticado.</span><span lang="en">Python 3.10+, <code>uv</code> and an authenticated Claude Code or Antigravity.</span></div>
-      <div><b lang="pt">Opcionais</b><b lang="en">Optional</b><span lang="pt"><code>pandoc</code> e LaTeX para o PDF tipográfico; <code>pdftotext</code> para PDFs em duas colunas.</span><span lang="en"><code>pandoc</code> and LaTeX for the typeset PDF; <code>pdftotext</code> for two-column PDFs.</span></div>
-      <div><b lang="pt">Custo</b><b lang="en">Cost</b><span lang="pt">Um parecer por parecerista mais a metarrevisão. Um manuscrito curto com 3 pareceristas no Sonnet custou cerca de US$ 1.</span><span lang="en">One report per reviewer plus the meta-review. A short manuscript with 3 reviewers on Sonnet cost about US$ 1.</span></div>
+      <div><b lang="pt">Requisitos</b><b lang="en">Requirements</b><b lang="es">Requisitos</b><span lang="pt">Python 3.10+, <code>uv</code> e Claude Code ou Antigravity autenticado.</span><span lang="en">Python 3.10+, <code>uv</code> and an authenticated Claude Code or Antigravity.</span><span lang="es">Python 3.10+, <code>uv</code> y Claude Code o Antigravity autenticado.</span></div>
+      <div><b lang="pt">Opcionais</b><b lang="en">Optional</b><b lang="es">Opcional</b><span lang="pt"><code>pandoc</code> e LaTeX para o PDF tipográfico; <code>pdftotext</code> para PDFs em duas colunas.</span><span lang="en"><code>pandoc</code> and LaTeX for the typeset PDF; <code>pdftotext</code> for two-column PDFs.</span><span lang="es"><code>pandoc</code> y LaTeX para el PDF tipografiado; <code>pdftotext</code> para PDF a dos columnas.</span></div>
+      <div><b lang="pt">Custo</b><b lang="en">Cost</b><b lang="es">Coste</b><span lang="pt">Um parecer por parecerista mais a metarrevisão. Um manuscrito curto com 3 pareceristas no Sonnet custou cerca de US$ 1.</span><span lang="en">One report per reviewer plus the meta-review. A short manuscript with 3 reviewers on Sonnet cost about US$ 1.</span><span lang="es">Un dictamen por revisor más la metarrevisión. Un manuscrito corto con 3 revisores en Sonnet costó unos US$ 1.</span></div>
     </div>
   </div>
 </section>
@@ -591,20 +601,20 @@ footer a { color: var(--ink-2); }
 <section>
   <div class="wrap">
     <div class="sec-head">
-      <div class="eyebrow"><span lang="pt">Uso responsável</span><span lang="en">Responsible use</span></div>
+      <div class="eyebrow"><span lang="pt">Uso responsável</span><span lang="en">Responsible use</span><span lang="es">Uso responsable</span></div>
       <h2 lang="pt">Um rascunho para o parecerista, não um substituto.</h2>
-      <h2 lang="en">A draft for the referee, not a replacement.</h2>
+      <h2 lang="en">A draft for the referee, not a replacement.</h2><h2 lang="es">Un borrador para el revisor, no un sustituto.</h2>
     </div>
     <div class="resp">
-      <div><h3 lang="pt">Responsabilidade humana</h3><h3 lang="en">Human responsibility</h3>
+      <div><h3 lang="pt">Responsabilidade humana</h3><h3 lang="en">Human responsibility</h3><h3 lang="es">Responsabilidad humana</h3>
         <p lang="pt">Os pareceres são rascunhos assistidos por IA. Um parecerista ou editor humano verifica, edita e assina. O PDF traz uma declaração de uso de IA por padrão.</p>
-        <p lang="en">Reports are AI-assisted drafts. A human referee or editor verifies, edits and signs them. The PDF carries an AI-assistance disclosure by default.</p></div>
-      <div><h3 lang="pt">Confidencialidade</h3><h3 lang="en">Confidentiality</h3>
+        <p lang="en">Reports are AI-assisted drafts. A human referee or editor verifies, edits and signs them. The PDF carries an AI-assistance disclosure by default.</p><p lang="es">Los dictámenes son borradores asistidos por IA. Un revisor o editor humano los verifica, edita y firma. El PDF incluye por defecto una declaración de asistencia por IA.</p></div>
+      <div><h3 lang="pt">Confidencialidade</h3><h3 lang="en">Confidentiality</h3><h3 lang="es">Confidencialidad</h3>
         <p lang="pt">Antes de enviar um manuscrito inédito a um serviço de IA, confirme que a política de revisão do periódico permite. COPE, ICMJE e várias editoras restringem esse uso.</p>
-        <p lang="en">Before uploading an unpublished manuscript to an AI service, confirm that the journal's peer-review policy allows it. COPE, ICMJE and many publishers restrict this.</p></div>
-      <div><h3 lang="pt">Uso pelos autores</h3><h3 lang="en">Use by authors</h3>
+        <p lang="en">Before uploading an unpublished manuscript to an AI service, confirm that the journal's peer-review policy allows it. COPE, ICMJE and many publishers restrict this.</p><p lang="es">Antes de enviar un manuscrito inédito a un servicio de IA, confirme que la política de revisión de la revista lo permite. COPE, ICMJE y muchas editoriales restringen este uso.</p></div>
+      <div><h3 lang="pt">Uso pelos autores</h3><h3 lang="en">Use by authors</h3><h3 lang="es">Uso por los autores</h3>
         <p lang="pt">O uso mais seguro é o dos próprios autores, antes da submissão: encontrar as falhas que um parecerista encontraria, a tempo de corrigi-las.</p>
-        <p lang="en">The safest use is by the authors themselves, before submission: finding the flaws a referee would find, in time to fix them.</p></div>
+        <p lang="en">The safest use is by the authors themselves, before submission: finding the flaws a referee would find, in time to fix them.</p><p lang="es">El uso más seguro es el de los propios autores, antes del envío: encontrar los fallos que encontraría un revisor, a tiempo de corregirlos.</p></div>
     </div>
   </div>
 </section>
@@ -615,14 +625,15 @@ footer a { color: var(--ink-2); }
     <div>
       <b>academic-peer-review</b><br>
       <span lang="pt">Desenvolvido no LaBiOmicS — Laboratório de Bioinformática e Ciências Ômicas, Universidade de Mogi das Cruzes.</span>
-      <span lang="en">Developed at LaBiOmicS — Laboratory of Bioinformatics and Omics Sciences, University of Mogi das Cruzes.</span><br>
-      <span lang="pt">Coordenação</span><span lang="en">Lead</span>: Prof. Dr. Fabiano Bezerra Menegidio · <a href="mailto:fabianomenegidio@umc.br">fabianomenegidio@umc.br</a>
+      <span lang="en">Developed at LaBiOmicS — Laboratory of Bioinformatics and Omics Sciences, University of Mogi das Cruzes.</span><span lang="es">Desarrollado en LaBiOmicS — Laboratorio de Bioinformática y Ciencias Ómicas, Universidade de Mogi das Cruzes.</span><br>
+      <span lang="pt">Coordenação</span><span lang="en">Lead</span><span lang="es">Coordinación</span>: Prof. Dr. Fabiano Bezerra Menegidio · <a href="mailto:fabianomenegidio@umc.br">fabianomenegidio@umc.br</a>
     </div>
     <div>
       <a href="https://github.com/LaBiOmicS/academic-peer-review">GitHub</a> ·
       <a href="https://github.com/LaBiOmicS/academic-peer-review/releases">Releases</a> ·
       <a href="https://github.com/LaBiOmicS/academic-peer-review/blob/main/CHANGELOG.md">Changelog</a> ·
-      <a href="https://github.com/LaBiOmicS/academic-peer-review/blob/main/LICENSE"><span lang="pt">Licença MIT</span><span lang="en">MIT License</span></a>
+      <a lang="pt" href="https://github.com/LaBiOmicS/academic-peer-review/blob/main/README.pt-BR.md">Documentação</a><a lang="en" href="https://github.com/LaBiOmicS/academic-peer-review/blob/main/README.md">Documentation</a><a lang="es" href="https://github.com/LaBiOmicS/academic-peer-review/blob/main/README.es.md">Documentación</a> ·
+      <a href="https://github.com/LaBiOmicS/academic-peer-review/blob/main/LICENSE"><span lang="pt">Licença MIT</span><span lang="en">MIT License</span><span lang="es">Licencia MIT</span></a>
     </div>
   </div>
 </footer>
@@ -633,15 +644,19 @@ footer a { color: var(--ink-2); }
   function store(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
 
+  var LANGS = { pt: "pt-BR", en: "en", es: "es" };
+  var langButtons = document.querySelectorAll("[data-set-lang]");
   function setLang(lang) {
+    if (!LANGS[lang]) lang = "en";
     root.setAttribute("data-lang", lang);
-    root.setAttribute("lang", lang === "pt" ? "pt-BR" : "en");
+    root.setAttribute("lang", LANGS[lang]);
+    langButtons.forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.setLang === lang ? "true" : "false"); });
     store("apr-lang", lang);
   }
-  var lang = read("apr-lang") || ((navigator.language || "").toLowerCase().indexOf("pt") === 0 ? "pt" : "en");
-  setLang(lang);
-  document.getElementById("lang-btn").addEventListener("click", function () {
-    setLang(root.getAttribute("data-lang") === "pt" ? "en" : "pt");
+  var browser = (navigator.language || "").toLowerCase().slice(0, 2);
+  setLang(read("apr-lang") || (LANGS[browser] ? browser : "en"));
+  langButtons.forEach(function (b) {
+    b.addEventListener("click", function () { setLang(b.dataset.setLang); });
   });
 
   var theme = read("apr-theme");
