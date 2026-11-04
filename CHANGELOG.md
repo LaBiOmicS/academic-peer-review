@@ -2,7 +2,7 @@
 
 Todas as mudanças relevantes deste plugin. O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [SemVer](https://semver.org/lang/pt-BR/).
 
-## [Não lançado]
+## [1.3.0] — 2026-11-04
 
 ### Adicionado
 - Página do projeto refeita para quem não tem experiência com IA ou terminal: manual de oito passos com seletores de sistema (Windows, macOS, Linux) e de IA (Claude Code, Antigravity), que mostram só os comandos da escolha; prompts prontos para os casos mais comuns (rodada de revisão do autor, rascunho de parecer, revisão econômica, tipologia informada, retomada, explicação do resultado, painel com vários modelos, comando direto); perguntas frequentes e solução de problemas. O botão de copiar leva só a variante visível, sem marcas de prompt nem comentários.

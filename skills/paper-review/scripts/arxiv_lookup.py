@@ -19,7 +19,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from typing import Any
 
-USER_AGENT = "academic-peer-review/1.2.0 (LaBiOmicS - UMC; mailto:fabianomenegidio@umc.br)"
+USER_AGENT = "academic-peer-review/1.3.0 (LaBiOmicS - UMC; mailto:fabianomenegidio@umc.br)"
 API_URL = "https://export.arxiv.org/api/query"
 BATCH_SIZE = 50
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024

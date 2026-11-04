@@ -38,7 +38,7 @@ from area_profiles import (  # noqa: E402
 )
 
 USER_AGENT = (
-    "academic-peer-review/1.2.0 (LaBiOmicS - Universidade de Mogi das Cruzes; "
+    "academic-peer-review/1.3.0 (LaBiOmicS - Universidade de Mogi das Cruzes; "
     "Prof. Dr. Fabiano Bezerra Menegidio; mailto:fabianomenegidio@umc.br)"
 )
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024  # 4 MB cap per HTTP response
