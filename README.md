@@ -1,19 +1,23 @@
-# academic-peer-review 
+# academic-peer-review
 ## Revisão Acadêmica por Pares & Integridade Científica
 
-[![Antigravity Plugin](https://img.shields.io/badge/Antigravity-Plugin-blue.svg)](https://github.com/google-deepmind)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-purple.svg)](https://anthropic.com)
+[![CI](https://github.com/LaBiOmicS/academic-peer-review/actions/workflows/ci.yml/badge.svg)](https://github.com/LaBiOmicS/academic-peer-review/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/LaBiOmicS/academic-peer-review)](https://github.com/LaBiOmicS/academic-peer-review/releases)
+[![Site](https://img.shields.io/badge/site-GitHub%20Pages-0b6e4f.svg)](https://labiomics.github.io/academic-peer-review/)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-purple.svg)](https://docs.anthropic.com/en/docs/claude-code)
+[![Antigravity](https://img.shields.io/badge/Antigravity-plugin-blue.svg)](#opção-b-instalação-direta-via-antigravity-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg)](https://python.org)
-[![uv](https://img.shields.io/badge/uv-Astral-blueviolet.svg)](https://github.com/astral-sh/uv)
 
-**[Português](#versão-em-português) | [English](#english-version)**
+**[Português](#versão-em-português) | [English](#english-version) | [Página do projeto / Project page](https://labiomics.github.io/academic-peer-review/)**
 
 ---
 
 ## Versão em Português
 
-Plugin oficial multiplataforma para **Gemini / Antigravity (`agy`)** e **Anthropic Claude Code (`claude`)** voltado para revisão acadêmica por pares independente, comitês de múltiplos revisores especializados sob codinomes gregos (`Alfa`, `Beta`, `Gama`, `Delta`, …), classificação tridimensional (**5 Grandes Áreas × 15 Tipologias de Artigo × 13 Abordagens de Pesquisa = 975 perfis**), auditoria estatística determinística (`statcheck`), integridade de dados FAIR, proveniência de IA generativa e síntese editorial com relatório oficial em PDF.
+Plugin para **Claude Code (`claude`)** e **Gemini / Antigravity (`agy`)** que monta um painel de pareceristas independentes, identificados por codinomes gregos (`alfa`, `beta`, `gamma`, `delta`, …), para avaliar um manuscrito científico. O painel é precedido por uma auditoria determinística: recálculo estatístico (`statcheck`), verificação de DOIs e retratações no OpenAlex, dados FAIR, uso de IA generativa, texto oculto e aderência ao periódico-alvo. O resultado é uma metarrevisão editorial com roteiro de correções priorizado e um relatório em PDF.
+
+Os pareceres são **rascunhos assistidos por IA**: um parecerista ou editor humano deve verificá-los, editá-los e assumir a responsabilidade por eles.
 
 Desenvolvido no **LaBiOmicS / UMC** sob coordenação do **Prof. Dr. Fabiano Bezerra Menegidio**.
 
@@ -21,70 +25,74 @@ Desenvolvido no **LaBiOmicS / UMC** sob coordenação do **Prof. Dr. Fabiano Bez
 
 ### Principais Funcionalidades
 
-1. **Classificação Tridimensional Inteligente (3 Eixos)**:
+1. **Classificação em 3 eixos (5 áreas × 15 tipologias × 13 abordagens = 975 perfis)**:
    - **Eixo 1 — 5 Grandes Áreas (`--area`)**: Biológicas/Ômicas/Agrárias, Saúde/Clínica, Exatas e da Terra, Engenharias e Humanas/Sociais.
-   - **Eixo 2 — 15 Tipologias de Artigo (`--article-type`)**: Artigo Original, Revisão Sistemática, Metanálise, Scoping Review, Revisão Integrativa, Revisão Narrativa, Bibliometria, Diretriz Clínica/Consenso Delphi, Relato/Estudo de Caso, Data Paper, Software Paper, Protocolo, Ensaio Teórico e Comunicação Breve.
+   - **Eixo 2 — 15 Tipologias de Artigo (`--article-type`)**: Artigo Original, Revisão Sistemática, Metanálise, Scoping Review, Revisão Integrativa, Revisão Narrativa, Revisão Bibliométrica, Diretriz Clínica/Consenso Delphi, Relato/Estudo de Caso, Data Paper, Software Paper, Protocolo, Ensaio Teórico e Comunicação Breve.
    - **Eixo 3 — 13 Abordagens de Pesquisa (`--research-approach`)**: Ensaio Clínico, Biomarcadores/Diagnóstico, Epidemiológico/Observacional, Campo/Ecológico/Agronômico, Bancada/Experimental, Computacional/In Silico, Quantitativo/Estatístico, Qualitativo, Métodos Mistos, DSR/Pesquisa-Ação, Documental/Histórico, Bibliométrico/Cienciométrico e Teórico-Formal.
+   - Cada perfil gera uma microrrubrica própria e as checagens correspondentes da auditoria. Tipologias que analisam metadados (ex.: revisões bibliométricas) recebem lentes e eixos de crítica próprios e não são cobradas por padrões de estudo primário (réplicas, poder, FDR, aprovação ética).
    - **Confirmação quando incerta**: a classificação é por palavras-chave. Quando a evidência de um eixo é fraca, ele é marcado como `needs_confirmation`, e o agente confere o título, o resumo e os métodos antes de montar o painel (em sessão interativa, pergunta ao usuário). Os eixos passados explicitamente não são reavaliados.
-   - **Diretrizes Transversais**: Checagem automática de equidade de sexo/gênero (**SAGER**) e IA biomédica (**TRIPOD+AI / CONSORT-AI / CLAIM**).
+   - **Diretrizes Transversais**: equidade de sexo/gênero (**SAGER**) e IA biomédica (**TRIPOD+AI / CONSORT-AI / CLAIM**), ativadas só quando o manuscrito tem sujeitos humanos/animais ou um modelo de IA.
 
-2. **Voz Profissional de Parecerista & Transparência sobre IA (Trilíngue: PT / EN / ES)**:
-   - Os pareceres são redigidos no tom de um parecerista acadêmico sênior, sem frases de chatbot (*"Como uma IA..."*) e sem expor prompts ou scripts internos.
-   - Os relatórios são **rascunhos assistidos por IA**: devem ser verificados, editados e assinados por um parecerista ou editor humano. O PDF final inclui uma **declaração de uso de IA**.
-   - **Confidencialidade**: antes de enviar um manuscrito inédito a um serviço de IA, confirme que a política de revisão da revista permite (COPE, ICMJE e várias editoras restringem esse uso e exigem declaração).
-   - **Alinhamento Linguístico Nativo**: O parecer e a meta-revisão são redigidos no mesmo idioma do manuscrito (Português, Inglês ou Espanhol).
+2. **Painel de pareceristas com papéis distintos**:
+   - Os papéis são preenchidos nesta ordem de prioridade e depois sorteados entre os codinomes, para que a letra não revele o papel:
 
-3. **Auditoria Determinística de Dados FAIR & Reprodutibilidade**:
-   - **Veto a Declarações Evasivas**: Detecta e sinaliza expressões como *"dados disponíveis mediante solicitação razoável"* (*available upon reasonable request*).
-   - **Repositórios e PIDs**: Mapeia depósitos abertos (Zenodo, GitHub, OSF, Figshare, Dryad, NCBI SRA/GEO, PRIDE) e formatos reutilizáveis (CSV, TSV, FASTQ, BAM, VCF, HDF5/AnnData).
-   - **Reprodutibilidade Computacional**: Verifica travamento de dependências (`requirements.txt`, `environment.yml`, Docker) e fixação de sementes aleatórias (*random seeds*).
-   - **Especificidade de Bancada**: Checa códigos de catálogo de reagentes, RRIDs de anticorpos/linhagens e sequências de *primers*.
+     | Nº de pareceristas | Composição |
+     |---|---|
+     | 3 | crítico *red-team*, advogado do autor, auditor de métodos e estatística |
+     | 4 | + auditor de reprodutibilidade, ética e FAIR |
+     | 5 (padrão) | + parecerista de domínio |
+     | 6 a 8 | + pareceristas de domínio adicionais |
 
-4. **Auditoria Forense de IA Generativa (COPE / ICMJE / SciELO)**:
-   - Detecta resíduos crus de chat esquecidos no texto (*"como modelo de linguagem...", "certamente, aqui está o resumo..."*).
-   - Veta coautoria atribuída a IAs generativas (`ChatGPT (Autor)`).
-   - Valida seções de transparência e mede a densidade de chavões sintéticos (*tells*).
+   - Com 3 ou 4 pareceristas, o painel não tem parecerista de domínio. Use 5 ou mais quando a avaliação do mérito na área for importante.
+   - Cada parecerista recebe uma semente própria, que define sua lente ou eixo de crítica e sua postura (*String Seed of Thought*).
+   - **Painel com modelos misturados** (`panel_models`, ex.: `claude:opus,agy,claude:sonnet`): cada parecerista roda num par runner:modelo. Pareceristas no mesmo modelo compartilham os mesmos pontos cegos, então só a concordância entre modelos diferentes ganha algum peso.
 
-5. **Blindagem Ativa Contra Alucinações**:
-   - **Âncora de Citação Literal (*Verbatim Anchor*)**: Obriga os pareceristas a citarem trechos literais exatos ao apontarem falhas metodológicas ou conceituais.
-   - **Dupla Checagem contra Falsa Omissão (*Negative-Search Grounding*)**: Força varredura exaustiva por sinônimos antes de acusar que um tópico está ausente no manuscrito.
-   - **Auditoria Reversa de Citações no OpenAlex**: O compilador verifica ao vivo se os DOIs citados pelos próprios pareceristas são reais ou alucinados. DOIs ausentes do OpenAlex (comum em preprints recentes) são confirmados no registro do doi.org antes de serem tratados como inexistentes. Identificadores arXiv citados pelos pareceristas são conferidos na API do arXiv.
-
-6. **Validação de Escopo da Revista & Risco de Desk-Reject (`--journal`)**:
-   - **Aderência a Aims & Scope**: Avalia a aderência temática e o nível de novidade conceitual/técnica frente ao perfil do periódico pretendido (via base de conhecimento curada e OpenAlex Sources API ao vivo).
-   - **Prevenção Ativa de Desk-Reject**: Mapeia vícios de rejeição sumária de mesa (ex.: aplicação rotineira de software em revistas que exigem método novo, ou estudos empíricos em periódicos exclusivos de revisão/benchmark).
-   - **Conformidade de Diretrizes do Autor**: Alerta sobre limites de palavras/figuras e seções obrigatórias (*Data Availability*, repositório aberto de código, registro de ensaio clínico).
-   - **Recomendação de Periódicos Alternativos (*Cascading Journals*)**: Sugere 2 a 3 revistas com escopo mais aderente caso haja descompasso editorial.
-
-7. **Segurança da Informação e Defesa Cibernética**:
-   - Defesa ativa contra *Indirect Prompt Injection* (texto oculto em LaTeX/CSS e comandos maliciosos embutidos).
-
-8. **Calibração de Severidade e Proporcionalidade**:
+3. **Calibração de severidade e proporcionalidade**:
    - Cada preocupação maior recebe um nível: **Bloqueante** (alguma conclusão publicada não se sustenta sem a correção), **Essencial** (relato e transparência) ou **Opcional** (ampliações de escopo, análises novas). São no máximo 5 bloqueantes por parecer.
-   - Antes de levantar uma crítica, o parecerista procura no texto as ressalvas que os autores já fizeram e confere a direção do viés que aponta (ex.: um ano incompleto subestima a contagem, não a infla). A lente ou o eixo sorteado é uma hipótese a testar, não uma conclusão.
-   - O painel inclui um **parecerista advogado do autor**, contrapeso do *red-team*: ele testa as críticas prováveis contra o manuscrito e aponta exigências desproporcionais ou importadas de outro gênero.
-   - Na metarrevisão, a concordância entre pareceristas não conta como evidência, pois todos rodam no mesmo modelo. Cada bloqueante passa por uma tabela de verificação contra o texto, e a matriz distingue a crítica maior da menção de passagem.
-   - Os números da auditoria (aderência ao escopo, risco, DOIs) entram na metarrevisão direto do arquivo de auditoria. O compilador avisa quando a metarrevisão cita números que a contradizem ou quando foi escrita antes da auditoria atual, e gera uma **carta curta aos autores** (`author_letter.md`) só com os itens bloqueantes e essenciais.
-   - Sanitização de caracteres Unicode invisíveis/bidirecionais e isolamento estrito em `<UNTRUSTED_MANUSCRIPT_CONTENT>`.
-   - Proteção contra OWASP *CSV Formula Injection* nas matrizes exportadas.
+   - Antes de levantar uma crítica, o parecerista procura no texto as ressalvas que os autores já fizeram e confere a direção do viés que aponta (ex.: um ano incompleto subestima a contagem, não a infla). A lente sorteada é uma hipótese a testar, não uma conclusão.
+   - O **advogado do autor**, contrapeso do *red-team*, testa as críticas prováveis contra o manuscrito e aponta exigências desproporcionais ou importadas de outro gênero.
+   - Na metarrevisão, a concordância entre pareceristas não conta como evidência. Cada bloqueante passa por uma tabela de verificação contra o texto, e o roteiro tem três níveis (Bloqueante, Essencial, Opcional).
+   - O compilador confere esse contrato (níveis presentes, até 5 bloqueantes, tabela de verificação) e avisa com `SEVERITY CONTRACT NOT MET` quando ele é violado. Os números da auditoria entram na metarrevisão direto do arquivo de auditoria, e o compilador avisa quando a metarrevisão os contradiz.
+
+4. **Voz profissional e transparência sobre IA (PT / EN / ES)**:
+   - Os pareceres são redigidos no tom de um parecerista sênior, no idioma do manuscrito, sem frases de chatbot e sem expor prompts ou scripts internos.
+   - O PDF final inclui uma **declaração de uso de IA** (`--no-ai-disclosure` a remove; a declaração à revista passa a ser responsabilidade do parecerista).
+   - **Confidencialidade**: antes de enviar um manuscrito inédito a um serviço de IA, confirme que a política de revisão da revista permite (COPE, ICMJE e várias editoras restringem esse uso e exigem declaração).
+
+5. **Auditoria determinística de dados FAIR e reprodutibilidade**:
+   - Sinaliza declarações evasivas (*"dados disponíveis mediante solicitação"*).
+   - Mapeia depósitos abertos (Zenodo, GitHub, OSF, Figshare, Dryad, NCBI SRA/GEO, PRIDE) e formatos reutilizáveis.
+   - Verifica travamento de dependências (`requirements.txt`, `environment.yml`, Docker), sementes aleatórias, códigos de catálogo, RRIDs e sequências de *primers*.
+
+6. **Auditoria de IA generativa (COPE / ICMJE / SciELO)**: resíduos de chat esquecidos no texto, coautoria atribuída a IA, declaração de uso de IA e densidade de chavões sintéticos.
+
+7. **Proteção contra alucinações**:
+   - **Âncora literal**: toda crítica cita o trecho exato do manuscrito.
+   - **Checagem contra falsa omissão**: busca por sinônimos antes de afirmar que algo está ausente.
+   - **Auditoria reversa de citações**: o compilador verifica ao vivo os DOIs citados pelos pareceristas no OpenAlex e no doi.org, e os identificadores arXiv na API do arXiv.
+
+8. **Escopo do periódico e risco de *desk reject* (`--journal`)**: aderência temática ao periódico-alvo (perfis curados e OpenAlex Sources API, ignorando a lista de referências), requisitos formais comuns e periódicos alternativos quando o risco é alto.
+
+9. **Segurança da informação**:
+   - O texto do manuscrito é isolado em `<UNTRUSTED_MANUSCRIPT_CONTENT>` e tratado como dado, nunca como instrução.
+   - Detecção de **conteúdo oculto** que tenta manipular a revisão (texto branco, microscópico ou fora da página em PDF; trechos ocultos em DOCX; comentários em LaTeX, HTML e Markdown). Tentativas de manipulação são denunciadas ao editor e não decidem o veredito.
+   - Sanitização de caracteres Unicode invisíveis/bidirecionais, ambiente restrito para os subprocessos e proteção contra *CSV Formula Injection* nas matrizes exportadas.
 
 ---
 
 ### Tutorial de Instalação
 
 #### Requisitos
-- **Python**: Versão 3.10 ou superior.
-- **Agente**: Antigravity CLI (`agy`) ou Claude Code (`claude`), instalado e autenticado.
+- **Python**: versão 3.10 ou superior.
+- **Agente**: Claude Code (`claude`) ou Antigravity CLI (`agy`), instalado e autenticado.
 - **`uv`** (recomendado): cada script declara suas dependências (PEP 723) e o `uv run` as instala isoladamente. Sem elas, a detecção de texto oculto em PDF/DOCX não roda, e a auditoria registra a verificação como **incompleta**.
-- **Utilitários Opcionais de Extração**:
-  - `pandoc` (recomendado para DOCX, LaTeX e HTML).
-  - `pdftotext` (pacote `poppler-utils`, para extração otimizada de PDFs). O extrator compara o resultado com o do `pypdf` e fica com o texto que tiver menos palavras coladas; o `pdftotext` roda em modo de leitura, que preserva a ordem das colunas.
+- **Utilitários opcionais**: `pandoc` (DOCX, LaTeX e HTML; também gera o PDF via LaTeX) e `pdftotext` (pacote `poppler-utils`). Sem LaTeX, o PDF é gerado com ReportLab.
 
 #### Custo e tempo
-Cada revisão consome tokens do modelo usado pelo agente: um parecer por parecerista, mais a metarrevisão. Como referência, uma revisão de um manuscrito curto (~1.000 palavras) com 3 pareceristas no Claude Sonnet custou cerca de **US$ 1** e levou poucos minutos. O custo cresce com o tamanho do manuscrito, o número de pareceristas (`num_reviewers`, de 3 a 8) e o modelo escolhido. Para reduzir, use `num_reviewers=3`.
+Cada revisão consome tokens do modelo usado pelo agente: um parecer por parecerista, mais a metarrevisão. Como referência, uma revisão de um manuscrito curto (~1.000 palavras) com 3 pareceristas no Claude Sonnet custou cerca de **US$ 1** e levou poucos minutos; um artigo completo (~9.000 palavras) com 4 pareceristas leva de 3 a 5 minutos por parecerista, em paralelo. O custo cresce com o tamanho do manuscrito, o número de pareceristas (`num_reviewers`, de 3 a 8) e o modelo. `num_reviewers=3` reduz o custo, mas deixa o painel sem parecerista de domínio e sem auditor de reprodutibilidade.
 
-#### Opção A: Instalação Automatizada com uv (Recomendada)
-O instalador automatizado verifica o `uv`, sincroniza as dependências em ambiente isolado (pypdf, python-docx, ReportLab) e registra o plugin no Antigravity CLI e no Claude Code:
+#### Opção A: Instalação automatizada (recomendada)
+O instalador verifica o `uv`, sincroniza as dependências e registra o plugin no Claude Code e no Antigravity CLI (o que estiver instalado):
 ```bash
 git clone https://github.com/LaBiOmicS/academic-peer-review.git
 cd academic-peer-review
@@ -97,19 +105,16 @@ No Claude Code, o plugin também pode ser instalado direto do GitHub:
 /plugin install academic-peer-review@labiomics
 ```
 
-#### Opção B: Instalação Direta via Antigravity CLI
+#### Opção B: Instalação direta via Antigravity CLI
 ```bash
-# Validar e instalar diretamente a pasta do plugin
+agy plugin validate /caminho/para/academic-peer-review --strict
 agy plugin install /caminho/para/academic-peer-review
 agy plugin enable academic-peer-review
 ```
 
-#### Opção C: Instalação Manual e Sincronização via `uv` (Astral)
+#### Opção C: Ambiente manual com `uv`
 ```bash
-# Sincroniza ambiente virtual e dependências (extração de PDF/DOCX e ReportLab)
 uv sync --all-extras
-
-# Executa scripts diretamente em ambiente isolado
 uv run skills/paper-review/scripts/stat_and_integrity_audit.py --help
 ```
 
@@ -119,80 +124,72 @@ uv run skills/paper-review/scripts/stat_and_integrity_audit.py --help
 
 ```mermaid
 flowchart TD
-    User["Manuscrito (PDF, DOCX, TeX, MD)"] --> Extract["1. extract_paper.py<br>Extração de texto e classificação 3D"]
-    Extract --> Audit["2. stat_and_integrity_audit.py<br>statcheck + OpenAlex + FAIR + Uso de IA"]
-    Audit --> Parallel["3. spawn_reviewers.py / Subagentes Paralelos<br>Revisores Alfa, Beta, Gama, Delta"]
-    Parallel --> Editor["4. metareview.md<br>Síntese Editorial e Matriz de Consenso"]
-    Editor --> Results["5. compile_results.py<br>Auditoria Reversa de DOIs + CSV + JSON"]
+    User["Manuscrito (PDF, DOCX, TeX, MD, HTML)"] --> Extract["1. extract_paper.py<br>Extração, texto oculto e classificação em 3 eixos"]
+    Extract --> Audit["2. stat_and_integrity_audit.py<br>statcheck, OpenAlex, FAIR, IA e escopo do periódico"]
+    Audit --> Parallel["3. spawn_reviewers.py + subagentes em paralelo<br>alfa, beta, gamma, delta, epsilon, …"]
+    Parallel --> Editor["4. metareview.md<br>Verificação dos bloqueantes e roteiro em 3 níveis"]
+    Editor --> Results["5. compile_results.py<br>Citações dos pareceristas, contrato de severidade, CSV, JSON e PDF"]
 ```
 
-#### Modo 1: Uso Interativo via Chat (Antigravity CLI ou IDE)
+#### Modo 1: Uso interativo (Claude Code ou Antigravity)
 
-Esta é a forma mais prática e natural. Basta abrir o chat da Antigravity, anexar o manuscrito e solicitar a avaliação:
+Basta indicar o manuscrito e pedir a avaliação:
 
-* **Exemplo 1 — Artigo que você vai submeter a uma revista internacional (Inglês)**:
-  > *"Por favor, faça uma revisão cega por pares deste artigo que vamos submeter: `./manuscritos/salmonella_genomics.pdf`"*
-  *(O plugin detectará o idioma inglês e emitirá os pareceres e a síntese editorial em inglês acadêmico formal para Nature/Elsevier).*
+* **Artigo que você vai submeter (inglês)**:
+  > *"Faça uma revisão cega por pares deste artigo que vamos submeter à PLOS ONE: `./manuscritos/salmonella_genomics.pdf`"*
 
-* **Exemplo 2 — Artigo recebido para você emitir parecer como revisor (Português/Espanhol)**:
-  > *"Recebi este artigo para emitir parecer para a revista SciELO: `./revisoes/artigo_parasitologia.docx`. Faça a auditoria metodológica, de dados FAIR e gere o relatório do revisor em português."*
+* **Artigo recebido para parecer (português ou espanhol)**:
+  > *"Recebi este artigo para emitir parecer para a revista Ecología Austral: `./revisoes/artigo.docx`. Faça a auditoria metodológica e gere o relatório em português."*
 
-* **Exemplo 3 — Comando direto da skill com parâmetros customizados**:
+* **Comando da skill com parâmetros**:
   ```text
-  /paper-review paper="./manuscritos/artigo_genomica.pdf" area="biologicas" num_reviewers=4
+  /paper-review paper="./manuscritos/artigo_genomica.pdf" area="biologicas" target_journal="Bioinformatics" num_reviewers=5
   ```
   No Claude Code, use o nome qualificado `/academic-peer-review:paper-review` se outro plugin também tiver uma skill `paper-review`.
 
-O agente coordenador executará automaticamente:
-1. Extração do texto completo e sanitização contra injeções de prompt (*Indirect Prompt Injection*).
-   - Se a classificação vier com confiança baixa, confirmação dos eixos pelo resumo e pelos métodos (com uma pergunta ao usuário, em sessão interativa).
-2. Pré-diagnóstico estatístico determinístico (`statcheck`), auditoria FAIR de repositórios/código, proveniência de IA e checagem de retratações na OpenAlex.
-3. Disparo paralelo de 5 pareceristas independentes (`Alfa`, `Beta`, `Gama`, `Delta`, `Épsilon`) com sementes e lentes distintas: um crítico *red-team*, um advogado do autor, dois especialistas (métodos e reprodutibilidade) e um parecerista de domínio.
-4. Compilação dos pareceres, validação reversa de citações e geração da **Metarrevisão Editorial** com matriz de preocupações priorizadas.
+O agente coordenador executa:
+1. Extração do texto, varredura de conteúdo oculto e classificação (com confirmação dos eixos quando a confiança é baixa).
+2. Auditoria determinística: `statcheck`, checagens do perfil, FAIR, uso de IA, DOIs e retratações, escopo do periódico.
+3. Disparo dos pareceristas em paralelo, cada um com seu papel, semente e lente.
+4. Metarrevisão editorial com verificação dos bloqueantes contra o texto.
+5. Compilação: auditoria reversa de citações, matriz de preocupações, carta aos autores e PDF.
 
----
-
-#### Modo 2: Uso em Linha de Comando (Modo Headless / Automação)
-
-Você pode executar o fluxo completo diretamente no terminal via scripts Python padrão:
+#### Modo 2: Linha de comando (headless / automação)
 
 ```bash
-# Definir diretório de trabalho e skill
 SKILL_DIR="skills/paper-review"
 OUT_DIR="./papers/artigo_exemplo"
 mkdir -p "$OUT_DIR"
 
-# 1. Extração do texto e classificação tridimensional
-uv run $SKILL_DIR/scripts/extract_paper.py \
-  "./artigo.pdf" \
+# 1. Extração do texto e classificação
+uv run $SKILL_DIR/scripts/extract_paper.py "./artigo.pdf" \
   --output-text "$OUT_DIR/paper_text.txt" \
-  --output-meta "$OUT_DIR/paper_structure.json" \
-  --area auto \
-  --article-type auto \
-  --research-approach auto
+  --output-meta "$OUT_DIR/paper_structure.json"
 
-# 2. Auditoria pré-revisão (Estatística, Citações OpenAlex, FAIR e Proveniência de IA)
+# 2. Auditoria pré-revisão
 uv run $SKILL_DIR/scripts/stat_and_integrity_audit.py \
   --paper-text-file "$OUT_DIR/paper_text.txt" \
   --output-json "$OUT_DIR/pre_review_audit.json" \
   --output-md "$OUT_DIR/pre_review_audit.md" \
+  --paper-meta "$OUT_DIR/paper_structure.json" \
+  --journal "Nome do Periódico" \
   --verify-citations
 
-# 3. Preparação dos prompts dos pareceristas independentes
+# 3. Preparação dos prompts dos pareceristas
 uv run $SKILL_DIR/scripts/spawn_reviewers.py \
   --paper-text-file "$OUT_DIR/paper_text.txt" \
   --audit-file "$OUT_DIR/pre_review_audit.md" \
   --output-dir "$OUT_DIR" \
   --skill-dir "$SKILL_DIR" \
-  --num-reviewers 4 \
+  --num-reviewers 5 \
   --prepare-only
 
-# 3b. (Opcional) Executar os pareceristas como subprocessos headless em vez de subagentes:
+# 3b. (Opcional) Rodar os pareceristas como subprocessos headless em vez de subagentes:
 #     troque --prepare-only por --runner auto|agy|gemini|claude
+#     e, para um painel com modelos misturados, --panel-models "claude:opus,agy,claude:sonnet"
 
-# 4. Compilação dos pareceres, auditoria reversa de citações e tabela de preocupações
-uv run $SKILL_DIR/scripts/compile_results.py \
-  --output-dir "$OUT_DIR"
+# 4. Escrever meta_review.md (o agente faz isso no Modo 1) e compilar
+uv run $SKILL_DIR/scripts/compile_results.py --output-dir "$OUT_DIR"
 # Opcional: --no-ai-disclosure remove do PDF o aviso de revisão assistida por IA
 ```
 
@@ -200,20 +197,16 @@ uv run $SKILL_DIR/scripts/compile_results.py \
 
 ### Artefatos Gerados
 
-Após a conclusão da revisão, os seguintes arquivos estruturados estarão disponíveis no diretório de saída:
-
 | Arquivo | Descrição |
 |---|---|
-| `editorial_peer_review_report.pdf` | **Relatório Consolidado Oficial em PDF** diagramado em padrão de publicação (Editorial + Pareceres Cegos + Matriz + Diagnóstico). |
-| `consolidated_editorial_report.md` | Documento Markdown consolidado completo com metadados e frontmatter. |
-| `meta_review.md` | Parecer editorial conclusivo (Consenso, Divergências e Roteiro Prioritário de Correções). |
-| `pre_review_audit.md` | Diagnóstico determinístico (`statcheck`, integridade FAIR, proveniência de IA e DOIs). |
-| `concerns_table.csv` | Matriz booleana tabular de preocupações levantadas por revisor (pronta para Excel/R/Pandas). |
-| `review_alfa.md` | Parecer detalhado do Revisor Alfa (Metodologia e Estatística). |
-| `review_beta.md` | Parecer detalhado do Revisor Beta (Reprodutibilidade, Ética e FAIR). |
-| `review_gamma.md` | Parecer detalhado do Revisor Gama (Crítica Red-Team Epistêmica). |
-| `review_delta.md` | Parecer detalhado do Revisor Delta (Especialista da Área Temática). |
-| `results.json` | Pacote consolidado em JSON contendo metadados, vereditos e auditoria reversa de citações. |
+| `editorial_peer_review_report.pdf` | Relatório consolidado: metarrevisão, matriz de preocupações, auditoria e pareceres. |
+| `meta_review.md` | Metarrevisão editorial: vereditos, preocupações comuns e únicas, verificação dos bloqueantes, roteiro em 3 níveis e veredito. |
+| `author_letter.md` | Carta curta aos autores com a decisão e os itens bloqueantes e essenciais. |
+| `review_<codinome>.md` | Um parecer por parecerista (`review_alfa.md`, `review_beta.md`, …). O papel de cada codinome é sorteado e fica registrado em `results.json`. |
+| `pre_review_audit.md` / `.json` | Auditoria determinística (`statcheck`, checagens do perfil, FAIR, IA, DOIs, escopo, conteúdo oculto). |
+| `concerns_table.csv` / `concerns_matrix.json` | Matriz de preocupações: nível de severidade e, por parecerista, crítica maior (`major`) ou menção de passagem (`minor`). |
+| `consolidated_editorial_report.md` | Versão Markdown do relatório consolidado. |
+| `results.json` | Metadados, vereditos, papéis e modelos dos pareceristas, auditoria reversa de citações e contrato de severidade. |
 
 ---
 
@@ -221,48 +214,48 @@ Após a conclusão da revisão, os seguintes arquivos estruturados estarão disp
 
 ```text
 academic-peer-review/
-├── pyproject.toml                                  # Configuração PEP 621 e suporte nativo a uv
-├── uv.lock                                         # Lockfile determinístico de dependências
-├── plugin.json                                     # Manifesto do plugin para Antigravity (v1.0.0)
+├── install.sh                         # Instalador (Claude Code e Antigravity)
+├── pyproject.toml / uv.lock           # Dependências (PEP 621) e lockfile
+├── plugin.json                        # Manifesto do plugin para Antigravity
 ├── .claude-plugin/
-│   ├── plugin.json                                 # Manifesto do plugin para Claude Code
-│   └── marketplace.json                            # Marketplace local "labiomics" (instalação no Claude Code)
-├── assets/
-│   ├── logo.jpg                                    # Logotipo oficial LaBiOmicS / UMC
-│   └── logo.svg                                    # Ícone vetorial SVG
-├── agents/
-│   └── peer-reviewer.md                            # Definição do subagente parecerista autônomo
-├── rules/
-│   └── AGENTS.md                                   # Regras mandatórias de integridade, anonimato e segurança
-└── skills/
-    └── paper-review/
-        ├── SKILL.md                                # Documentação técnica da skill para agentes
-        ├── prompts/
-        │   ├── reviewer.md                         # Revisor Especialista de Domínio (com âncora literal)
-        │   ├── reviewer_alignment_forum.md         # Crítico Red-Team Epistêmico
-        │   ├── reviewer_methodology_stats.md       # Auditor Metodológico e Estatístico
-        │   ├── reviewer_reproducibility_integrity.md # Auditor de Reprodutibilidade, Ética e FAIR
-        │   └── metareview.md                       # Síntese Editorial e Matriz de Decisão
-        ├── scripts/
-        │   ├── area_profiles.py                    # Matriz 3D (975 perfis), microrrubricas e scanner AppSec
-        │   ├── extract_paper.py                    # Extrator de PDFs, DOCX, TeX com defesas sandboxed
-        │   ├── journal_scope.py                    # Auditor de aderência ao escopo da revista e risco de desk-reject
-        │   ├── openalex_lookup.py                  # Consulta de DOIs em lote no OpenAlex (citações e retratações)
-        │   ├── stat_and_integrity_audit.py         # Auditor estatístico (statcheck), OpenAlex, FAIR e IA
-        │   ├── literature_search.py                # Busca multi-base HTTPS (OpenAlex, PubMed, Crossref, arXiv)
-        │   ├── arxiv_search.py                     # Busca rápida via arXiv API
-        │   ├── spawn_reviewers.py                  # Orquestrador paralelo seguro dos revisores
-        │   ├── compile_results.py                  # Compilador com auditoria reversa de citações e proteção CSV
-        │   └── generate_pdf_report.py              # Gerador do relatório oficial em PDF (Pandoc/ReportLab)
-        └── references/
-            └── panel_and_audit_guide.md            # Manual de taxonomia e calibração metodológica
+│   ├── plugin.json                    # Manifesto do plugin para Claude Code
+│   └── marketplace.json               # Marketplace "labiomics"
+├── agents/peer-reviewer.md            # Subagente parecerista
+├── rules/AGENTS.md                    # Regras de integridade, anonimato e segurança
+├── site/                              # Página do projeto (GitHub Pages)
+├── tests/                             # Testes (pytest)
+└── skills/paper-review/
+    ├── SKILL.md                       # Instruções da skill para o agente
+    ├── prompts/
+    │   ├── reviewer.md                          # Parecerista de domínio
+    │   ├── reviewer_alignment_forum.md          # Crítico red-team
+    │   ├── reviewer_author_advocate.md          # Advogado do autor
+    │   ├── reviewer_methodology_stats.md        # Auditor de métodos e estatística
+    │   ├── reviewer_reproducibility_integrity.md # Auditor de reprodutibilidade, ética e FAIR
+    │   └── metareview.md                        # Metarrevisão editorial
+    ├── scripts/
+    │   ├── area_profiles.py           # Matriz de 975 perfis, microrrubricas, lentes e eixos
+    │   ├── extract_paper.py           # Extração de PDF, DOCX, TeX, HTML e Markdown
+    │   ├── hidden_content.py          # Detecção de conteúdo oculto
+    │   ├── stat_and_integrity_audit.py # statcheck, checagens do perfil, FAIR e IA
+    │   ├── journal_scope.py           # Escopo do periódico e risco de desk reject
+    │   ├── openalex_lookup.py         # DOIs e retratações (OpenAlex e doi.org)
+    │   ├── arxiv_lookup.py            # Verificação de identificadores arXiv
+    │   ├── literature_search.py       # Busca em OpenAlex, PubMed, Crossref e arXiv
+    │   ├── arxiv_search.py            # Busca rápida no arXiv
+    │   ├── spawn_reviewers.py         # Montagem do painel e execução headless
+    │   ├── compile_results.py         # Compilação, auditoria reversa e contrato de severidade
+    │   └── generate_pdf_report.py     # Relatório em PDF (pandoc/LaTeX ou ReportLab)
+    └── references/panel_and_audit_guide.md # Taxonomia e calibração
 ```
 
 ---
 
 ## English Version
 
-Official multi-platform plugin for **Google Gemini / Antigravity (`agy`)** and **Anthropic Claude Code (`claude`)** for multi-reviewer independent academic peer review, specialized reviewer panels under Greek letter codenames (`Alfa`, `Beta`, `Gamma`, `Delta`, …), 3-axis classification (**5 Major Areas × 15 Article Types × 13 Research Approaches = 975 profiles**), deterministic statistical auditing (`statcheck`), FAIR data integrity, generative AI provenance auditing, and editorial meta-review synthesis with publication-grade PDF report generation.
+Plugin for **Claude Code (`claude`)** and **Gemini / Antigravity (`agy`)** that convenes a panel of independent reviewers under Greek letter codenames (`alfa`, `beta`, `gamma`, `delta`, …) to evaluate a scientific manuscript. The panel is preceded by a deterministic audit: statistical recalculation (`statcheck`), DOI and retraction checks against OpenAlex, FAIR data, generative-AI provenance, hidden content and target-journal fit. The output is an editorial meta-review with a prioritized revision roadmap and a PDF report.
+
+Reports are **AI-assisted drafts**: a human referee or editor must verify, edit and take responsibility for them.
 
 Developed at **LaBiOmicS / UMC** under the leadership of **Prof. Dr. Fabiano Bezerra Menegidio**.
 
@@ -270,46 +263,39 @@ Developed at **LaBiOmicS / UMC** under the leadership of **Prof. Dr. Fabiano Bez
 
 ### Key Capabilities
 
-1. **3-Axis Composable Matrix**:
-   - Classifies manuscripts across **5 Major Scientific Areas**, **15 Academic Article Types**, and **13 Research Approaches**, generating targeted (~12-line) micro-rubrics without polluting the prompt context.
-   - Classification is keyword-based. When the evidence for an axis is weak, the axis is flagged `needs_confirmation` and the agent checks the title, abstract and methods before building the panel (asking the user in interactive sessions). Axes set explicitly are not re-evaluated.
-2. **Professional Referee Voice & AI-Assistance Transparency (Trilingual: EN / PT / ES)**:
-   - Reports use an authoritative academic referee voice in the manuscript's language (English, Portuguese, or Spanish), without chatbot phrasing or internal tool names.
-   - Reports are **AI-assisted drafts** that a human referee or editor must verify and sign off on; the final PDF carries an **AI-assistance disclosure** by default (`compile_results.py --no-ai-disclosure` omits it; disclosure to the journal then remains the referee's responsibility).
-   - **Confidentiality**: before uploading an unpublished manuscript to an AI service, confirm that the journal's peer-review policy allows it (COPE, ICMJE and many publishers restrict this and require disclosure).
-3. **Pragmatic FAIR & Reproducibility Audit**:
-   - Detects and flags evasive *"data available upon request"* statements.
-   - Audits open repositories (Zenodo, GitHub, OSF, GEO/SRA), software dependency manifests (`requirements.txt`, `environment.yml`, Docker), and random seeds.
-4. **Anti-Hallucination Guardrails**:
-   - Enforces **Verbatim Anchoring** (mandatory direct quotes for criticisms), **Negative-Search Grounding** (double-check before claiming an element is omitted), and **Reverse Citation Checking** via OpenAlex in `compile_results.py`. DOIs missing from OpenAlex (common for recent preprints) are confirmed against the doi.org registry before being treated as nonexistent. arXiv identifiers cited by reviewers are checked against the arXiv API.
-5. **Generative AI Provenance Audit (COPE / ICMJE / SciELO Standards)**:
-   - Detects uncleaned chat artifacts, flags improper AI co-authorship, and measures synthetic stylistic tell densities.
-6. **Target Journal Scope & Desk-Reject Risk Audit (`--journal`)**:
-   - Assesses thematic fit, conceptual novelty thresholds, and editorial audience alignment using a curated journal registry and live OpenAlex Sources API queries.
-   - Detects classical desk-reject pitfalls (e.g., routine tool applications in algorithmic journals, unformatted submissions, missing prospective trial registrations).
-   - Recommends 2-3 suitable alternative/cascading journals when scope misalignment is identified.
-7. **Severity Calibration & Proportionality**:
-   - Every major concern carries a tier: **Blocking** (a stated conclusion fails without the fix), **Essential** (reporting and transparency) or **Optional** (scope expansions, new analyses), with at most 5 blocking concerns per report.
-   - Before raising a concern, reviewers search the text for caveats the authors already wrote and check the direction of any bias they allege (e.g. an incomplete year undercounts; it does not inflate). The assigned lens or axis is a hypothesis to test, not a finding.
-   - The panel includes an **author-advocate reviewer**, the red-team critic's counterweight, which tests likely critiques against the manuscript and flags disproportionate or genre-mismatched demands (`--no-author-advocate` leaves it out).
-   - The meta-review does not count agreement as evidence, since all reviewers run on the same model. Every blocking concern goes through a verification table against the text, and the concerns matrix separates major concerns from passing mentions.
-   - Audit figures (scope adherence, risk, DOIs) enter the meta-review straight from the audit file. The compiler warns when the meta-review quotes figures that contradict the audit or predates it, and writes a short **author letter** (`author_letter.md`) with only the blocking and essential items.
+1. **3-axis classification (5 areas × 15 article types × 13 research approaches = 975 profiles)**: each profile gets its own micro-rubric and audit checks. Article types that analyse metadata (e.g. bibliometric reviews) get their own lenses and red-team axes and are not held to primary-study standards (replicates, power, FDR, ethics approval). When the evidence for an axis is weak, it is flagged `needs_confirmation` and the agent checks the title, abstract and methods before building the panel. Transversal guidelines: **SAGER** and **TRIPOD+AI / CONSORT-AI / CLAIM**, triggered only when the paper has human/animal subjects or an AI model.
+2. **A panel with distinct roles**, filled in priority order and then shuffled across codenames:
+
+   | Reviewers | Panel |
+   |---|---|
+   | 3 | red-team critic, author advocate, methodology & statistics auditor |
+   | 4 | + reproducibility, ethics & FAIR inspector |
+   | 5 (default) | + domain reviewer |
+   | 6–8 | + further domain reviewers |
+
+   With 3 or 4 reviewers the panel has no domain reviewer; use 5 or more when field-specific merit matters. Each reviewer gets its own seed, which sets its lens or axis and stance. **Mixed-model panels** (`panel_models`, e.g. `claude:opus,agy,claude:sonnet`) give each reviewer its own runner:model pair, since reviewers on one model share its blind spots.
+3. **Severity calibration & proportionality**: every major concern is **Blocking** (a stated conclusion fails without the fix), **Essential** (reporting and transparency) or **Optional** (scope expansions, new analyses), with at most 5 blocking concerns per report. Reviewers look for the caveats the authors already wrote and check the direction of every bias they allege. The **author advocate** tests likely critiques against the text. The meta-review does not count agreement as evidence, verifies every blocking concern against the manuscript, and uses a three-tier roadmap. The compiler checks this contract (`SEVERITY CONTRACT NOT MET`) and warns when the meta-review contradicts the audit figures.
+4. **Professional referee voice & AI-assistance transparency (EN / PT / ES)**: reports are written in the manuscript's language without chatbot phrasing; the PDF carries an **AI-assistance disclosure** by default (`--no-ai-disclosure` omits it). Before uploading an unpublished manuscript to an AI service, confirm that the journal's peer-review policy allows it.
+5. **FAIR & reproducibility audit**: evasive *"available upon request"* statements, open repositories and reusable formats, dependency locking, random seeds, catalogue numbers, RRIDs and primer sequences.
+6. **Generative AI provenance audit (COPE / ICMJE / SciELO)**: leftover chat artifacts, AI co-authorship, AI-use statements and synthetic-phrasing density.
+7. **Anti-hallucination guardrails**: verbatim anchoring of every criticism, negative-search grounding before claiming an omission, and live reverse checking of the DOIs (OpenAlex and doi.org) and arXiv IDs cited by reviewers.
+8. **Target journal scope & desk-reject risk (`--journal`)**: thematic fit from curated profiles and the OpenAlex Sources API (ignoring the reference list), common formal requirements, and alternative journals when the risk is high.
+9. **Information security**: manuscript text isolated in `<UNTRUSTED_MANUSCRIPT_CONTENT>` and treated as data; detection of **hidden content** aimed at manipulating the review (white, microscopic or off-page PDF text, hidden DOCX runs, LaTeX/HTML/Markdown comments), reported to the editor without deciding the verdict; Unicode sanitization, a restricted environment for subprocesses and CSV formula-injection protection.
 
 ---
 
 ### Installation
 
 #### Prerequisites
-- **Python**: 3.10 or higher.
-- **Agent**: Antigravity CLI (`agy`) or Claude Code (`claude`), installed and authenticated.
+- **Python** 3.10 or higher.
+- **Agent**: Claude Code (`claude`) or Antigravity CLI (`agy`), installed and authenticated.
 - **`uv`** (recommended): each script declares its dependencies (PEP 723) and `uv run` installs them in isolation. Without them the PDF/DOCX hidden-content checks cannot run, and the audit reports the scan as **incomplete**.
-- **Optional Tools**: `pandoc` (for DOCX/LaTeX) and `pdftotext` (for fast PDF extraction). The extractor compares its output with `pypdf` and keeps the text with fewer run-together words; `pdftotext` runs in reading mode, which keeps two-column layouts in order.
+- **Optional tools**: `pandoc` (DOCX/LaTeX/HTML extraction and LaTeX PDF rendering) and `pdftotext` (`poppler-utils`). Without LaTeX, the PDF is rendered with ReportLab.
 
 #### Cost and time
-Each review spends tokens of the agent's model: one report per reviewer plus the meta-review. For reference, reviewing a short manuscript (~1,000 words) with 3 reviewers on Claude Sonnet cost about **US$ 1** and took a few minutes. Cost grows with manuscript length, the number of reviewers (`num_reviewers`, 3 to 8) and the model. To keep it down, use `num_reviewers=3`.
+Each review spends tokens of the agent's model: one report per reviewer plus the meta-review. For reference, a short manuscript (~1,000 words) with 3 reviewers on Claude Sonnet cost about **US$ 1** and took a few minutes; a full article (~9,000 words) takes 3–5 minutes per reviewer, in parallel. `num_reviewers=3` keeps cost down but leaves the panel without a domain reviewer or reproducibility inspector.
 
-#### Option A: One-Command Automated Setup with uv (Recommended)
-The automated setup verifies `uv`, synchronizes dependencies in an isolated virtual environment (pypdf, python-docx, ReportLab), and registers the plugin in Antigravity and Claude Code:
+#### Option A: Automated setup (recommended)
 ```bash
 git clone https://github.com/LaBiOmicS/academic-peer-review.git
 cd academic-peer-review
@@ -322,90 +308,70 @@ In Claude Code, the plugin can also be installed straight from GitHub:
 /plugin install academic-peer-review@labiomics
 ```
 
-#### Option B: Direct Antigravity CLI Installation
+#### Option B: Antigravity CLI
 ```bash
-agy plugin install /path/to/academic-peer-review
 agy plugin validate /path/to/academic-peer-review --strict
+agy plugin install /path/to/academic-peer-review
+agy plugin enable academic-peer-review
 ```
 
-#### Option C: Manual Setup with `uv`
+#### Option C: Manual setup with `uv`
 ```bash
-# Sync isolated environment with PDF/DOCX extraction and ReportLab extras
 uv sync --all-extras
-
-# Run any audit script directly in isolation
 uv run skills/paper-review/scripts/stat_and_integrity_audit.py --help
 ```
 
 ---
 
-### Usage Tutorial
+### Usage
 
-#### Mode 1: Interactive Chat in Antigravity (IDE or CLI)
-Simply attach your paper in the chat or reference its file path:
-
-* **Example 1 — Submitting to an international journal (English)**:
-  > *"Please conduct an authoritative blind peer review of this manuscript for submission: `./papers/salmonella_genomics.pdf`"*
-
-* **Example 2 — Reviewing a manuscript in Portuguese or Spanish**:
-  > *"Please evaluate this paper submitted to SciELO: `./reviews/parasitology.docx`. Provide a full methodological audit in Portuguese."*
-
-* **Example 3 — Skill slash command with custom parameters**:
+#### Mode 1: Interactive (Claude Code or Antigravity)
+* *"Please run a blind peer review of this manuscript we are submitting to PLOS ONE: `./papers/salmonella_genomics.pdf`"*
+* *"I was asked to review this paper for Ecología Austral: `./reviews/paper.docx`. Run the methodological audit and write the report in Spanish."*
+* Skill command:
   ```text
-  /paper-review paper="./manuscript.pdf" area="biologicas" num_reviewers=4
+  /paper-review paper="./manuscript.pdf" area="biologicas" target_journal="Bioinformatics" num_reviewers=5
   ```
-  In Claude Code, use the qualified name `/academic-peer-review:paper-review` if another plugin also ships a `paper-review` skill.
+  In Claude Code, use `/academic-peer-review:paper-review` if another plugin also ships a `paper-review` skill.
 
----
-
-#### Mode 2: Headless Command-Line Workflow
-
+#### Mode 2: Headless command line
 ```bash
 SKILL_DIR="skills/paper-review"
 OUT_DIR="./out/my_paper"
 mkdir -p "$OUT_DIR"
 
-# 1. Extract text and classify 3-axis taxonomy
 uv run $SKILL_DIR/scripts/extract_paper.py "./manuscript.pdf" \
   --output-text "$OUT_DIR/paper_text.txt" --output-meta "$OUT_DIR/paper_structure.json"
 
-# 2. Run deterministic pre-review audit (statcheck, OpenAlex, FAIR, and AI provenance)
 uv run $SKILL_DIR/scripts/stat_and_integrity_audit.py \
   --paper-text-file "$OUT_DIR/paper_text.txt" \
-  --output-md "$OUT_DIR/pre_review_audit.md" \
-  --output-json "$OUT_DIR/pre_review_audit.json" \
-  --verify-citations
+  --output-md "$OUT_DIR/pre_review_audit.md" --output-json "$OUT_DIR/pre_review_audit.json" \
+  --paper-meta "$OUT_DIR/paper_structure.json" --journal "Journal Name" --verify-citations
 
-# 3. Prepare independent reviewer prompts
 uv run $SKILL_DIR/scripts/spawn_reviewers.py \
-  --paper-text-file "$OUT_DIR/paper_text.txt" \
-  --audit-file "$OUT_DIR/pre_review_audit.md" \
-  --output-dir "$OUT_DIR" --skill-dir "$SKILL_DIR" \
-  --num-reviewers 4 --prepare-only
+  --paper-text-file "$OUT_DIR/paper_text.txt" --audit-file "$OUT_DIR/pre_review_audit.md" \
+  --output-dir "$OUT_DIR" --skill-dir "$SKILL_DIR" --num-reviewers 5 --prepare-only
+# Headless reviewers: replace --prepare-only with --runner auto|agy|gemini|claude
+# (and --panel-models "claude:opus,agy,claude:sonnet" for a mixed-model panel)
 
-# 3b. (Optional) Run the reviewers as headless subprocesses instead of subagents:
-#     replace --prepare-only with --runner auto|agy|gemini|claude
-
-# 4. Compile results, audit reverse citations, and build the concerns matrix
+# Write meta_review.md (the agent does this in Mode 1), then compile
 uv run $SKILL_DIR/scripts/compile_results.py --output-dir "$OUT_DIR"
 ```
 
 ---
 
-### Generated Review Artifacts
+### Generated Artifacts
 
 | File | Description |
 |---|---|
-| `editorial_peer_review_report.pdf` | **Official Publication-Grade PDF Report** (Editorial Summary, Blind Referee Reports, Concerns Matrix, Diagnostic). |
-| `consolidated_editorial_report.md` | Consolidated Markdown master document ready for publishing or conversion. |
-| `meta_review.md` | Senior Editorial Meta-Review (Consensus, Divergence, and Actionable Revision Roadmap). |
-| `pre_review_audit.md` | Deterministic diagnostic report (`statcheck`, FAIR data checks, AI provenance, and retractions). |
-| `concerns_table.csv` | Boolean matrix of distinct major concerns cross-tabulated across reviewers. |
-| `review_alfa.md` | Report from Reviewer Alfa (Methodology, Statistics, and Causal Inference). |
-| `review_beta.md` | Report from Reviewer Beta (Reproducibility, Ethics, and FAIR Standards). |
-| `review_gamma.md` | Report from Reviewer Gamma (Epistemic Red-Team Critic). |
-| `review_delta.md` | Report from Reviewer Delta (Domain Subject-Matter Specialist). |
-| `results.json` | Consolidated JSON payload with metadata, verdicts, and reverse citation audit. |
+| `editorial_peer_review_report.pdf` | Consolidated report: meta-review, concerns matrix, audit and referee reports. |
+| `meta_review.md` | Editorial meta-review: verdicts, common and unique concerns, blocking-concern verification, three-tier roadmap and decision. |
+| `author_letter.md` | Short letter to the authors with the decision and the blocking and essential items. |
+| `review_<codename>.md` | One report per reviewer (`review_alfa.md`, `review_beta.md`, …). Roles are shuffled across codenames and recorded in `results.json`. |
+| `pre_review_audit.md` / `.json` | Deterministic audit (`statcheck`, profile checks, FAIR, AI, DOIs, scope, hidden content). |
+| `concerns_table.csv` / `concerns_matrix.json` | Concerns matrix: severity tier and, per reviewer, `major` concern or `minor` passing mention. |
+| `consolidated_editorial_report.md` | Markdown version of the consolidated report. |
+| `results.json` | Metadata, verdicts, reviewer roles and models, reverse citation audit and severity contract. |
 
 ---
 
@@ -414,7 +380,7 @@ uv run $SKILL_DIR/scripts/compile_results.py --output-dir "$OUT_DIR"
 **Prof. Dr. Fabiano Bezerra Menegidio**  
 Laboratório de Bioinformática e Ciências Ômicas (**LaBiOmicS**)  
 Universidade de Mogi das Cruzes (**UMC**)  
-Contato: [fabianomenegidio@umc.br](mailto:fabianomenegidio@umc.br)
+Contato / Contact: [fabianomenegidio@umc.br](mailto:fabianomenegidio@umc.br)
 
 ## Licença / License
 

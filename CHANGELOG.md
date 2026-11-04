@@ -2,9 +2,10 @@
 
 Todas as mudanças relevantes deste plugin. O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [SemVer](https://semver.org/lang/pt-BR/).
 
-## [Não lançado]
+## [1.1.0] — 2026-11-04
 
 ### Adicionado
+- Página do projeto no GitHub Pages (`site/`, publicada pelo workflow `pages.yml`), em português e inglês.
 - Opção `--no-ai-disclosure` em `compile_results.py` e `generate_pdf_report.py` para gerar o PDF sem o aviso de revisão assistida por IA. O aviso continua ativo por padrão.
 - Abordagem de pesquisa `bibliometric_scientometric` (13ª). Ela é atribuída automaticamente às revisões bibliométricas e audita a delimitação do corpus, a origem das palavras-chave, as regras de contagem e de atribuição de país, a normalização de citações e os parâmetros dos mapas. A auditoria pré-revisão ganhou checagens próprias para ela e para a string e a data de busca.
 - Calibração de severidade em todos os pareceres. Cada preocupação maior é marcada como `Blocking`, `Essential` ou `Optional`, com no máximo 5 bloqueantes, e só é bloqueante se o parecerista citar a conclusão que cai sem a correção. Os pareceristas passam a procurar as ressalvas que os autores já fizeram, conferir a direção de cada viés e tratar a lente sorteada como hipótese a testar.
@@ -18,6 +19,7 @@ Todas as mudanças relevantes deste plugin. O formato segue o [Keep a Changelog]
 - As revisões bibliométricas têm lentes e eixos de *red-team* próprios: artefato de corpus, efeito de grupo dominante, artefato de indexação, ano final incompleto, mapas instáveis, leis bibliométricas aplicadas a corpus pequeno, extrapolação narrativa e corpus heterogêneo. Antes, recebiam as lentes da área, pensadas para estudos primários.
 
 ### Corrigido
+- README: a composição do painel por número de pareceristas está documentada (com 3 ou 4 não há parecerista de domínio), os papéis aparecem como sorteados entre os codinomes, e a tabela de artefatos inclui `author_letter.md`, a matriz com níveis de severidade e o painel com modelos misturados.
 - Revisões bibliométricas eram classificadas pela abordagem do vocabulário da literatura revisada (ex.: `computational_in_silico` com confiança de 0,97 num estudo bibliométrico sobre metagenômica). Agora recebem `bibliometric_scientometric`.
 - Revisões bibliométricas não recebem mais as checagens de estudo primário da área (réplicas, efeito de lote, acessos, poder, FDR, tamanho de efeito, sementes aleatórias), e a aprovação ética aparece como não exigida.
 - O critério *Clinical/Bio-AI* (TRIPOD+AI/CLAIM) exige um modelo de IA ou uma diretriz de IA no texto; antes, qualquer artigo de Biológicas com abordagem computacional o ativava. A palavra comum "*claim*" deixou de ativar a diretriz CLAIM, e o SAGER não se aplica mais a revisões bibliométricas, ensaios e artigos de software.

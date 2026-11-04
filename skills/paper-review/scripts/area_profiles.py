@@ -456,7 +456,7 @@ ARTICLE_TYPE_DEFINITIONS: dict[str, dict[str, Any]] = {
 
 
 # ============================================================================
-# AXIS 3: 12 RESEARCH APPROACHES / METHODOLOGICAL DESIGNS (ABORDAGENS)
+# AXIS 3: 13 RESEARCH APPROACHES / METHODOLOGICAL DESIGNS (ABORDAGENS)
 # ============================================================================
 
 RESEARCH_APPROACH_DEFINITIONS: dict[str, dict[str, Any]] = {
