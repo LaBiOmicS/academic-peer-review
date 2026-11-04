@@ -51,6 +51,7 @@ For detailed notes on the 3-Axis Matrix, String Seed of Thought (SSoT), and audi
 | `output_dir` | no | `./papers/<paper-stem>/` | Directory where all review artifacts are written. |
 | `alignment_critic` | no | `true` | Includes an Area- and Genre-Adapted Epistemic Red-Team Critic in the panel. |
 | `specialist_panel` | no | `true` | Includes specialized Methodological/Analytical and Reproducibility/Normative auditors alongside Domain Reviewers. |
+| `panel_models` | no | `""` | Mixed-model panel: comma-separated `runner[:model]` or `model` entries assigned to reviewers in turn (e.g. `claude:opus,agy,claude:sonnet`). Reviewers on one model share its blind spots; mixing models makes their agreement more informative. Empty: one model for the whole panel. |
 | `author_advocate` | no | `true` | Includes an Author-Advocate reviewer, the red-team critic's counterweight: it checks likely critiques against what the manuscript already says and flags disproportionate demands. |
 | `verify_citations` | no | `true` | Queries OpenAlex during the pre-review audit to verify extracted DOIs and detect retracted papers. |
 | `execution_mode` | no | `auto` | `subagents` (native parallel subagents: Claude Code `Agent`, Antigravity `invoke_subagent`) or `cli` (`spawn_reviewers.py` parallel `agy -p` / `gemini -p` / `claude -p` subprocesses). |
@@ -122,10 +123,11 @@ $PY {skill_dir}/scripts/stat_and_integrity_audit.py \
      --journal "<target_journal>" \
      --paper-meta "<output_dir>/paper_structure.json" \
      $([ "<author_advocate>" = "false" ] && echo --no-author-advocate) \
+     $([ -n "<panel_models>" ] && echo --panel-models "<panel_models>") \
      --prepare-only
    ```
 2. For each Greek letter codename (`alfa`, `beta`, `gamma`, `delta`, …) in `<output_dir>/.prompts/panel_manifest.json`, launch one `peer-reviewer` subagent **in a single parallel tool turn**, passing its `prompt_file` and `output_file` from the manifest:
-   - **Claude Code**: one `Agent` tool call per reviewer (`subagent_type="academic-peer-review:peer-reviewer"` — plugin agents are namespaced by plugin name), all in the same message.
+   - **Claude Code**: one `Agent` tool call per reviewer (`subagent_type="academic-peer-review:peer-reviewer"` — plugin agents are namespaced by plugin name), all in the same message. When the manifest gives a reviewer a `model` (`opus`, `sonnet`, `haiku`), pass it as the `Agent` call's `model`. A reviewer whose `runner` is `agy` or `gemini` cannot run as a Claude subagent: run the panel through Path B instead, which launches each reviewer on its own runner.
    - **Antigravity**: `invoke_subagent` with `TypeName="peer-reviewer"` (or `"self"`) and `Model="inherit"`.
 
 #### Path B (Headless CLI / Subprocess Parallelism): Direct OS Subprocesses via `spawn_reviewers.py`
@@ -148,6 +150,7 @@ $PY {skill_dir}/scripts/spawn_reviewers.py \
   $([ "<alignment_critic>" = "false" ] && echo --no-alignment-critic) \
   $([ "<specialist_panel>" = "false" ] && echo --no-specialist-panel) \
   $([ "<author_advocate>" = "false" ] && echo --no-author-advocate) \
+  $([ -n "<panel_models>" ] && echo --panel-models "<panel_models>") \
   $([ "<overwrite>" = "true" ] && echo --overwrite)
 ```
 
@@ -159,7 +162,7 @@ Follow the prompt's calibration rules: the reviewers share one model, so how man
 
 ### Step 5. Compile Final Bundle, Concerns Matrix & Standardized PDF Report
 
-Run `compile_results.py` to parse reviewer outputs (it rewrites `meta_review.md`, replacing the `CONCERNS_TABLE_DATA` JSON block with a Markdown matrix and inserting the authoritative audit figures — this is expected), verify external citations live (DOIs via OpenAlex and doi.org, arXiv IDs via the arXiv API), assemble the CSV concerns matrix (with each concern's severity tier and, per reviewer, `major` / `minor` / blank), write the short `author_letter.md` (decision plus Blocking and Essential items), and render `editorial_peer_review_report.pdf`. If it prints `META-REVIEW / AUDIT MISMATCH`, the meta-review quotes figures that contradict the audit or predates it: fix the meta-review prose and re-run. It is safe to re-run (the concerns matrix is kept in `concerns_matrix.json`):
+Run `compile_results.py` to parse reviewer outputs (it rewrites `meta_review.md`, replacing the `CONCERNS_TABLE_DATA` JSON block with a Markdown matrix and inserting the authoritative audit figures — this is expected), verify external citations live (DOIs via OpenAlex and doi.org, arXiv IDs via the arXiv API), assemble the CSV concerns matrix (with each concern's severity tier and, per reviewer, `major` / `minor` / blank), write the short `author_letter.md` (decision plus Blocking and Essential items), and render `editorial_peer_review_report.pdf`. If it prints `META-REVIEW / AUDIT MISMATCH`, the meta-review quotes figures that contradict the audit or predates it: fix the meta-review prose and re-run. If it prints `SEVERITY CONTRACT NOT MET`, a review or the meta-review lacks severity tiers, exceeds 5 Blocking items, or skips the verification table: fix the meta-review (re-run a reviewer whose review breaks the contract) and re-run. The checks are recorded in `results.json` under `severity_contract`. It is safe to re-run (the concerns matrix is kept in `concerns_matrix.json`):
 
 ```bash
 $PY {skill_dir}/scripts/compile_results.py --output-dir "<output_dir>"

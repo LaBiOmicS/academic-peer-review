@@ -6,7 +6,9 @@
 """Spawn N independent peer reviewer agents in parallel with 3-Axis Specialization & Security Hardening.
 
 Designed for Gemini / Antigravity (`agy`) and Claude Code (`claude`):
-1. Multi-runner support (`--runner auto|agy|gemini|claude`).
+1. Multi-runner support (`--runner auto|agy|gemini|claude`), and mixed-model panels
+   (`--panel-models claude:opus,agy,claude:sonnet`): reviewers sharing one model share its blind
+   spots, so their agreement is not independent corroboration.
 2. Greek letter reviewer codenames (`alfa`, `beta`, `gamma`, `delta`, `epsilon`, `zeta`, `eta`, `theta`).
 3. 3-Axis Composable Classification (`5 Areas × 15 Article Types × 13 Research Approaches`).
 4. Information Security Hardening:
@@ -79,6 +81,38 @@ RUNNER_ENV_ALLOWLIST = {
     "gemini": GOOGLE_RUNNER_ENV,
     "claude": {"ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN"},
 }
+
+
+RUNNERS = ("agy", "gemini", "claude")
+
+
+def parse_panel_models(spec: str) -> list[tuple[str | None, str | None]]:
+    """Parse ``"claude:opus,agy,sonnet"`` into ``[("claude", "opus"), ("agy", None), (None, "sonnet")]``.
+
+    Each entry is ``runner``, ``runner:model`` or a bare ``model`` (which then uses ``--runner``).
+    """
+    entries: list[tuple[str | None, str | None]] = []
+    for raw in (spec or "").split(","):
+        item = raw.strip()
+        if not item:
+            continue
+        head, sep, tail = item.partition(":")
+        if head in RUNNERS:
+            entries.append((head, tail.strip() or None if sep else None))
+        elif sep:
+            raise ValueError(f"Unknown runner '{head}' in --panel-models (use one of {', '.join(RUNNERS)}).")
+        else:
+            entries.append((None, item))
+    return entries
+
+
+def assign_panel_models(
+    codenames: list[str], entries: list[tuple[str | None, str | None]]
+) -> dict[str, tuple[str | None, str | None]]:
+    """Give each reviewer a (runner, model) pair, cycling through the entries in panel order."""
+    if not entries:
+        return {code: (None, None) for code in codenames}
+    return {code: entries[i % len(entries)] for i, code in enumerate(codenames)}
 
 
 def detect_runner(requested: str) -> str:
@@ -352,6 +386,15 @@ def main() -> int:
     )
     p.add_argument("--runner", choices=["auto", "agy", "gemini", "claude"], default="auto")
     p.add_argument("--model", default="auto", help="Model override (default: auto/inherit).")
+    p.add_argument(
+        "--panel-models",
+        default="",
+        help=(
+            "Comma-separated runner[:model] or model entries assigned to reviewers in turn, for a "
+            "mixed-model panel (e.g. 'claude:opus,agy,claude:sonnet'). Recorded in the manifest so "
+            "native subagents can use the same models. Empty: every reviewer uses --runner/--model."
+        ),
+    )
     p.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], default="high")
     p.add_argument("--stagger-seconds", type=float, default=6.0, help="Stagger delay between spawns (default 6s).")
     p.add_argument("--timeout-seconds", type=float, default=600.0, help="Per-reviewer subprocess timeout in seconds (default 600s).")
@@ -433,6 +476,12 @@ def main() -> int:
         "reviewers": {},
     }
 
+    try:
+        panel_models = assign_panel_models(codenames, parse_panel_models(args.panel_models))
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 2
+
     rendered_prompts: dict[str, str] = {}
     lens_offset = CSPRNG.randrange(LENS_PERIOD)
     for i, code in enumerate(codenames):
@@ -463,6 +512,8 @@ def main() -> int:
             "prompt_file": str(prompt_file),
             "output_file": str(output_dir / f"review_{code}.md"),
             "entropy_hint": entropy_hint,
+            "runner": panel_models[code][0] or (None if args.runner == "auto" else args.runner),
+            "model": panel_models[code][1] or (None if args.model in ("auto", "default", "inherit") else args.model),
         }
 
     manifest_path = prompts_out_dir / "panel_manifest.json"
@@ -477,8 +528,15 @@ def main() -> int:
         print(json.dumps(manifest, indent=2, ensure_ascii=False))
         return 0
 
-    runner = detect_runner(args.runner)
-    cmd_base = build_cli_cmd(runner, args.model, args.effort, args.tool_permissions, str(skill_dir))
+    default_runner = detect_runner(args.runner)
+    launch: dict[str, tuple[str, list[str]]] = {}
+    for code in codenames:
+        rev = manifest["reviewers"][code]
+        runner_i = detect_runner(rev["runner"]) if rev["runner"] else default_runner
+        rev["runner"] = runner_i
+        launch[code] = (runner_i, build_cli_cmd(runner_i, rev["model"], args.effort, args.tool_permissions, str(skill_dir)))
+    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    runner = ",".join(sorted({r for r, _ in launch.values()}))
     if args.tool_permissions == "unsafe":
         print(
             "[spawn_reviewers] WARNING: --tool-permissions unsafe auto-approves tools without a sandbox; "
@@ -493,7 +551,7 @@ def main() -> int:
     )
 
     start = time.time()
-    clean_env = build_sanitized_env(runner)
+    clean_envs = {r: build_sanitized_env(r) for r, _ in launch.values()}
 
     def launch_batch(target_codes: list[str], attempt: int = 1) -> list[str]:
         procs: list[tuple[str, subprocess.Popen[str], Any, Any, Path]] = []
@@ -512,13 +570,14 @@ def main() -> int:
             out_fh = open(out_path, "w", encoding="utf-8")  # noqa: SIM115 - closed after the child exits
             # stderr goes to a file, not a PIPE: an unread pipe fills up (~64 KB) and deadlocks the child.
             err_fh = open(prompts_out_dir / f"stderr_{code}.log", "w+", encoding="utf-8")  # noqa: SIM115
+            runner_i, cmd_i = launch[code]
             proc = subprocess.Popen(
-                cmd_base,
+                cmd_i,
                 stdin=subprocess.PIPE,
                 stdout=out_fh,
                 stderr=err_fh,
                 text=True,
-                env=clean_env,
+                env=clean_envs[runner_i],
             )
             assert proc.stdin is not None
             try:
@@ -528,8 +587,10 @@ def main() -> int:
                 pass  # child exited early; reported below via its return code
             elapsed = time.time() - start
             t_name = manifest["reviewers"][code]["template"]
+            model_i = manifest["reviewers"][code]["model"] or "default"
             print(
-                f"[spawn_reviewers] {code} started (attempt={attempt}, pid={proc.pid}, template={t_name}, t+{elapsed:.1f}s)",
+                f"[spawn_reviewers] {code} started (attempt={attempt}, pid={proc.pid}, template={t_name}, "
+                f"runner={runner_i}, model={model_i}, t+{elapsed:.1f}s)",
                 file=sys.stderr,
                 flush=True,
             )

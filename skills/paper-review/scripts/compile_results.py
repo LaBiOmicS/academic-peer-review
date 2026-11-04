@@ -524,6 +524,56 @@ def build_author_letter(meta_text: str, consensus: str) -> str | None:
     return "\n".join(out).rstrip() + "\n"
 
 
+MAX_BLOCKING = 5
+MAJOR_SECTION_REGEX = re.compile(r"^###\s+Major concerns\s*$(.*?)(?=^###\s|\Z)", re.MULTILINE | re.DOTALL)
+CONCERN_ITEM_REGEX = re.compile(r"^\s{0,3}\d+\.\s+\S", re.MULTILINE)
+SEVERITY_TAG_REGEX = re.compile(r"Severity\W{0,12}?(Blocking|Essential|Optional)\b", re.IGNORECASE)
+
+
+def review_contract(text: str) -> dict[str, Any]:
+    """Count Major concerns and their severity tags; list breaches of the severity contract."""
+    m = MAJOR_SECTION_REGEX.search(text)
+    section = m.group(1) if m else ""
+    starts = [x.start() for x in CONCERN_ITEM_REGEX.finditer(section)] + [len(section)]
+    tiers: list[str | None] = []
+    for a, b in zip(starts, starts[1:], strict=False):
+        tag = SEVERITY_TAG_REGEX.search(section[a:b])
+        tiers.append(tag.group(1).lower() if tag else None)
+    counts = {t: tiers.count(t) for t in SEVERITY_TIERS}
+    issues: list[str] = []
+    if not m:
+        issues.append("no '### Major concerns' section")
+    untagged = tiers.count(None)
+    if untagged:
+        issues.append(f"{untagged} of {len(tiers)} major concerns have no severity tier")
+    if counts["blocking"] > MAX_BLOCKING:
+        issues.append(f"{counts['blocking']} Blocking concerns (limit {MAX_BLOCKING})")
+    return {"major_concerns": len(tiers), "severity_counts": counts, "untagged": untagged, "issues": issues}
+
+
+def meta_contract(meta_text: str, concerns: list[dict[str, Any]]) -> list[str]:
+    """Breaches of the meta-review contract: verification table, three-tier roadmap, tiered matrix."""
+    issues: list[str] = []
+    if not re.search(r"^##\s+Blocking-concern verification\s*$", meta_text, re.MULTILINE):
+        issues.append("no '## Blocking-concern verification' section")
+    tiers = roadmap_tiers(meta_text)
+    keys = [_tier_key(h) for h, _ in tiers]
+    heads = [h.lower() for h, _ in tiers]
+    if not tiers:
+        issues.append("no '## Actionable Revision Roadmap' tiers")
+    elif not (any(h.startswith("blocking") for h in heads) and any(h.startswith("essential") for h in heads)
+              and any(h.startswith("optional") for h in heads)):
+        issues.append("roadmap does not use the Blocking / Essential / Optional tiers")
+    for (_, body), key in zip(tiers, keys, strict=True):
+        if key == "blocking":
+            n = len(re.findall(r"^\s*[-*]\s", body, re.MULTILINE))
+            if n > MAX_BLOCKING:
+                issues.append(f"roadmap lists {n} Blocking items (limit {MAX_BLOCKING})")
+    if concerns and any(not c.get("severity") for c in concerns):
+        issues.append("concerns matrix has rows without a severity tier")
+    return issues
+
+
 def compute_consensus_verdict(verdicts: list[str]) -> str:
     valid = [v for v in verdicts if v != "Unknown"]
     if not valid:
@@ -579,6 +629,10 @@ def main() -> int:
             or f"reviewer-{idx}"
         )
         parsed_meta["archetype"] = archetype
+        rev_manifest = manifest_data.get("reviewers", {}).get(code, {})
+        parsed_meta["runner"] = rev_manifest.get("runner")
+        parsed_meta["model"] = rev_manifest.get("model")
+        parsed_meta["contract"] = review_contract(text)
         reviewer_metadata[code] = parsed_meta
         reviewer_mapping[code] = f"reviewer-{idx} ({archetype})"
 
@@ -627,6 +681,15 @@ def main() -> int:
         reviewer_metadata, paper_dois=manuscript_dois(paper_text), paper_arxiv=manuscript_arxiv_ids(paper_text)
     )
 
+    contract_issues: dict[str, list[str]] = {
+        code: meta["contract"]["issues"] for code, meta in reviewer_metadata.items() if meta["contract"]["issues"]
+    }
+    if cleaned_meta:
+        meta_issues = meta_contract(cleaned_meta, concerns_matrix)
+        if meta_issues:
+            contract_issues["meta_review"] = meta_issues
+    panel_models = sorted({f"{m.get('runner') or 'default'}:{m.get('model') or 'default'}" for m in reviewer_metadata.values()})
+
     author_letter = build_author_letter(cleaned_meta, consensus) if cleaned_meta else None
     if author_letter:
         (out_dir / "author_letter.md").write_text(author_letter, encoding="utf-8")
@@ -644,6 +707,7 @@ def main() -> int:
         "pre_review_audit": pre_audit,
         "reviewer_citation_audit": reviewer_citation_audit,
         "audit_provenance": {"pre_review_audit_sha256": audit_sha256, "warnings": audit_warnings},
+        "severity_contract": {"issues": contract_issues, "panel_models": panel_models, "single_model_panel": len(panel_models) == 1},
     }
 
     results_path = out_dir / "results.json"
@@ -661,6 +725,12 @@ def main() -> int:
         print("\n⚠️  CITATION HALLUCINATION ALERT:")
         for r_code, h_dois in reviewer_citation_audit["flagged_reviewers"].items():
             print(f"  - Reviewer '{r_code}' cited unresolvable/hallucinated identifier(s): {', '.join(h_dois)}")
+
+    if contract_issues:
+        print("\n⚠️  SEVERITY CONTRACT NOT MET:")
+        for who, issues in contract_issues.items():
+            for issue in issues:
+                print(f"  - {who}: {issue}")
 
     if audit_warnings:
         print("\n⚠️  META-REVIEW / AUDIT MISMATCH:")
