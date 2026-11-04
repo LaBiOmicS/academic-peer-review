@@ -1,8 +1,8 @@
 {
   "name": "academic-peer-review",
   "displayName": "Academic Peer Review",
-  "version": "1.1.0",
-  "description": "Multi-reviewer academic peer review panel (Alfa, Beta, Gamma, Delta) with 3-Axis Composable Classification (5 Scientific Areas × 15 Article Types × 13 Research Approaches), deterministic statcheck & OpenAlex citation/retraction auditing, FAIR data integrity, prompt-injection defense, and publication-grade PDF report synthesis. Compatible with Google Gemini/Antigravity and Anthropic Claude Code. Developed by Prof. Dr. Fabiano Bezerra Menegidio (LaBiOmicS / UMC).",
+  "version": "1.2.0",
+  "description": "AI-assisted academic peer review: a panel of 3–8 independent reviewer agents with distinct roles (red-team critic, author advocate, methods & statistics, reproducibility & FAIR, domain), optionally on different models, after a deterministic audit (statcheck, OpenAlex/doi.org citations and retractions, FAIR, AI provenance, hidden content, target-journal scope) and a 3-axis classification (5 areas × 15 article types × 13 research approaches). Calibrated editorial meta-review and PDF report; output is a draft for human referees.",
   "logo": "assets/logo.jpg",
   "author": {
     "name": "Prof. Dr. Fabiano Bezerra Menegidio (LaBiOmicS / UMC)",
