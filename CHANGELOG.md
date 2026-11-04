@@ -2,6 +2,11 @@
 
 Todas as mudanças relevantes deste plugin. O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [SemVer](https://semver.org/lang/pt-BR/).
 
+## [Não lançado]
+
+### Adicionado
+- Selo e aviso de versão beta no topo da página do projeto, nos três idiomas, com link para relatar problemas.
+
 ## [1.3.2] — 2026-11-04
 
 ### Corrigido

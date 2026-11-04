@@ -108,6 +108,9 @@ nav.links a:hover { color: var(--ink); }
 .btn:hover { transform: translateY(-1px); }
 .meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
 .tag { font: 500 .76rem var(--mono); padding: 4px 10px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); }
+.tag.beta { background: var(--gold-soft); color: var(--gold); border-color: color-mix(in srgb, var(--gold) 45%, var(--line)); font-weight: 600; letter-spacing: .04em; }
+.beta-note { display: flex; gap: 12px; align-items: flex-start; margin-top: 22px; padding: 12px 16px; max-width: 36em; border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--line)); border-left: 4px solid var(--gold); border-radius: 0 10px 10px 0; background: var(--gold-soft); font-size: .9rem; color: var(--ink); }
+.beta-note b { color: var(--gold); font: 600 .74rem var(--mono); letter-spacing: .06em; padding-top: 3px; flex: none; }
 
 /* Terminal mock */
 .term { background: var(--code-bg); color: var(--code-ink); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; font: .84rem/1.65 var(--mono); }
@@ -332,7 +335,11 @@ footer a { color: var(--ink-2); }
         <a class="btn primary" href="#guia"><span lang="pt">Começar pelo guia</span><span lang="en">Start with the guide</span><span lang="es">Empezar por la guía</span> →</a>
         <a class="btn ghost" href="#prompts"><span lang="pt">Ver prompts prontos</span><span lang="en">See ready prompts</span><span lang="es">Ver prompts listos</span></a>
       </div>
-      <div class="meta-row"><span class="tag">v1.3.2</span><span class="tag">MIT</span><span class="tag">Windows · macOS · Linux</span><span class="tag">PT · EN · ES</span></div>
+      <div class="beta-note" role="note"><b>BETA</b>
+        <span lang="pt">A ferramenta ainda está em versão beta e pode apresentar erros, tanto de funcionamento quanto nas críticas que gera. Confira cada resultado e <a href="https://github.com/LaBiOmicS/academic-peer-review/issues">relate problemas</a>.</span>
+        <span lang="en">The tool is still in beta and may contain errors, both in how it runs and in the criticisms it produces. Check every result and <a href="https://github.com/LaBiOmicS/academic-peer-review/issues">report problems</a>.</span>
+        <span lang="es">La herramienta todavía está en versión beta y puede presentar errores, tanto de funcionamiento como en las críticas que genera. Verifique cada resultado y <a href="https://github.com/LaBiOmicS/academic-peer-review/issues">informe los problemas</a>.</span></div>
+      <div class="meta-row"><span class="tag beta">BETA</span><span class="tag">v1.3.2</span><span class="tag">MIT</span><span class="tag">Windows · macOS · Linux</span><span class="tag">PT · EN · ES</span></div>
     </div>
     <div class="term" aria-label="Exemplo de uso no terminal">
       <div class="bar"><i></i><i></i><i></i><span>~/Documentos/revisoes — claude</span></div>
