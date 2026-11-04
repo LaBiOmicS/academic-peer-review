@@ -2,6 +2,12 @@
 
 Todas as mudanças relevantes deste plugin. O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.3.1] — 2026-11-04
+
+### Corrigido
+- Menu da página visível em telas estreitas (celular e janelas com menos de 980 px), em uma segunda linha rolável; antes ele sumia e o guia e os prompts só eram alcançados rolando a página.
+- Redação em português na página, nos READMEs e no CHANGELOG ("num/numa", "~9.000", "todos em paralelo"), com o ajuste equivalente em inglês e espanhol.
+
 ## [1.3.0] — 2026-11-04
 
 ### Adicionado
