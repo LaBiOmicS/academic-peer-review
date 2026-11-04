@@ -101,7 +101,21 @@ def _clean_markdown_for_pdf(text: str) -> str:
     # A "---" rule followed directly by text opens a YAML metadata block in pandoc (a review ending
     # in "---\n*This report is…*" broke the PDF with "Unknown alias"); blank lines make it a rule.
     text = re.sub(r"(?m)^[ \t]*-{3,}[ \t]*\n", "\n---\n\n", text)
+    # Reviewers open with a fenced "SEED: … / AXIS: … / STANCE: …" block; LaTeX does not wrap
+    # verbatim lines, so a long axis ran past the right margin. It becomes a wrapping list.
+    text = re.sub(r"(?m)^```[ \t]*\n((?:[A-Z][A-Z_ ]{1,20}:[^\n]*\n)+)```[ \t]*$", _metadata_list, text)
     return text.strip()
+
+
+def _metadata_list(match: re.Match[str]) -> str:
+    items = []
+    for line in match.group(1).splitlines():
+        key, value = line.split(":", 1)
+        value = value.strip()
+        if key.strip() == "SEED":
+            value = f"`{value}`"
+        items.append(f"- **{key.strip().capitalize()}:** {value}")
+    return "\n".join(items) + "\n"
 
 
 def assemble_consolidated_markdown(output_dir: Path, ai_disclosure: bool = True) -> tuple[str, dict[str, Any]]:

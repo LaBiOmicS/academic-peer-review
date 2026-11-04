@@ -140,3 +140,14 @@ def test_reportlab_puts_wide_tables_on_landscape_pages(tmp_path):
     pages = pypdf.PdfReader(str(pdf)).pages
     orientation = ["L" if float(p.mediabox.width) > float(p.mediabox.height) else "P" for p in pages]
     assert orientation == ["P", "L", "P"]
+
+
+def test_reviewer_metadata_block_becomes_a_wrapping_list():
+    from generate_pdf_report import _clean_markdown_for_pdf
+
+    axis = "Indexing artefact: indexer-assigned keywords or vocabulary drift masquerading as thematic change"
+    text = f"# Referee report\n\n```\nSEED: 828d2b5ffe0be6a4\nAXIS: {axis}\nSTANCE: Sharp but balanced\n```\n\n### Summary\n\n```\ncode stays\n```\n"
+    out = _clean_markdown_for_pdf(text)
+    assert f"- **Axis:** {axis}" in out
+    assert "- **Seed:** `828d2b5ffe0be6a4`" in out and "- **Stance:** Sharp but balanced" in out
+    assert out.count("```") == 2  # ordinary code blocks are untouched
