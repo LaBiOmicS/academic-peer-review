@@ -263,3 +263,35 @@ def test_openalex_topics_outside_manuscript_area_flag_mismatch(monkeypatch):
 
     assert any("Probable Area Mismatch" in f for f in audit["desk_reject_flags"])
     assert audit["adherence_score_pct"] is not None
+
+
+def test_openalex_only_journal_gets_publisher_and_specific_notes(monkeypatch):
+    import json
+
+    import journal_scope
+
+    source = {
+        "display_name": "Ecología Austral", "host_organization_name": None, "societies": [],
+        "country_code": "AR", "is_ojs": True, "homepage_url": "http://ojs.example.org/",
+        "topics": [{"display_name": "Plant Ecology"}, {"display_name": "Vegetation Dynamics"}],
+    }
+
+    class Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self, n):
+            return json.dumps({"results": [source]}).encode()
+
+    monkeypatch.setattr(journal_scope.urllib.request, "urlopen", lambda *a, **k: Resp())
+    journal = journal_scope.resolve_journal("Ecología Austral")
+    assert journal["publisher"] == "publisher not listed in OpenAlex; AR, OJS"
+    pitfalls = " ".join(journal["desk_reject_pitfalls"])
+    assert "not verified" in pitfalls and "http://ojs.example.org/" in pitfalls and "Plant Ecology" in pitfalls
+    assert "Failure to meet standard reporting" not in pitfalls
+    assert journal_scope._publisher_label({"societies": [{"organization": "Asociación Argentina de Ecología"}]}) == (
+        "Asociación Argentina de Ecología"
+    )

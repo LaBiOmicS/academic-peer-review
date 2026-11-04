@@ -129,3 +129,35 @@ def test_words_shared_by_most_journal_topics_do_not_count_as_matches(monkeypatch
     audit = audit_journal_scope(text, "Ecología Austral", sa)
     assert audit["matched_topics"] == []
     assert audit["desk_reject_risk"] != "Low Risk"
+
+
+def test_reproducibility_lenses_follow_the_profile(tmp_path):
+    from area_profiles import get_repro_lenses
+
+    open_science, normative = get_repro_lenses("biologicas", "bibliometric_review", "bibliometric_scientometric")
+    assert "SRA" not in open_science and "DOIs/EIDs" in open_science
+    assert "ARRIVE" not in normative and "BIBLIO" in normative
+    # A review of literature is not asked for animal-research approval; a primary study is.
+    assert "no ethics approval" in get_repro_lenses("biologicas", "systematic_review")[1]
+    assert "ARRIVE" in get_repro_lenses("biologicas", "original_research", "experimental_lab")[1]
+
+    template = tmp_path / "t.md"
+    template.write_text("- 3 — {repro_lens_open_science}\n- 4 — {repro_lens_normative}", encoding="utf-8")
+    prompt = spawn_reviewers.build_prompt(
+        template, reviewer_id="alfa", paper_text="", skill_dir=str(tmp_path), domain="x",
+        area_info=classify_manuscript(BIBLIOMETRIC_TEXT), audit_text="", entropy_hint="00",
+    )
+    assert "thesaurus" in prompt and "{repro" not in prompt
+
+
+def test_search_string_in_external_protocol_or_supplement():
+    from stat_and_integrity_audit import format_check_value, search_string_status
+
+    protocol = ("The full protocol, including the search strategies and eligibility criteria, "
+                "is published in protocols.io (Oliveira 2026). Searches ran in Scopus.")
+    assert search_string_status(protocol) == "No — only in an external protocol (protocols.io)"
+    assert search_string_status("The search strategy is in Supplementary Table S1. Done.") == "Only in supplementary material"
+    assert search_string_status("We searched Scopus.") is False
+    assert search_string_status('Scopus: TITLE-ABS-KEY(insect AND (resistance OR AMR) AND NOT plant)') is True
+    assert format_check_value("Only in supplementary material") == "Only in supplementary material"
+    assert format_check_value(True) == "Yes" and format_check_value([]) == "None detected"

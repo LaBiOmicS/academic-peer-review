@@ -2,6 +2,17 @@
 
 Todas as mudanças relevantes deste plugin. O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [SemVer](https://semver.org/lang/pt-BR/).
 
+## [Não lançado]
+
+### Corrigido
+- O runner `agy` falhava em todo painel headless: a versão atual lê o prompt como valor de `-p` e tomava `--effort` por prompt. O `-p` vai agora no fim do comando, seguido do prompt; um prompt grande demais para um argumento (128 KiB no Linux) é trocado por uma instrução para ler o arquivo do prompt.
+- Repetir o `spawn_reviewers.py` para completar pareceristas que falharam sorteava os papéis de novo. Os pareceres já prontos ficavam com papéis antigos, e o painel podia terminar com dois críticos *red-team* e sem advogado do autor. Agora a nova execução mantém os papéis e as sementes do manifesto anterior (`--overwrite` começa um painel novo).
+- As lentes 3 e 4 do auditor de reprodutibilidade dependem do perfil do manuscrito. Uma revisão bibliométrica não recebe mais pedidos de acessos SRA/GEO nem de aprovação CEUA: são cobrados o depósito do corpus e dos parâmetros dos mapas e os itens do BIBLIO. Revisões de literatura não recebem normas de pesquisa com animais, e a lente normativa cita as diretrizes da tipologia e da abordagem.
+- A auditoria distingue a string de busca ausente da string publicada só num protocolo externo (protocols.io, OSF, PROSPERO) ou no material suplementar.
+- Periódicos sem perfil curado não recebem mais alertas genéricos ("Failure to meet standard reporting…"). A auditoria diz que os requisitos não foram verificados, indica a página do periódico e cita seus tópicos mais frequentes. Quando o OpenAlex não lista a editora, aparece a sociedade ou o país e a plataforma, em vez de "Unknown Publisher".
+- O SAGER deixou de se aplicar a todo artigo de Biológicas: agora exige menção a pessoas ou animais (um estudo de solo ou de plantas não tem sujeitos). Experimentos de campo com parcelas, testemunhos de solo e safras passaram a ser reconhecidos como abordagem de campo.
+- Testes para `extract_paper.py` e `literature_search.py` (cobertura total de 70% para 81%).
+
 ## [1.1.0] — 2026-11-04
 
 ### Adicionado

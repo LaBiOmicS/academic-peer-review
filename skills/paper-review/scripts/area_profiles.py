@@ -302,6 +302,15 @@ ARTICLE_TYPE_DEFINITIONS: dict[str, dict[str, Any]] = {
             "6 — Narrative overreach: the Discussion attributes practices, motives or causal explanations the metadata cannot show",
             "7 — Heterogeneous corpus: study types, document types (reviews vs. primary studies) or subfields pooled under one label",
         ],
+        # Lenses 3 and 4 of the reproducibility inspector: what "the data" and "the norms" are here.
+        "repro_open_science": (
+            "Corpus & analysis traceability (is the list of included records (DOIs/EIDs), the cleaned export, "
+            "the keyword thesaurus and the mapping parameter files deposited or reproducible from the text?)"
+        ),
+        "repro_normative": (
+            "Bibliometric reporting compliance (BIBLIO items reported in the manuscript itself: search strings, "
+            "filters, eligibility, screening, counting rules; no ethics approval is needed for bibliographic metadata)"
+        ),
     },
     "integrative_review": {
         "code": "integrative_review",
@@ -507,7 +516,8 @@ RESEARCH_APPROACH_DEFINITIONS: dict[str, dict[str, Any]] = {
         "guidelines": ["ICZN / ICN / ICTV / ICNP", "Darwin Core"],
         "exempt_from_inferential_stats": False,
         "patterns": [
-            r"\b(?:field\s+experiment|randomized\s+complete\s+block|split-plot|transect\w*|quadrats?|voucher\s+specimen|herbarium|holotype|paratype|ICZN|delineamento\s+em\s+blocos\s+casualizados|\bDBC\b|inventário\s+florestal|amostragem\s+em\s+campo)\b",
+            r"\b(?:field\s+experiment|field\s+(?:stations?|trials?|sites?|plots?)|experimental\s+plots?|soil\s+cores?|growing\s+seasons?|"
+            r"parcelas?\s+experimenta\w+|ensaios?\s+de\s+campo|randomized\s+complete\s+block|split-plot|transect\w*|quadrats?|voucher\s+specimen|herbarium|holotype|paratype|ICZN|delineamento\s+em\s+blocos\s+casualizados|\bDBC\b|inventário\s+florestal|amostragem\s+em\s+campo)\b",
         ],
         "micro_rubric": (
             "- **Research Approach (`field_ecological_agronomic`)**: Audit spatial/seasonal replication (avoiding site pseudoreplication), "
@@ -919,6 +929,10 @@ BIBLIOMETRIC_APPROACH_TYPES = {"bibliometric_review"}
 METADATA_EVIDENCE_TYPES = {"bibliometric_review"}
 
 # Article types without human participants, animals or cell lines of their own: SAGER does not apply.
+# Reviews of published literature: the area's animal/clinical norms do not apply to the review itself.
+LITERATURE_SYNTHESIS_TYPES = {
+    "meta_analysis", "umbrella_review", "scoping_review", "integrative_review", "systematic_review", "narrative_review",
+}
 NO_SUBJECTS_ARTICLE_TYPES = {"bibliometric_review", "theoretical_essay_perspective", "software_paper"}
 
 AI_MODEL_PATTERN = re.compile(
@@ -930,13 +944,18 @@ AI_MODEL_PATTERN = re.compile(
 AI_GUIDELINE_PATTERN = re.compile(r"(?:\bTRIPOD\+AI|\bCONSORT-AI\b|\bDECIDE-AI\b|\bCLAIM\b)")
 
 
+HUMAN_OR_ANIMAL_SUBJECTS_PATTERN = re.compile(
+    r"\b(?:patients|participants|volunteers|donors|women|men|mice|mouse|rats?|animals|cohort|zebrafish|primates|"
+    r"pacientes|participantes|voluntários|camundongos|ratos|animais|coorte)\b",
+    re.IGNORECASE,
+)
+
+
 def detect_transversal_flags(text: str, area_code: str, approach_code: str, article_type_code: str = "") -> dict[str, bool]:
     """Detect transversal reporting dimensions (SAGER sex/gender equity & Clinical/Bio-AI)."""
+    # SAGER concerns human and animal subjects: a biology paper on soil, plants or microbes has none.
     involves_subjects_or_bio = article_type_code not in NO_SUBJECTS_ARTICLE_TYPES and (
-        area_code in ("biologicas", "saude")
-        or bool(
-            re.search(r"\b(?:patients|participants|mice|rats|animals|cohort|pacientes|participantes|camundongos)\b", text, re.IGNORECASE)
-        )
+        area_code == "saude" or bool(HUMAN_OR_ANIMAL_SUBJECTS_PATTERN.search(text))
     )
     sex_or_gender_reported = bool(
         re.search(r"\b(?:male\s+and\s+female|sex-disaggregated|biological\s+sex|gender\s+distribution|SAGER|sexo\s+biológico|masculino\s+e\s+feminino)\b", text, re.IGNORECASE)
@@ -1004,6 +1023,49 @@ def get_lens_tables(area_code: str, type_code: str) -> tuple[list[str], list[str
     if type_spec.get("ssot_lenses") and type_spec.get("redteam_axes"):
         return type_spec["ssot_lenses"], type_spec["redteam_axes"], f"{area_code} × {type_code}"
     return area_spec["ssot_lenses"], area_spec["redteam_axes"], area_code
+
+
+# Lenses 3 and 4 of the reproducibility inspector, per area, unless the article type overrides them.
+AREA_REPRO_OPEN_SCIENCE = {
+    "biologicas": "`NCBI SRA/GEO/PRIDE/PDB` accessions, strains, reagents and code",
+    "saude": "`ClinicalTrials.gov/ReBEC` registration, data-sharing plan and analysis code",
+    "exatas": "code, seeds, input data and `CIF`/instrument files",
+    "engenharias": "schematics, solver parameters, test rigs and code",
+    "humanas": "archival sources, corpus references and interview/coding materials",
+}
+AREA_REPRO_NORMS = {
+    "biologicas": "`ARRIVE/CEUA/SisGen/MIAME`",
+    "saude": "`CONSORT/STROBE/PRISMA/CEP-CONEP/IRB`",
+    "exatas": "community reporting standards and data/code policies",
+    "engenharias": "`ISO/ASTM/IEEE/ABNT`",
+    "humanas": "`COREQ/SRQR/CEP-CHS`",
+}
+
+
+def get_repro_lenses(area_code: str, type_code: str, approach_code: str = "") -> tuple[str, str]:
+    """Return lenses 3 (open science) and 4 (normative compliance) for the reproducibility inspector.
+
+    The article type's own definitions win; otherwise the area's repositories and norms are named,
+    with the reporting guidelines of the article type and research approach added to lens 4.
+    """
+    type_spec = ARTICLE_TYPE_DEFINITIONS.get(type_code, {})
+    area = area_code if area_code in AREA_REPRO_NORMS else "exatas"
+    open_science = type_spec.get("repro_open_science") or (
+        "Open science, data/code/source availability and traceability "
+        f"({AREA_REPRO_OPEN_SCIENCE[area]} for `{area}`)"
+    )
+    if type_spec.get("repro_normative"):
+        return open_science, type_spec["repro_normative"]
+    guidelines: list[str] = []
+    for g in type_spec.get("guidelines", []) + RESEARCH_APPROACH_DEFINITIONS.get(approach_code, {}).get("guidelines", []):
+        if g not in guidelines:
+            guidelines.append(g)
+    reporting = f"; reporting guidelines for this profile: {', '.join(guidelines)}" if guidelines else ""
+    if type_code in NO_SUBJECTS_ARTICLE_TYPES or type_code in LITERATURE_SYNTHESIS_TYPES:
+        normative = f"Reporting guideline compliance (no human or animal subjects, so no ethics approval is expected{reporting})"
+    else:
+        normative = f"Normative, ethical & reporting guideline compliance ({AREA_REPRO_NORMS[area]} for `{area}`{reporting})"
+    return open_science, normative
 
 
 AREA_CONFIDENCE_THRESHOLD = 0.7

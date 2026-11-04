@@ -32,8 +32,8 @@ Derive your **primary audit lens** = `int(SEED[0:2], 16) mod 6`:
 - 0 — Protocol, algorithmic, or documentary completeness (could an independent scholar in `{domain}` reproduce or verify the exact workflow from the text?)
 - 1 — Internal cross-consistency (do numbers, claims, and terms in the prose match tables, figures, equations, and abstract?)
 - 2 — Citation fidelity & prior-art integrity (are cited works accurately represented, up-to-date, non-retracted, and non-hallucinated?)
-- 3 — Open science, data/code/accession availability, or primary/archival source traceability (`NCBI SRA/GEO/PRIDE/PDB` for `biologicas`; `ClinicalTrials/ReBEC` for `saude`; code/seeds/CIF for `exatas`; schematics/solver params for `engenharias`; archival/corpus references for `humanas`)
-- 4 — Normative, ethical & reporting guideline compliance (`ARRIVE/CEUA/SisGen/MIAME` for `biologicas`; `CONSORT/STROBE/PRISMA/CEP-CONEP/IRB` for `saude`; `ISO/ASTM/IEEE/ABNT` for `engenharias`; `COREQ/SRQR/CEP-CHS` for `humanas`)
+- 3 — {repro_lens_open_science}
+- 4 — {repro_lens_normative}
 - 5 — Generative AI provenance & disclosure integrity (compliance with COPE/ICMJE/SciELO guidelines: verify whether generative AI was transparently declared, whether AI was improperly credited as an author, and whether synthetic boilerplate masks lack of experimental substance)
 
 Derive **stance intensity** = `int(SEED[2:4], 16) mod 3`:

@@ -23,7 +23,7 @@ from typing import Any
 
 from area_profiles import strip_reference_list
 
-USER_AGENT = "academic-peer-review/1.0.0 (LaBiOmicS - UMC; mailto:fabianomenegidio@umc.br; https://github.com/LaBiOmicS/academic-peer-review)"
+USER_AGENT = "academic-peer-review/1.1.0 (LaBiOmicS - UMC; mailto:fabianomenegidio@umc.br; https://github.com/LaBiOmicS/academic-peer-review)"
 
 MAX_JOURNAL_NAME_LEN = 120
 _JOURNAL_NAME_ALLOWED = re.compile(r"[^\w\s&:,.()'/+-]")
@@ -378,6 +378,19 @@ def find_curated_journal(journal_name: str) -> str | None:
 # OPENALEX API QUERY FOR DYNAMIC JOURNAL METADATA
 # ==============================================================================
 
+def _publisher_label(source: dict[str, Any]) -> str:
+    """Publisher for display. Society and independent journals often have no host organization in
+    OpenAlex; then name the society, or say so and give the country and platform."""
+    if source.get("host_organization_name"):
+        return source["host_organization_name"]
+    societies = [s.get("organization") for s in source.get("societies") or [] if isinstance(s, dict) and s.get("organization")]
+    if societies:
+        return ", ".join(societies)
+    details = [d for d in (source.get("country_code"), "SciELO" if source.get("is_in_scielo") else "",
+                           "OJS" if source.get("is_ojs") else "") if d]
+    return "publisher not listed in OpenAlex" + (f"; {', '.join(details)}" if details else "")
+
+
 def query_openalex_journal(journal_name: str, timeout: float = 8.0) -> dict[str, Any] | None:
     """Fetch live metadata, concepts, and topics for a target journal from OpenAlex Sources API."""
     clean_name = re.sub(r"[^\w\s-]", " ", journal_name).strip()
@@ -388,7 +401,7 @@ def query_openalex_journal(journal_name: str, timeout: float = 8.0) -> dict[str,
         "search": clean_name,
         "per-page": 5,
         "select": "id,display_name,issn_l,issn,host_organization_name,homepage_url,is_oa,"
-                  "is_in_doaj,apc_usd,works_count,cited_by_count,topics",
+                  "is_in_doaj,apc_usd,works_count,cited_by_count,topics,societies,country_code,is_in_scielo,is_ojs",
     })
     url = f"https://api.openalex.org/sources?{params}"
 
@@ -420,7 +433,7 @@ def query_openalex_journal(journal_name: str, timeout: float = 8.0) -> dict[str,
         "id": best.get("id"),
         "display_name": best.get("display_name"),
         "issn": best.get("issn_l") or (best.get("issn") or [None])[0],
-        "publisher": best.get("host_organization_name") or "Unknown Publisher",
+        "publisher": _publisher_label(best),
         "homepage_url": best.get("homepage_url"),
         "is_oa": bool(best.get("is_oa", False)),
         "is_in_doaj": bool(best.get("is_in_doaj", False)),
@@ -464,10 +477,19 @@ def resolve_journal(journal_name: str, *, online: bool = True) -> dict[str, Any]
             api_res["scope_summary"] += (
                 f" Note: OpenAlex returned the closest match for '{journal_name}'; confirm this is the intended journal."
             )
+        # Without a curated profile there are no journal-specific pitfalls to report; say what the
+        # audit can and cannot know instead of generic advice.
+        top_topics = [tp["name"] for tp in api_res.get("topics", [])[:3] if tp.get("name")]
+        guidelines_at = f" ({api_res['homepage_url']})" if api_res.get("homepage_url") else ""
         api_res["desk_reject_pitfalls"] = [
-            "Lack of fit with primary indexed journal topics and audience expectations.",
-            "Failure to meet standard reporting and reproducibility guidelines for this discipline.",
+            f"No curated profile for this journal: the requirements below are typical, not verified. "
+            f"Check its aims & scope and author guidelines{guidelines_at}.",
         ]
+        if top_topics:
+            api_res["desk_reject_pitfalls"].append(
+                f"The journal's most frequent OpenAlex topics are {', '.join(top_topics)}; the cover letter and "
+                "introduction should say how the manuscript speaks to this readership."
+            )
         api_res["mandatory_requirements"] = ["Data Availability Statement", "Ethics & Conflict of Interest Declaration"]
         return api_res
 

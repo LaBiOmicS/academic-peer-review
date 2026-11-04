@@ -351,6 +351,41 @@ def _has_boolean_search_string(text: str, window: int = 600) -> bool:
     return False
 
 
+# "The full protocol, including the search strategies, ... is published in protocols.io": the string
+# exists, but outside the manuscript. Reporting guidelines (PRISMA-S, BIBLIO) ask for it in the report.
+# A sentence ends at ". "; the dots in "protocols.io" or "doi.org" do not end it.
+_SEARCH_STRATEGY_SENTENCE = re.compile(
+    r"(?:[^.]|\.(?=\S))*\b(?:search\s+(?:strateg\w+|strings?|quer\w+|terms)|estrat[ée]gias?\s+de\s+busca|strings?\s+de\s+busca|"
+    r"estrategias?\s+de\s+b[úu]squeda)\b(?:[^.]|\.(?=\S))*",
+    re.IGNORECASE,
+)
+_EXTERNAL_PROTOCOL = re.compile(r"\b(?:protocols\.io|osf\.io|OSF|PROSPERO|CRD\d{7,12}|Zenodo|figshare|INPLASY)\b", re.IGNORECASE)
+_SUPPLEMENT = re.compile(
+    r"\b(?:supplementa\w*|appendix|Table\s+S\d+|File\s+S\d+|ap[êe]ndice|anexo|material\s+suplementar)\b", re.IGNORECASE
+)
+
+
+def search_string_status(text: str) -> bool | str:
+    """True when the Boolean string is in the text; otherwise say where the text points to it, or False."""
+    if _has_boolean_search_string(text):
+        return True
+    for m in _SEARCH_STRATEGY_SENTENCE.finditer(text):
+        sentence = m.group(0)
+        if ext := _EXTERNAL_PROTOCOL.search(sentence):
+            return f"No — only in an external protocol ({ext.group(0)})"
+        if _SUPPLEMENT.search(sentence):
+            return "Only in supplementary material"
+    return False
+
+
+def format_check_value(value: Any) -> str:
+    if isinstance(value, list):
+        return ", ".join(value) if value else "None detected"
+    if isinstance(value, str):
+        return value
+    return "Yes" if value else "No"
+
+
 # "Searches were performed in Scopus ... on 20 November 2025": a date within the sentence of a search.
 SEARCH_DATE_PATTERN = re.compile(
     r"\b(?:search\w*|retriev\w*|busca\w*|búsqueda\w*|pesquisa\w*)\b[^.]{0,120}?\b(?:on|em|el|until|up\s+to|até|hasta)\s+"
@@ -366,7 +401,7 @@ def check_article_type_markers(text: str, type_code: str) -> dict[str, Any]:
             "prisma_guideline_cited": bool(re.search(r"\bPRISMA(?:\s+2020|-NMA|-IPD)?\b", text, re.IGNORECASE)),
             "protocol_registry_prospero_osf": bool(re.search(r"\b(?:PROSPERO|CRD\d{7,12}|OSF\s+Registries|osf\.io)\b", text, re.IGNORECASE)),
             "structured_question_pico_peco_spider": bool(re.search(r"\b(?:PICO|PICOS|PECO|PICOC|SPIDER)\b", text)),
-            "boolean_search_string_reported": _has_boolean_search_string(text),
+            "boolean_search_string_reported": search_string_status(text),
             "dual_independent_screening_mentioned": bool(re.search(r"\b(?:two\s+(?:independent\s+)?reviewers|dois\s+revisores\s+independentes|independently\s+screened|Rayyan|Covidence)\b", text, re.IGNORECASE)),
             "risk_of_bias_tool_used": bool(re.search(r"\b(?:RoB\s*2|ROBINS-I|Newcastle-Ottawa|(?-i:\bNOS\b)|QUADAS-2|SYRCLE|JBI\s+critical\s+appraisal|MMAT)\b", text, re.IGNORECASE)),
             "grade_certainty_assessed": bool(re.search(r"\b(?:GRADE|Grading\s+of\s+Recommendations)\b", text)),
@@ -409,7 +444,7 @@ def check_article_type_markers(text: str, type_code: str) -> dict[str, Any]:
 
     if type_code == "bibliometric_review":
         return {
-            "search_query_reported": _has_boolean_search_string(text),
+            "search_query_reported": search_string_status(text),
             "search_date_reported": bool(SEARCH_DATE_PATTERN.search(text)),
             "bibliometric_databases_specified": bool(re.search(r"\b(?:Web\s+of\s+Science|(?-i:\bWoS\b)|Scopus|OpenAlex|Dimensions|Lens\.org)\b", text, re.IGNORECASE)),
             "science_mapping_software_cited": bool(re.search(r"\b(?:VOSviewer|bibliometrix|Biblioshiny|CiteSpace|Gephi|SciMAT|BibExcel)\b", text, re.IGNORECASE)),
@@ -1069,7 +1104,7 @@ def format_markdown_report(audit: dict[str, Any]) -> str:
         ])
         for k, v in tc.items():
             label = k.replace("_", " ").capitalize()
-            val_str = (", ".join(v) if v else "None detected") if isinstance(v, list) else ("Yes" if v else "No")
+            val_str = format_check_value(v)
             lines.append(f"- **{label}**: {val_str}")
 
     if rc:
@@ -1079,7 +1114,7 @@ def format_markdown_report(audit: dict[str, Any]) -> str:
         ])
         for k, v in rc.items():
             label = k.replace("_", " ").capitalize()
-            val_str = (", ".join(v) if v else "None detected") if isinstance(v, list) else ("Yes" if v else "No")
+            val_str = format_check_value(v)
             lines.append(f"- **{label}**: {val_str}")
 
     metadata_only = at.get("type_code") in METADATA_EVIDENCE_TYPES
@@ -1099,7 +1134,7 @@ def format_markdown_report(audit: dict[str, Any]) -> str:
         ])
     for k, v in ({} if metadata_only else ac).items():
         label = k.replace("_", " ").capitalize()
-        val_str = (", ".join(v) if v else "None detected") if isinstance(v, list) else ("Yes" if v else "No")
+        val_str = format_check_value(v)
         lines.append(f"- **{label}**: {val_str}")
 
     lines.extend([] if metadata_only else [

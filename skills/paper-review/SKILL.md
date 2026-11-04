@@ -127,7 +127,7 @@ $PY {skill_dir}/scripts/stat_and_integrity_audit.py \
      --prepare-only
    ```
 2. For each Greek letter codename (`alfa`, `beta`, `gamma`, `delta`, …) in `<output_dir>/.prompts/panel_manifest.json`, launch one `peer-reviewer` subagent **in a single parallel tool turn**, passing its `prompt_file` and `output_file` from the manifest:
-   - **Claude Code**: one `Agent` tool call per reviewer (`subagent_type="academic-peer-review:peer-reviewer"` — plugin agents are namespaced by plugin name), all in the same message. When the manifest gives a reviewer a `model` (`opus`, `sonnet`, `haiku`), pass it as the `Agent` call's `model`. A reviewer whose `runner` is `agy` or `gemini` cannot run as a Claude subagent: run the panel through Path B instead, which launches each reviewer on its own runner.
+   - **Claude Code**: one `Agent` tool call per reviewer (`subagent_type="academic-peer-review:peer-reviewer"` — plugin agents are namespaced by plugin name), all in the same message. If that agent type is not listed (e.g. the plugin was installed or re-registered after the session started), use a general-purpose agent and put the instructions of [agents/peer-reviewer.md](../../agents/peer-reviewer.md) at the top of its prompt; a new session lists the plugin agent. When the manifest gives a reviewer a `model` (`opus`, `sonnet`, `haiku`), pass it as the `Agent` call's `model`. A reviewer whose `runner` is `agy` or `gemini` cannot run as a Claude subagent: run the panel through Path B instead, which launches each reviewer on its own runner.
    - **Antigravity**: `invoke_subagent` with `TypeName="peer-reviewer"` (or `"self"`) and `Model="inherit"`.
 
 #### Path B (Headless CLI / Subprocess Parallelism): Direct OS Subprocesses via `spawn_reviewers.py`

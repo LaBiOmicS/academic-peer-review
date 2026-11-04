@@ -82,3 +82,42 @@ def test_claude_runner_permissions():
     assert "Bash(python3 /skill/scripts/literature_search.py:*)" in sandboxed
     assert "--allowedTools" not in build_cli_cmd("claude", None, None, "none")
     assert "--dangerously-skip-permissions" in build_cli_cmd("claude", None, None, "unsafe")
+
+
+def test_agy_gets_the_prompt_as_the_value_of_p(tmp_path):
+    # Regression: agy >= 1.4 reads the prompt from "-p <value>", so "-p --effort high" made it
+    # take "--effort" as the prompt and fail.
+    cmd = build_cli_cmd("agy", "gemini-pro", "high")
+    assert cmd[-1] == "-p" and cmd.index("--effort") < cmd.index("-p")
+    run, stdin = spawn_reviewers.prompt_delivery("agy", cmd, "Review this.", tmp_path / "prompt_alfa.md")
+    assert run[-2:] == ["-p", "Review this."] and stdin is None
+    big = "x" * (spawn_reviewers.MAX_ARG_PROMPT_BYTES + 1)
+    run, stdin = spawn_reviewers.prompt_delivery("agy", cmd, big, tmp_path / "prompt_alfa.md")
+    assert str(tmp_path / "prompt_alfa.md") in run[-1] and len(run[-1]) < 300 and stdin is None
+    run, stdin = spawn_reviewers.prompt_delivery("claude", ["claude", "-p"], "Review this.", tmp_path / "p.md")
+    assert run == ["claude", "-p"] and stdin == "Review this."
+
+
+def test_rerun_keeps_roles_and_seeds_of_existing_panel(tmp_path, monkeypatch):
+    import json
+    import sys
+
+    paper = tmp_path / "p.txt"
+    paper.write_text("Methods. We ran a field experiment with plots.", encoding="utf-8")
+    skill_dir = spawn_reviewers.Path(spawn_reviewers.__file__).resolve().parent.parent
+    argv = ["spawn_reviewers.py", "--paper-text-file", str(paper), "--output-dir", str(tmp_path),
+            "--skill-dir", str(skill_dir), "--num-reviewers", "5", "--prepare-only"]
+    manifest = tmp_path / ".prompts" / "panel_manifest.json"
+
+    def roles():
+        data = json.loads(manifest.read_text(encoding="utf-8"))["reviewers"]
+        return {c: (r["archetype"], r["entropy_hint"]) for c, r in data.items()}
+
+    monkeypatch.setattr(sys, "argv", argv)
+    assert spawn_reviewers.main() == 0
+    first = roles()
+    for _ in range(3):
+        assert spawn_reviewers.main() == 0
+        assert roles() == first
+    # --overwrite starts a fresh panel; a different panel size cannot reuse the old one.
+    assert spawn_reviewers.load_previous_assignments(manifest, ["alfa", "beta"], skill_dir) is None

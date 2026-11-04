@@ -43,6 +43,7 @@ from area_profiles import (  # noqa: E402
     compose_rubric,
     get_article_type_profile,
     get_lens_tables,
+    get_repro_lenses,
     get_research_approach_profile,
     sanitize_and_scan_manuscript,
 )
@@ -115,6 +116,27 @@ def assign_panel_models(
     return {code: entries[i % len(entries)] for i, code in enumerate(codenames)}
 
 
+# Linux caps a single argv string at 128 KiB (MAX_ARG_STRLEN); stay below it.
+MAX_ARG_PROMPT_BYTES = 120_000
+
+
+def prompt_delivery(runner: str, cmd: list[str], prompt: str, prompt_file: Path) -> tuple[list[str], str | None]:
+    """Return the command to run and the text to send on stdin.
+
+    agy takes the prompt as the value of ``-p``; a prompt too long for one argument is replaced by
+    an instruction to read the prompt file. The other runners read the prompt from stdin.
+    """
+    if runner != "agy":
+        return cmd, prompt
+    if len(prompt.encode("utf-8")) <= MAX_ARG_PROMPT_BYTES:
+        return [*cmd, prompt], None
+    pointer = (
+        f"Read the file {prompt_file} completely and follow its instructions exactly. "
+        "Print only the finished review in Markdown."
+    )
+    return [*cmd, pointer], None
+
+
 def detect_runner(requested: str) -> str:
     if requested != "auto":
         if not shutil.which(requested):
@@ -149,11 +171,13 @@ def build_cli_cmd(
             cmd.extend(["--sandbox", "--dangerously-skip-permissions"])
         elif tool_permissions == "unsafe":
             cmd.append("--dangerously-skip-permissions")
-        cmd.append("-p")
         if model and model not in ("auto", "default", "inherit"):
             cmd.extend(["--model", model])
         if effort:
             cmd.extend(["--effort", effort])
+        # "-p" takes the prompt as its value (agy >= 1.4 no longer reads it from stdin): it must
+        # come last, and prompt_delivery() appends the prompt.
+        cmd.append("-p")
         return cmd
     if runner == "gemini":
         cmd = ["gemini"]
@@ -262,6 +286,26 @@ def assign_templates(
     return slots
 
 
+def load_previous_assignments(
+    manifest_path: Path, codenames: list[str], skill_dir: Path
+) -> dict[str, tuple[str, Path, str]] | None:
+    """Roles, templates and seeds of an earlier run of the same panel, or None if there is none."""
+    try:
+        reviewers = json.loads(manifest_path.read_text(encoding="utf-8")).get("reviewers") or {}
+    except (OSError, ValueError):
+        return None
+    if sorted(reviewers) != sorted(codenames):
+        return None
+    out: dict[str, tuple[str, Path, str]] = {}
+    for code in codenames:
+        rev = reviewers[code]
+        template = skill_dir / "prompts" / str(rev.get("template", ""))
+        if not rev.get("archetype") or not rev.get("entropy_hint") or not template.is_file():
+            return None
+        out[code] = (rev["archetype"], template, rev["entropy_hint"])
+    return out
+
+
 def build_prompt(
     template: Path,
     *,
@@ -280,6 +324,7 @@ def build_prompt(
     approach_profile = get_research_approach_profile(approach_code)
 
     lenses, redteam_axes, lens_scope = get_lens_tables(area_info["area_code"], type_code)
+    repro_open_science, repro_normative = get_repro_lenses(area_info["area_code"], type_code, approach_code)
     lenses_block = "\n".join(f"- {ln}" for ln in lenses)
     redteam_block = "\n".join(f"- {ax}" for ax in redteam_axes)
     composed_rubric = compose_rubric(area_info)
@@ -314,6 +359,8 @@ def build_prompt(
         "lens_scope": lens_scope,
         "area_ssot_lenses": lenses_block,
         "area_redteam_axes": redteam_block,
+        "repro_lens_open_science": repro_open_science,
+        "repro_lens_normative": repro_normative,
         "area_rubric": composed_rubric,
         "severity_rubric": SEVERITY_RUBRIC,
         "entropy_hint": entropy_hint,
@@ -484,9 +531,16 @@ def main() -> int:
 
     rendered_prompts: dict[str, str] = {}
     lens_offset = CSPRNG.randrange(LENS_PERIOD)
+    previous = load_previous_assignments(prompts_out_dir / "panel_manifest.json", codenames, skill_dir)
+    if previous and not args.overwrite:
+        # Re-running to fill in failed reviewers: kept reviews were written under the earlier roles
+        # and seeds, so reshuffling would duplicate a role and desynchronize the manifest.
+        print("[spawn_reviewers] reusing the roles and seeds of the existing panel manifest", file=sys.stderr, flush=True)
     for i, code in enumerate(codenames):
         role_name, template_path = assigned[i]
         entropy_hint = assign_seed(i, lens_offset)
+        if previous and not args.overwrite:
+            role_name, template_path, entropy_hint = previous[code]
         prompt = build_prompt(
             template_path,
             reviewer_id=code,
@@ -571,20 +625,24 @@ def main() -> int:
             # stderr goes to a file, not a PIPE: an unread pipe fills up (~64 KB) and deadlocks the child.
             err_fh = open(prompts_out_dir / f"stderr_{code}.log", "w+", encoding="utf-8")  # noqa: SIM115
             runner_i, cmd_i = launch[code]
+            cmd_i, stdin_text = prompt_delivery(
+                runner_i, cmd_i, rendered_prompts[code], Path(manifest["reviewers"][code]["prompt_file"])
+            )
             proc = subprocess.Popen(
                 cmd_i,
-                stdin=subprocess.PIPE,
+                stdin=subprocess.PIPE if stdin_text is not None else subprocess.DEVNULL,
                 stdout=out_fh,
                 stderr=err_fh,
                 text=True,
                 env=clean_envs[runner_i],
             )
-            assert proc.stdin is not None
-            try:
-                proc.stdin.write(rendered_prompts[code])
-                proc.stdin.close()
-            except BrokenPipeError:
-                pass  # child exited early; reported below via its return code
+            if stdin_text is not None:
+                assert proc.stdin is not None
+                try:
+                    proc.stdin.write(stdin_text)
+                    proc.stdin.close()
+                except BrokenPipeError:
+                    pass  # child exited early; reported below via its return code
             elapsed = time.time() - start
             t_name = manifest["reviewers"][code]["template"]
             model_i = manifest["reviewers"][code]["model"] or "default"
