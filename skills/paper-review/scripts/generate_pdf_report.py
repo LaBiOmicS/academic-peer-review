@@ -140,6 +140,7 @@ def assemble_consolidated_markdown(output_dir: Path, ai_disclosure: bool = True)
         "geometry: 'margin=2.2cm'",
         "header-includes:",
         "  - '\\usepackage{booktabs}'",
+        "  - '\\usepackage{pdflscape}'",
         "  - '\\usepackage{fancyhdr}'",
         "  - '\\pagestyle{fancy}'",
         # Clear the default left/right marks (section titles), which overlap the centred header.
@@ -223,8 +224,13 @@ def assemble_consolidated_markdown(output_dir: Path, ai_disclosure: bool = True)
                     "# Part II: Consolidated Major Concerns Matrix",
                     "",
                     "The table below cross-tabulates the Blocking and Essential concerns across referees "
-                    "(X = raised as a major concern; (m) = mentioned only in passing). All referees share one "
-                    "underlying model, so agreement is attribution, not independent corroboration:",
+                    "(X = raised as a major concern; (m) = mentioned only in passing). "
+                    + (
+                        "Referees ran on different models, so agreement across models carries some weight:"
+                        if (results.get("severity_contract") or {}).get("single_model_panel") is False
+                        else "All referees share one underlying model, so agreement is attribution, not "
+                        "independent corroboration:"
+                    ),
                     "",
                 ])
                 header = rows[0]
@@ -281,8 +287,72 @@ def assemble_consolidated_markdown(output_dir: Path, ai_disclosure: bool = True)
     return full_md, results
 
 
+# A table with several prose columns (e.g. the blocking-concern verification table) or very many
+# columns is unreadable on a portrait page: it gets a landscape page of its own.
+WIDE_TABLE_MIN_TEXT_COLUMNS = 3
+WIDE_TABLE_TEXT_COLUMN_CHARS = 30
+WIDE_TABLE_MIN_COLUMNS = 8
+
+_TABLE_SEPARATOR = re.compile(r"\|?(\s*:?-{3,}:?\s*\|)+\s*:?-*:?\s*")
+
+
+def _table_cells(line: str) -> list[str]:
+    return [c.strip().replace("\\|", "|") for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
+
+
+def _is_wide_table(rows: list[list[str]]) -> bool:
+    if not rows:
+        return False
+    ncols = max(len(r) for r in rows)
+    text_columns = sum(
+        1 for i in range(ncols) if max(len(r[i]) if i < len(r) else 0 for r in rows) > WIDE_TABLE_TEXT_COLUMN_CHARS
+    )
+    return ncols >= WIDE_TABLE_MIN_COLUMNS or text_columns >= WIDE_TABLE_MIN_TEXT_COLUMNS
+
+
+def _column_weights(rows: list[list[str]]) -> list[int]:
+    """Relative column widths from the longest cell, with a floor so short columns stay legible."""
+    ncols = max(len(r) for r in rows)
+    return [max(10, min(80, 2 + max(len(r[i]) if i < len(r) else 0 for r in rows))) for i in range(ncols)]
+
+
+def _markdown_blocks(markdown_content: str) -> list[tuple[str, list[str]]]:
+    """Split Markdown into ("table", lines) blocks of consecutive pipe-table lines and ("text", lines)."""
+    blocks: list[tuple[str, list[str]]] = []
+    for line in markdown_content.splitlines():
+        kind = "table" if line.lstrip().startswith("|") else "text"
+        if blocks and blocks[-1][0] == kind:
+            blocks[-1][1].append(line)
+        else:
+            blocks.append((kind, [line]))
+    return blocks
+
+
+def _layout_tables_for_latex(markdown_content: str) -> str:
+    """Size pipe-table columns by content and put wide tables on landscape pages (pandoc raw blocks).
+
+    pandoc takes relative column widths from the dashes of the separator row, so equal "---" cells
+    gave a prose column the same width as a column of ticks.
+    """
+    out: list[str] = []
+    for kind, lines in _markdown_blocks(markdown_content):
+        rows = [_table_cells(ln) for ln in lines if not _TABLE_SEPARATOR.fullmatch(ln.strip())]
+        if kind != "table" or not rows:
+            out.extend(lines)
+            continue
+        separator = "|" + "|".join("-" * w for w in _column_weights(rows)) + "|"
+        lines = [separator if _TABLE_SEPARATOR.fullmatch(ln.strip()) else ln for ln in lines]
+        if _is_wide_table(rows):
+            out.extend(["", "```{=latex}", "\\begin{landscape}\\footnotesize", "```", "", *lines, "",
+                        "```{=latex}", "\\normalsize\\end{landscape}", "```", ""])
+        else:
+            out.extend(lines)
+    return "\n".join(out)
+
+
 def render_with_pandoc(markdown_content: str, output_pdf_path: Path) -> bool:
     """Render PDF using pandoc and pdflatex."""
+    markdown_content = _layout_tables_for_latex(markdown_content)
     pandoc_bin = shutil.which("pandoc")
     if not pandoc_bin:
         return False
@@ -344,20 +414,31 @@ def render_with_reportlab(markdown_content: str, output_pdf_path: Path, results:
     """Render PDF using reportlab as an autonomous fallback."""
     try:
         from reportlab.lib.colors import HexColor
-        from reportlab.lib.pagesizes import letter
+        from reportlab.lib.pagesizes import landscape, letter
         from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-        from reportlab.platypus import HRFlowable, Paragraph, SimpleDocTemplate, Spacer
+        from reportlab.platypus import (
+            BaseDocTemplate,
+            Frame,
+            HRFlowable,
+            NextPageTemplate,
+            PageBreak,
+            PageTemplate,
+            Paragraph,
+            Spacer,
+            Table,
+            TableStyle,
+        )
     except ImportError:
         return False
 
-    doc = SimpleDocTemplate(
-        str(output_pdf_path),
-        pagesize=letter,
-        leftMargin=54,
-        rightMargin=54,
-        topMargin=54,
-        bottomMargin=54,
-    )
+    margin = 54
+    portrait_size, landscape_size = letter, landscape(letter)
+    doc = BaseDocTemplate(str(output_pdf_path), pagesize=portrait_size)
+    # Wide tables move to a landscape page; everything else stays portrait.
+    doc.addPageTemplates([
+        PageTemplate(id=name, pagesize=size, frames=[Frame(margin, margin, size[0] - 2 * margin, size[1] - 2 * margin, id=name)])
+        for name, size in (("portrait", portrait_size), ("landscape", landscape_size))
+    ])
     styles = getSampleStyleSheet()
 
     # Custom styles
@@ -419,33 +500,55 @@ def render_with_reportlab(markdown_content: str, output_pdf_path: Path, results:
         except ValueError:
             return Paragraph(xml_escape(re.sub(r"<[^>]+>", "", markup)), style)
 
-    for line_s in _strip_front_matter(markdown_content).splitlines():
-        line_s = line_s.strip()
-        if not line_s or re.fullmatch(r"-{3,}|\*{3,}|_{3,}", line_s):
-            continue
-        if line_s.startswith("|"):
-            if re.fullmatch(r"\|?(\s*:?-{3,}:?\s*\|)+\s*:?-*:?\s*", line_s):
-                continue  # table separator row
-            cells = [c.strip() for c in re.split(r"(?<!\\)\|", line_s.strip("|"))]
-            story.append(para(" | ".join(_inline_markup(c.replace("\\|", "|")) for c in cells), body_style))
-            continue
-        heading = re.match(r"(#{1,6})\s+(.*)", line_s)
-        if heading:
-            level, title = len(heading.group(1)), _inline_markup(heading.group(2))
-            if level == 1:
-                story.append(Spacer(1, 8))
-                story.append(para(title, h1_style))
-            elif level == 2:
-                story.append(Spacer(1, 6))
-                story.append(para(title, h2_style))
+    def table(rows: list[list[str]], wide: bool) -> Table:
+        size = landscape_size if wide else portrait_size
+        width = size[0] - 2 * margin
+        cell_style = ParagraphStyle("Cell", parent=body_style, fontSize=7.5 if wide else 8.5, leading=10 if wide else 11)
+        ncols = max(len(r) for r in rows)
+        rows = [r + [""] * (ncols - len(r)) for r in rows]
+        weights = _column_weights(rows)
+        col_widths = [width * w / sum(weights) for w in weights]
+        data = [[para(f"<b>{_inline_markup(c)}</b>" if i == 0 else _inline_markup(c), cell_style) for c in r]
+                for i, r in enumerate(rows)]
+        t = Table(data, colWidths=col_widths, repeatRows=1)
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#EDF2F7")),
+            ("LINEBELOW", (0, 0), (-1, 0), 0.8, primary_color),
+            ("LINEBELOW", (0, 1), (-1, -1), 0.3, HexColor("#CBD5E0")),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ]))
+        return t
+
+    for kind, lines in _markdown_blocks(_strip_front_matter(markdown_content)):
+        if kind == "table":
+            rows = [_table_cells(ln) for ln in lines if not _TABLE_SEPARATOR.fullmatch(ln.strip())]
+            if not rows:
+                continue
+            if _is_wide_table(rows):
+                story.extend([NextPageTemplate("landscape"), PageBreak(), table(rows, True),
+                              NextPageTemplate("portrait"), PageBreak()])
             else:
-                story.append(Spacer(1, 4))
-                story.append(para(f"<b>{title}</b>", body_style))
-        elif line_s.startswith(("- ", "* ", "+ ")):
-            story.append(para(f"• {_inline_markup(line_s[2:].strip())}", body_style))
-        else:
-            story.append(para(_inline_markup(line_s), body_style))
-            story.append(Spacer(1, 3))
+                story.extend([table(rows, False), Spacer(1, 6)])
+            continue
+        for line_s in lines:
+            line_s = line_s.strip()
+            if not line_s or re.fullmatch(r"-{3,}|\*{3,}|_{3,}", line_s):
+                continue
+            heading = re.match(r"(#{1,6})\s+(.*)", line_s)
+            if heading:
+                level, title = len(heading.group(1)), _inline_markup(heading.group(2))
+                if level == 1:
+                    story.extend([Spacer(1, 8), para(title, h1_style)])
+                elif level == 2:
+                    story.extend([Spacer(1, 6), para(title, h2_style)])
+                else:
+                    story.extend([Spacer(1, 4), para(f"<b>{title}</b>", body_style)])
+            elif line_s.startswith(("- ", "* ", "+ ")):
+                story.append(para(f"• {_inline_markup(line_s[2:].strip())}", body_style))
+            else:
+                story.extend([para(_inline_markup(line_s), body_style), Spacer(1, 3)])
 
     doc.build(story)
     return output_pdf_path.exists() and output_pdf_path.stat().st_size > 1000

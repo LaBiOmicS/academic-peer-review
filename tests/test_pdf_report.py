@@ -6,6 +6,7 @@ import pytest
 
 from generate_pdf_report import (
     AI_ASSISTANCE_NOTICE,
+    _layout_tables_for_latex,
     assemble_consolidated_markdown,
     render_with_reportlab,
 )
@@ -107,3 +108,35 @@ def test_italic_inside_bold_nests_and_bad_markup_does_not_abort(tmp_path):
     out = tmp_path / "r.pdf"
     md = "# T\n\n- **Fit with *Journal***: ok\n- a **b *c** d*\n" + "text\n" * 50
     assert render_with_reportlab(md, out, {})
+
+
+VERIFICATION_TABLE = (
+    "| Concern | Conclusion at stake | Already addressed? | Bias direction | Remedy | Tier |\n"
+    "|---|---|---|---|---|---|\n"
+    "| Keyword trend | " + "the conclusion says methods coexist throughout the period " * 2
+    + "| Partly: the Results say positions differ, not methods | Not an inflation or deflation of a count "
+    "| Recode the method used in each of the 53 papers | Blocking |\n"
+)
+SMALL_TABLE = "| Reviewer | Verdict |\n|---|---|\n| alfa | Major revision |\n"
+
+
+def test_wide_tables_get_landscape_pages_and_proportional_columns():
+    out = _layout_tables_for_latex(SMALL_TABLE + "\ntext\n\n" + VERIFICATION_TABLE)
+    assert out.count("\\begin{landscape}") == 1
+    small, wide = out.split("text")
+    assert "landscape" not in small
+    separator = next(ln for ln in wide.splitlines() if ln.startswith("|-"))
+    widths = [len(c) for c in separator.strip("|").split("|")]
+    # The prose column is wider than the tier column; pandoc reads widths from these dashes.
+    assert widths[1] > widths[5] >= 10
+
+
+def test_reportlab_puts_wide_tables_on_landscape_pages(tmp_path):
+    pytest.importorskip("reportlab")
+    pypdf = pytest.importorskip("pypdf")
+    md = "# Part I\n\nIntro.\n\n" + VERIFICATION_TABLE + "\n\nAfter.\n\n" + SMALL_TABLE
+    pdf = tmp_path / "r.pdf"
+    assert render_with_reportlab(md, pdf, {})
+    pages = pypdf.PdfReader(str(pdf)).pages
+    orientation = ["L" if float(p.mediabox.width) > float(p.mediabox.height) else "P" for p in pages]
+    assert orientation == ["P", "L", "P"]

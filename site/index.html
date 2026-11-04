@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="pt-BR" data-lang="pt">
+<html lang="pt-BR" data-lang="pt" data-os="win" data-ai="claude">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>academic-peer-review · LaBiOmicS</title>
-<meta name="description" content="Plugin para Claude Code e Antigravity: painel de pareceristas independentes com auditoria determinística (statcheck, OpenAlex, FAIR, IA, texto oculto, escopo do periódico) e metarrevisão editorial calibrada.">
-<meta property="og:title" content="academic-peer-review — painel de revisão por pares assistida por IA">
-<meta property="og:description" content="Auditoria antes da opinião: um painel de pareceristas com papéis distintos, severidade calibrada e relatório em PDF. Claude Code e Antigravity.">
+<meta name="description" content="Revisão por pares assistida por IA para Claude Code e Antigravity: rascunho de parecer para o revisor ou rodada de revisão proativa para o próprio autor. Guia passo a passo para iniciantes e prompts prontos.">
+<meta property="og:title" content="academic-peer-review — revisão por pares assistida por IA">
+<meta property="og:description" content="Auditoria antes da opinião: um painel de pareceristas com papéis distintos, severidade calibrada e relatório em PDF. Guia para iniciantes e prompts prontos.">
 <meta property="og:image" content="https://labiomics.github.io/academic-peer-review/assets/logo-180.png">
 <meta property="og:type" content="website">
 <link rel="icon" type="image/png" href="assets/favicon.png">
@@ -15,24 +15,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #fbfaf7;
-  --surface: #ffffff;
-  --surface-2: #f3f1ec;
-  --ink: #14182b;
-  --ink-2: #3d4257;
-  --muted: #6b6f80;
-  --line: #e3e0d8;
-  --navy: #0b1938;
-  --gold: #b45309;
-  --gold-soft: #fdf3e1;
-  --cyan: #0369a1;
-  --cyan-soft: #e6f2f9;
-  --red: #b42318;
-  --red-soft: #fdecea;
-  --green: #1f7a4d;
-  --green-soft: #e8f5ee;
-  --code-bg: #0f1730;
-  --code-ink: #e8ecf8;
+  --bg: #fbfaf7; --surface: #ffffff; --surface-2: #f3f1ec; --ink: #14182b; --ink-2: #3d4257; --muted: #6b6f80;
+  --line: #e3e0d8; --gold: #b45309; --gold-soft: #fdf3e1; --cyan: #0369a1; --cyan-soft: #e6f2f9;
+  --red: #b42318; --red-soft: #fdecea; --green: #1f7a4d; --green-soft: #e8f5ee;
+  --code-bg: #0f1730; --code-ink: #e8ecf8; --code-dim: #8c95b8; --code-hi: #f2b25c;
   --shadow: 0 1px 2px rgba(20,24,43,.05), 0 6px 24px rgba(20,24,43,.06);
   --radius: 14px;
   --serif: "Fraunces", Georgia, "Times New Roman", serif;
@@ -41,128 +27,170 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0a0f1f; --surface: #111831; --surface-2: #161f3d; --ink: #eef0f7; --ink-2: #c4c8d8;
-    --muted: #8d93a8; --line: #253056; --navy: #e9edf8; --gold: #f2b25c; --gold-soft: #2a2213;
-    --cyan: #67c1ec; --cyan-soft: #10273a; --red: #f08a80; --red-soft: #2c1615; --green: #6fcf9c;
-    --green-soft: #12281d; --code-bg: #060a17; --code-ink: #e8ecf8; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 28px rgba(0,0,0,.35);
+    --bg: #0a0f1f; --surface: #111831; --surface-2: #161f3d; --ink: #eef0f7; --ink-2: #c4c8d8; --muted: #8d93a8;
+    --line: #253056; --gold: #f2b25c; --gold-soft: #2a2213; --cyan: #67c1ec; --cyan-soft: #10273a;
+    --red: #f08a80; --red-soft: #2c1615; --green: #6fcf9c; --green-soft: #12281d; --code-bg: #060a17;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 28px rgba(0,0,0,.35);
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0a0f1f; --surface: #111831; --surface-2: #161f3d; --ink: #eef0f7; --ink-2: #c4c8d8;
-  --muted: #8d93a8; --line: #253056; --navy: #e9edf8; --gold: #f2b25c; --gold-soft: #2a2213;
-  --cyan: #67c1ec; --cyan-soft: #10273a; --red: #f08a80; --red-soft: #2c1615; --green: #6fcf9c;
-  --green-soft: #12281d; --code-bg: #060a17; --code-ink: #e8ecf8; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 28px rgba(0,0,0,.35);
+  --bg: #0a0f1f; --surface: #111831; --surface-2: #161f3d; --ink: #eef0f7; --ink-2: #c4c8d8; --muted: #8d93a8;
+  --line: #253056; --gold: #f2b25c; --gold-soft: #2a2213; --cyan: #67c1ec; --cyan-soft: #10273a;
+  --red: #f08a80; --red-soft: #2c1615; --green: #6fcf9c; --green-soft: #12281d; --code-bg: #060a17;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 28px rgba(0,0,0,.35);
 }
 
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body {
-  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans);
-  font-size: 17px; line-height: 1.6; -webkit-font-smoothing: antialiased;
-}
+/* Language, operating system and AI selectors show one variant at a time. */
 html[data-lang="pt"] [lang="en"], html[data-lang="pt"] [lang="es"],
 html[data-lang="en"] [lang="pt"], html[data-lang="en"] [lang="es"],
 html[data-lang="es"] [lang="pt"], html[data-lang="es"] [lang="en"] { display: none !important; }
+html[data-os="win"] .os-mac, html[data-os="win"] .os-linux, html[data-os="win"] .os-unix,
+html[data-os="mac"] .os-win, html[data-os="mac"] .os-linux,
+html[data-os="linux"] .os-win, html[data-os="linux"] .os-mac { display: none !important; }
+html[data-ai="claude"] .ai-agy, html[data-ai="agy"] .ai-claude { display: none !important; }
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 17px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
 a { color: var(--cyan); text-decoration-thickness: 1px; text-underline-offset: 3px; }
-code, pre { font-family: var(--mono); }
-code { font-size: .88em; background: var(--surface-2); padding: .1em .35em; border-radius: 5px; }
+code, pre, kbd { font-family: var(--mono); }
+code { font-size: .86em; background: var(--surface-2); padding: .1em .35em; border-radius: 5px; overflow-wrap: anywhere; }
+kbd { font-size: .8em; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: .05em .4em; background: var(--surface); }
 h1, h2, h3 { font-family: var(--serif); font-weight: 650; letter-spacing: -.01em; line-height: 1.15; margin: 0; }
 h2 { font-size: clamp(1.7rem, 3.2vw, 2.4rem); }
-h3 { font-size: 1.2rem; font-weight: 500; }
+h3 { font-size: 1.15rem; font-weight: 600; }
 p { margin: 0; }
+p + p { margin-top: 10px; }
 .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
 @media (max-width: 600px) { .wrap { padding: 0 16px; } body { font-size: 16px; } }
+.eyebrow { font: 500 .78rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--gold); margin-bottom: 10px; }
 
 /* Header */
-header.top {
-  position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--line);
-}
-.top .wrap { display: flex; align-items: center; gap: 20px; height: 64px; }
-.brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 600; }
-.brand img { width: 32px; height: 32px; border-radius: 8px; }
-.brand span { font-family: var(--mono); font-size: .95rem; }
-nav.links { display: flex; gap: 22px; margin-left: auto; }
-nav.links a { color: var(--ink-2); text-decoration: none; font-size: .93rem; }
+header.top { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--line); }
+.top .wrap { display: flex; align-items: center; gap: 18px; height: 64px; }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 600; min-width: 0; }
+.brand img { width: 30px; height: 30px; border-radius: 8px; flex: none; }
+.brand span { font-family: var(--mono); font-size: .92rem; white-space: nowrap; }
+nav.links { display: flex; gap: 20px; margin-left: auto; }
+nav.links a { color: var(--ink-2); text-decoration: none; font-size: .9rem; white-space: nowrap; }
 nav.links a:hover { color: var(--ink); }
-.toggles { display: flex; gap: 6px; }
-.chip-btn {
-  font: 500 .8rem var(--mono); color: var(--ink-2); background: var(--surface); border: 1px solid var(--line);
-  border-radius: 999px; padding: 6px 11px; cursor: pointer;
-}
+.toggles { display: flex; gap: 6px; align-items: center; }
+.chip-btn { font: 500 .78rem var(--mono); color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; cursor: pointer; }
 .chip-btn:hover { border-color: var(--muted); }
-.lang-switch { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
-.lang-switch .chip-btn { border-color: transparent; padding: 4px 9px; }
-.lang-switch .chip-btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
-@media (max-width: 860px) { nav.links { display: none; } .toggles { margin-left: auto; } }
+.seg { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.seg button { font: 500 .8rem var(--sans); color: var(--ink-2); background: none; border: 0; border-radius: 999px; padding: 5px 11px; cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.top .seg button { font-family: var(--mono); font-size: .74rem; padding: 4px 8px; }
+@media (max-width: 980px) { nav.links { display: none; } .toggles { margin-left: auto; } }
+@media (max-width: 420px) { .brand span { display: none; } }
 
 /* Hero */
-.hero { padding: 84px 0 56px; position: relative; overflow: hidden; }
-.hero::before {
-  content: ""; position: absolute; inset: -40% -10% auto auto; width: 720px; height: 720px;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--gold) 14%, transparent), transparent);
-  pointer-events: none;
-}
-.hero .wrap { position: relative; display: grid; grid-template-columns: 1.15fr .85fr; gap: 56px; align-items: center; }
-@media (max-width: 900px) { .hero .wrap { grid-template-columns: 1fr; gap: 36px; } .hero { padding: 52px 0 36px; } }
-.eyebrow { font: 500 .8rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--gold); }
-.hero h1 { font-size: clamp(2.3rem, 5.4vw, 3.9rem); margin: 14px 0 20px; }
+.hero { padding: 76px 0 64px; position: relative; overflow: hidden; }
+.hero::before { content: ""; position: absolute; inset: -40% -10% auto auto; width: 760px; height: 760px; background: radial-gradient(closest-side, color-mix(in srgb, var(--gold) 14%, transparent), transparent); pointer-events: none; }
+.hero .wrap { position: relative; display: grid; grid-template-columns: 1.05fr .95fr; gap: 52px; align-items: center; }
+.hero .wrap > * { min-width: 0; }
+@media (max-width: 920px) { .hero .wrap { grid-template-columns: 1fr; gap: 36px; } .hero { padding: 48px 0 40px; } }
+.hero h1 { font-size: clamp(2.3rem, 5.2vw, 3.8rem); margin: 6px 0 20px; }
 .hero h1 em { font-style: italic; color: var(--gold); }
-.lede { font-size: 1.14rem; color: var(--ink-2); max-width: 36em; }
-.cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
-.btn {
-  display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 10px;
-  font-weight: 600; font-size: .95rem; text-decoration: none; border: 1px solid transparent;
-}
+.lede { font-size: 1.12rem; color: var(--ink-2); max-width: 36em; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: .95rem; text-decoration: none; border: 1px solid transparent; }
 .btn.primary { background: var(--ink); color: var(--bg); }
 .btn.ghost { border-color: var(--line); color: var(--ink); background: var(--surface); }
 .btn:hover { transform: translateY(-1px); }
-.meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; }
-.tag { font: 500 .78rem var(--mono); padding: 4px 10px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); }
+.meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+.tag { font: 500 .76rem var(--mono); padding: 4px 10px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); }
 
-/* Report card (hero visual) */
-.report {
-  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
-  padding: 22px; font-size: .9rem;
-}
-.report .rhead { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 12px; }
-.report .rhead b { font-family: var(--serif); font-size: 1.05rem; font-weight: 600; }
-.report .rhead small { font: .72rem var(--mono); color: var(--muted); }
-.rev { display: grid; grid-template-columns: 62px 1fr auto; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px dashed var(--line); }
-.rev:last-of-type { border-bottom: 0; }
-.rev code { background: none; padding: 0; font-weight: 500; }
-.rev .role { color: var(--ink-2); font-size: .85rem; }
-.verdict { font: 500 .72rem var(--mono); padding: 3px 8px; border-radius: 6px; background: var(--gold-soft); color: var(--gold); white-space: nowrap; }
-.tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
-.tier { border-radius: 10px; padding: 10px; text-align: center; }
-.tier b { display: block; font-family: var(--serif); font-size: 1.5rem; line-height: 1; }
-.tier span { font: .7rem var(--mono); text-transform: uppercase; letter-spacing: .05em; }
-.t-block { background: var(--red-soft); color: var(--red); }
-.t-ess { background: var(--gold-soft); color: var(--gold); }
-.t-opt { background: var(--green-soft); color: var(--green); }
-.report .foot { margin-top: 12px; font: .72rem var(--mono); color: var(--muted); }
+/* Terminal mock */
+.term { background: var(--code-bg); color: var(--code-ink); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; font: .84rem/1.65 var(--mono); }
+.term .bar { display: flex; align-items: center; gap: 7px; padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,.08); }
+.term .bar i { width: 11px; height: 11px; border-radius: 50%; background: rgba(255,255,255,.18); }
+.term .bar span { margin-left: 8px; color: var(--code-dim); font-size: .74rem; }
+.term .body { padding: 16px 18px 18px; }
+.term .body > div { white-space: pre-wrap; overflow-wrap: anywhere; }
+.term .u { color: var(--code-hi); }
+.term .d { color: var(--code-dim); }
+.term .ok { color: #6fcf9c; }
+.term .w { color: #f08a80; }
+.term .gap { height: 10px; }
+.term .cap { margin-top: 12px; color: var(--code-dim); font-size: .72rem; }
 
 /* Sections */
-section { padding: 76px 0; }
+section { padding: 80px 0; }
 section.alt { background: var(--surface-2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.sec-head { max-width: 46em; margin-bottom: 40px; }
-.sec-head p { color: var(--ink-2); margin-top: 14px; font-size: 1.05rem; }
-@media (max-width: 600px) { section { padding: 52px 0; } }
+.sec-head { max-width: 48em; margin-bottom: 38px; }
+.sec-head p { color: var(--ink-2); margin-top: 14px; font-size: 1.04rem; }
+@media (max-width: 600px) { section { padding: 54px 0; } }
+
+/* Two uses */
+.uses { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.uses > * { min-width: 0; }
+@media (max-width: 860px) { .uses { grid-template-columns: 1fr; } }
+.use { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 26px; border-top: 4px solid var(--gold); }
+.use.ref { border-top-color: var(--cyan); }
+.use .ico { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: var(--gold-soft); color: var(--gold); }
+.use.ref .ico { background: var(--cyan-soft); color: var(--cyan); }
+.use h3 { font-size: 1.3rem; margin: 14px 0 8px; }
+.use > p { color: var(--ink-2); font-size: .95rem; }
+.use ul { margin: 14px 0 0; padding: 0; list-style: none; }
+.use li { position: relative; padding-left: 24px; margin: 7px 0; font-size: .92rem; color: var(--ink-2); }
+.use li::before { content: "→"; position: absolute; left: 0; color: var(--gold); font-family: var(--mono); }
+.use.ref li::before { color: var(--cyan); }
+
+/* Guide */
+.pickers { position: sticky; top: 64px; z-index: 10; display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; padding: 14px 18px; margin-bottom: 30px; background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.pickers label { font: 500 .74rem var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-right: 8px; }
+.pickers > div { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+@media (max-width: 600px) { .pickers { position: static; } }
+.needs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 36px; }
+@media (max-width: 900px) { .needs { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .needs { grid-template-columns: 1fr; } }
+.needs div { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: .9rem; color: var(--ink-2); }
+.needs b { display: block; color: var(--ink); font-weight: 600; margin-bottom: 3px; }
+ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; }
+ol.steps > li { counter-increment: s; position: relative; padding: 0 0 34px 64px; }
+ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font: 600 1rem var(--serif); color: var(--gold); background: var(--surface); border: 1.5px solid var(--gold); }
+ol.steps > li::after { content: ""; position: absolute; left: 20px; top: 46px; bottom: 6px; width: 1.5px; background: var(--line); }
+ol.steps > li:last-child::after { display: none; }
+ol.steps h3 { font-family: var(--sans); font-size: 1.12rem; padding-top: 8px; margin-bottom: 8px; }
+ol.steps .txt { color: var(--ink-2); font-size: .97rem; max-width: 46em; }
+ol.steps .txt ul { margin: 8px 0 0; padding-left: 20px; }
+ol.steps .txt li { margin: 3px 0; }
+@media (max-width: 600px) { ol.steps > li { padding-left: 52px; } ol.steps > li::before { width: 36px; height: 36px; } ol.steps > li::after { left: 17px; top: 40px; } }
+.tip { margin-top: 12px; padding: 12px 14px; border-left: 3px solid var(--cyan); background: var(--cyan-soft); border-radius: 0 10px 10px 0; font-size: .9rem; color: var(--ink); max-width: 46em; }
+.warn { border-left-color: var(--gold); background: var(--gold-soft); }
+
+/* Code blocks */
+.code { position: relative; background: var(--code-bg); color: var(--code-ink); border-radius: 12px; padding: 16px 18px; margin-top: 12px; font-size: .86rem; line-height: 1.7; max-width: 46em; }
+.code pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; padding-right: 64px; }
+.code .c { color: var(--code-dim); }
+.code .p { color: var(--code-hi); user-select: none; }
+.code .ph { color: var(--code-hi); border-bottom: 1px dashed var(--code-hi); }
+.copy { position: absolute; top: 10px; right: 10px; font: 500 .72rem var(--mono); color: var(--code-ink); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); border-radius: 6px; padding: 5px 9px; cursor: pointer; }
+.copy:hover { background: rgba(255,255,255,.16); }
+
+/* Prompts */
+.prompts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.prompts > * { min-width: 0; }
+@media (max-width: 900px) { .prompts { grid-template-columns: 1fr; } }
+.pcard { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; }
+.pcard .when { font: 500 .72rem var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.pcard h3 { font-family: var(--sans); font-size: 1.05rem; margin: 6px 0 4px; }
+.pcard > p { font-size: .9rem; color: var(--ink-2); }
+.pcard .code { max-width: none; margin-top: auto; }
+.pcard > p:last-of-type { margin-bottom: 14px; }
+.badge { display: inline-block; font: 500 .68rem var(--mono); padding: 2px 7px; border-radius: 5px; background: var(--cyan-soft); color: var(--cyan); margin-left: 6px; vertical-align: 1px; text-transform: none; letter-spacing: 0; }
 
 /* Pipeline */
 .pipeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; counter-reset: step; }
 @media (max-width: 900px) { .pipeline { grid-template-columns: 1fr; } }
-.step { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; position: relative; }
-.step::before {
-  counter-increment: step; content: counter(step); font: 600 .8rem var(--mono); color: var(--gold);
-  display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--gold); margin-bottom: 12px;
-}
-.step h3 { font-size: 1.05rem; margin-bottom: 8px; }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+.step::before { counter-increment: step; content: counter(step); font: 600 .8rem var(--mono); color: var(--gold); display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--gold); margin-bottom: 12px; }
+.step h3 { font-family: var(--sans); font-size: 1.02rem; margin-bottom: 8px; }
 .step p { font-size: .9rem; color: var(--ink-2); }
-.step code { font-size: .76rem; }
-.step.llm { border-color: color-mix(in srgb, var(--cyan) 45%, var(--line)); }
+.step.llm { border-color: color-mix(in srgb, var(--cyan) 45%, var(--line)); background: color-mix(in srgb, var(--cyan-soft) 40%, var(--surface)); }
 .legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 18px; font-size: .85rem; color: var(--muted); }
-.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1px solid var(--line); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1px solid var(--line); background: var(--surface); }
 .legend .l-llm { border-color: var(--cyan); background: var(--cyan-soft); }
 
 /* Panel */
@@ -172,88 +200,90 @@ section.alt { background: var(--surface-2); border-top: 1px solid var(--line); b
 .roles { display: grid; gap: 12px; }
 .role-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; display: grid; grid-template-columns: 40px 1fr; gap: 14px; }
 .role-card .ico { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: var(--surface-2); color: var(--ink); }
-.role-card h3 { font-size: 1.02rem; font-family: var(--sans); font-weight: 600; margin-bottom: 4px; }
+.role-card h3 { font-size: 1rem; font-family: var(--sans); margin-bottom: 4px; }
 .role-card p { font-size: .9rem; color: var(--ink-2); }
-table.comp { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; font-size: .93rem; }
-table.comp th, table.comp td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
-table.comp th { font: 500 .75rem var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--surface-2); }
+table.comp { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; font-size: .92rem; }
+table.comp th, table.comp td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.comp th { font: 500 .74rem var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--surface-2); }
 table.comp tr:last-child td { border-bottom: 0; }
 table.comp td:first-child { font-family: var(--mono); white-space: nowrap; }
-.note { margin-top: 16px; padding: 14px 16px; border-left: 3px solid var(--gold); background: var(--gold-soft); border-radius: 0 10px 10px 0; font-size: .92rem; color: var(--ink); }
 
 /* Calibration */
 .cal { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 @media (max-width: 900px) { .cal { grid-template-columns: 1fr; } }
 .cal-card { border-radius: var(--radius); padding: 22px; border: 1px solid var(--line); background: var(--surface); }
-.cal-card .lbl { font: 600 .78rem var(--mono); text-transform: uppercase; letter-spacing: .06em; padding: 3px 9px; border-radius: 6px; display: inline-block; margin-bottom: 12px; }
+.lbl { font: 600 .76rem var(--mono); text-transform: uppercase; letter-spacing: .06em; padding: 3px 9px; border-radius: 6px; display: inline-block; margin-bottom: 12px; }
 .cal-card p { font-size: .93rem; color: var(--ink-2); }
 .cal-card .ex { margin-top: 12px; font-size: .85rem; color: var(--muted); font-style: italic; }
-.rules { margin-top: 28px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 40px; padding: 0; list-style: none; }
-@media (max-width: 760px) { .rules { grid-template-columns: 1fr; } }
-.rules li { padding-left: 28px; position: relative; font-size: .95rem; color: var(--ink-2); }
-.rules li::before { content: "→"; position: absolute; left: 0; color: var(--gold); font-family: var(--mono); }
-.rules b { color: var(--ink); font-weight: 600; }
+.t-block { background: var(--red-soft); color: var(--red); }
+.t-ess { background: var(--gold-soft); color: var(--gold); }
+.t-opt { background: var(--green-soft); color: var(--green); }
 
-/* Audit */
+/* Audit and axes */
 .audit { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 @media (max-width: 900px) { .audit { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 600px) { .audit { grid-template-columns: 1fr; } }
 .a-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
-.a-card h3 { font-family: var(--sans); font-weight: 600; font-size: 1rem; margin: 10px 0 6px; }
+.a-card h3 { font-family: var(--sans); font-size: 1rem; margin-bottom: 6px; }
 .a-card p { font-size: .9rem; color: var(--ink-2); }
-.a-card svg { color: var(--cyan); }
-
-/* Axes */
-.axes { display: grid; grid-template-columns: .8fr 1.3fr 1.2fr; gap: 14px; }
+.axes { display: grid; grid-template-columns: .8fr 1.3fr 1.2fr; gap: 14px; margin-top: 30px; }
 @media (max-width: 900px) { .axes { grid-template-columns: 1fr; } }
 .axis { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
-.axis .n { font-family: var(--serif); font-size: 2.6rem; line-height: 1; color: var(--gold); }
-.axis h3 { margin: 6px 0 14px; font-family: var(--sans); font-weight: 600; font-size: 1rem; }
+.axis .n { font-family: var(--serif); font-size: 2.4rem; line-height: 1; color: var(--gold); }
+.axis h3 { margin: 6px 0 12px; font-family: var(--sans); font-size: 1rem; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chips span { font-size: .8rem; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); background: var(--bg); }
-.product { text-align: center; margin-top: 22px; font-family: var(--mono); color: var(--muted); font-size: .92rem; }
-.product b { color: var(--ink); font-size: 1.05rem; }
+.chips span { font-size: .79rem; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); background: var(--bg); }
 
 /* Outputs */
-.files { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 28px; }
-@media (max-width: 760px) { .files { grid-template-columns: 1fr; } }
-.file { display: grid; grid-template-columns: minmax(0, 15em) 1fr; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: .92rem; }
+.out { display: grid; grid-template-columns: .9fr 1.1fr; gap: 40px; align-items: start; }
+.out > * { min-width: 0; }
+@media (max-width: 900px) { .out { grid-template-columns: 1fr; } }
+.report { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px; font-size: .9rem; }
+.report .rhead { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 12px; }
+.report .rhead b { font-family: var(--serif); font-size: 1.05rem; font-weight: 600; }
+.report .rhead small { font: .72rem var(--mono); color: var(--muted); }
+.rev { display: grid; grid-template-columns: 62px 1fr auto; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px dashed var(--line); }
+.rev code { background: none; padding: 0; font-weight: 500; }
+.rev .role { color: var(--ink-2); font-size: .85rem; }
+.verdict { font: 500 .72rem var(--mono); padding: 3px 8px; border-radius: 6px; background: var(--gold-soft); color: var(--gold); white-space: nowrap; }
+.tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+.tier { border-radius: 10px; padding: 10px; text-align: center; }
+.tier b { display: block; font-family: var(--serif); font-size: 1.5rem; line-height: 1; }
+.tier span { font: .68rem var(--mono); text-transform: uppercase; letter-spacing: .05em; }
+.report .foot { margin-top: 12px; font: .72rem var(--mono); color: var(--muted); }
+.file { display: grid; grid-template-columns: minmax(0, 15em) 1fr; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: .91rem; }
 .file code { background: none; padding: 0; color: var(--ink); word-break: break-all; }
 .file span { color: var(--ink-2); }
-@media (max-width: 600px) { .file { grid-template-columns: 1fr; gap: 4px; } }
+.file.key code { color: var(--gold); font-weight: 500; }
+@media (max-width: 600px) { .file { grid-template-columns: 1fr; gap: 3px; } }
 
-/* Install */
-.tabs { display: flex; gap: 6px; margin-bottom: 0; flex-wrap: wrap; }
+/* FAQ */
+.faq { display: grid; gap: 10px; max-width: 52em; }
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 0 18px; }
+summary { cursor: pointer; padding: 15px 0; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; font: 500 1.2rem var(--mono); color: var(--gold); line-height: 1.2; }
+details[open] summary::after { content: "–"; }
+details > div { padding: 0 0 16px; color: var(--ink-2); font-size: .94rem; }
+details .code { margin-top: 10px; }
+
+/* Advanced install */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .tab { font: 500 .85rem var(--sans); padding: 9px 16px; border: 1px solid var(--line); border-bottom: 0; border-radius: 10px 10px 0 0; background: var(--surface-2); color: var(--ink-2); cursor: pointer; }
 .tab[aria-selected="true"] { background: var(--code-bg); color: var(--code-ink); border-color: var(--code-bg); }
 .panel { display: none; }
 .panel.on { display: block; }
-.code {
-  position: relative; background: var(--code-bg); color: var(--code-ink); border-radius: 0 var(--radius) var(--radius) var(--radius);
-  padding: 22px 22px; font-size: .88rem; line-height: 1.7; overflow-x: auto;
-}
-.code pre { margin: 0; white-space: pre; }
-.code .c { color: #8c95b8; }
-.code .p { color: #f2b25c; user-select: none; }
-.copy {
-  position: absolute; top: 12px; right: 12px; font: 500 .72rem var(--mono); color: var(--code-ink); background: rgba(255,255,255,.08);
-  border: 1px solid rgba(255,255,255,.16); border-radius: 6px; padding: 5px 9px; cursor: pointer;
-}
-.copy:hover { background: rgba(255,255,255,.16); }
-.req { margin-top: 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; font-size: .9rem; color: var(--ink-2); }
-@media (max-width: 760px) { .req { grid-template-columns: 1fr; } }
-.req div { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
-.req b { color: var(--ink); display: block; margin-bottom: 4px; font-weight: 600; }
+.panel .code { margin-top: 0; border-radius: 0 12px 12px 12px; max-width: none; }
 
 /* Responsible use */
-.resp { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.resp { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
 @media (max-width: 900px) { .resp { grid-template-columns: 1fr; } }
 .resp div { border-top: 2px solid var(--ink); padding-top: 14px; }
-.resp h3 { font-family: var(--sans); font-weight: 600; font-size: 1rem; margin-bottom: 6px; }
+.resp h3 { font-family: var(--sans); font-size: 1rem; margin-bottom: 6px; }
 .resp p { font-size: .92rem; color: var(--ink-2); }
 
 footer { padding: 44px 0 56px; border-top: 1px solid var(--line); font-size: .9rem; color: var(--muted); }
-footer .wrap { display: flex; flex-wrap: wrap; gap: 24px; justify-content: space-between; align-items: flex-start; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 24px; justify-content: space-between; }
 footer b { color: var(--ink); font-weight: 600; }
 footer a { color: var(--ink-2); }
 </style>
@@ -262,16 +292,18 @@ footer a { color: var(--ink-2); }
 
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="#"><img src="assets/logo-180.png" alt="" width="32" height="32"><span>academic-peer-review</span></a>
+    <a class="brand" href="#"><img src="assets/logo-180.png" alt="" width="30" height="30"><span>academic-peer-review</span></a>
     <nav class="links">
+      <a href="#guia"><span lang="pt">Guia passo a passo</span><span lang="en">Step-by-step guide</span><span lang="es">Guía paso a paso</span></a>
+      <a href="#prompts"><span lang="pt">Prompts prontos</span><span lang="en">Ready prompts</span><span lang="es">Prompts listos</span></a>
       <a href="#como"><span lang="pt">Como funciona</span><span lang="en">How it works</span><span lang="es">Cómo funciona</span></a>
-      <a href="#painel"><span lang="pt">Painel</span><span lang="en">Panel</span><span lang="es">Panel</span></a>
-      <a href="#auditoria"><span lang="pt">Auditoria</span><span lang="en">Audit</span><span lang="es">Auditoría</span></a>
-      <a href="#instalar"><span lang="pt">Instalar</span><span lang="en">Install</span><span lang="es">Instalar</span></a>
+      <a href="#faq"><span lang="pt">Dúvidas</span><span lang="en">FAQ</span><span lang="es">Preguntas</span></a>
       <a href="https://github.com/LaBiOmicS/academic-peer-review">GitHub</a>
     </nav>
     <div class="toggles">
-      <div class="lang-switch" role="group" aria-label="Language"><button class="chip-btn" type="button" data-set-lang="pt">PT</button><button class="chip-btn" type="button" data-set-lang="en">EN</button><button class="chip-btn" type="button" data-set-lang="es">ES</button></div>
+      <div class="seg" role="group" aria-label="Language">
+        <button type="button" data-set="lang" data-val="pt">PT</button><button type="button" data-set="lang" data-val="en">EN</button><button type="button" data-set="lang" data-val="es">ES</button>
+      </div>
       <button class="chip-btn" id="theme-btn" type="button" aria-label="Toggle dark mode">◐</button>
     </div>
   </div>
@@ -283,234 +315,46 @@ footer a { color: var(--ink-2); }
     <div>
       <div class="eyebrow"><span lang="pt">Plugin para Claude Code e Antigravity</span><span lang="en">Plugin for Claude Code and Antigravity</span><span lang="es">Plugin para Claude Code y Antigravity</span></div>
       <h1 lang="pt">Auditoria <em>antes</em> da opinião.</h1>
-      <h1 lang="en">Audit <em>before</em> opinion.</h1><h1 lang="es">Auditoría <em>antes</em> que opinión.</h1>
-      <p class="lede" lang="pt">Um painel de pareceristas independentes, cada um com um papel distinto, avalia o seu manuscrito depois de uma auditoria determinística de estatística, citações, dados, uso de IA e escopo do periódico. O resultado é uma metarrevisão editorial com severidade calibrada e um relatório em PDF, pronto para um parecerista humano revisar e assinar.</p>
-      <p class="lede" lang="en">A panel of independent reviewers, each with a distinct role, evaluates your manuscript after a deterministic audit of statistics, citations, data, AI use and journal scope. The result is a calibrated editorial meta-review and a PDF report, ready for a human referee to check and sign.</p><p class="lede" lang="es">Un panel de revisores independientes, cada uno con un rol distinto, evalúa su manuscrito después de una auditoría determinista de la estadística, las citas, los datos, el uso de IA y el alcance de la revista. El resultado es una metarrevisión editorial con severidad calibrada y un informe en PDF, listo para que un revisor humano lo verifique y lo firme.</p>
+      <h1 lang="en">Audit <em>before</em> opinion.</h1>
+      <h1 lang="es">Auditoría <em>antes</em> que opinión.</h1>
+      <p class="lede" lang="pt">Uma revisão por pares completa do seu manuscrito: auditoria automática de estatística, citações, dados e escopo do periódico, pareceres de um painel de revisores independentes e uma metarrevisão editorial em PDF. Serve como rascunho para o parecerista ou como uma rodada de revisão para o próprio autor melhorar o artigo antes de submeter. Não é preciso saber programar.</p>
+      <p class="lede" lang="en">A full peer review of your manuscript: an automatic audit of statistics, citations, data and journal scope, reports from a panel of independent reviewers and an editorial meta-review as a PDF. Use it as a draft for the referee, or as a review round for authors to improve their paper before submission. No programming needed.</p>
+      <p class="lede" lang="es">Una revisión por pares completa de su manuscrito: auditoría automática de la estadística, las citas, los datos y el alcance de la revista, dictámenes de un panel de revisores independientes y una metarrevisión editorial en PDF. Sirve como borrador para el revisor o como una ronda de revisión para que el propio autor mejore su artículo antes de enviarlo. No hace falta saber programar.</p>
       <div class="cta">
-        <a class="btn primary" href="#instalar"><span lang="pt">Instalar</span><span lang="en">Install</span><span lang="es">Instalar</span></a>
-        <a class="btn ghost" href="https://github.com/LaBiOmicS/academic-peer-review">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-          <span lang="pt">Código no GitHub</span><span lang="en">Source on GitHub</span><span lang="es">Código en GitHub</span>
-        </a>
+        <a class="btn primary" href="#guia"><span lang="pt">Começar pelo guia</span><span lang="en">Start with the guide</span><span lang="es">Empezar por la guía</span> →</a>
+        <a class="btn ghost" href="#prompts"><span lang="pt">Ver prompts prontos</span><span lang="en">See ready prompts</span><span lang="es">Ver prompts listos</span></a>
       </div>
-      <div class="meta-row">
-        <span class="tag">v1.2.0</span><span class="tag">MIT</span><span class="tag">Python 3.10+</span><span class="tag">PT · EN · ES</span>
-      </div>
+      <div class="meta-row"><span class="tag">v1.2.0</span><span class="tag">MIT</span><span class="tag">Windows · macOS · Linux</span><span class="tag">PT · EN · ES</span></div>
     </div>
-
-    <aside class="report" aria-label="Exemplo de resumo do relatório">
-      <div class="rhead"><b lang="pt">Metarrevisão editorial</b><b lang="en">Editorial meta-review</b><b lang="es">Metarrevisión editorial</b><small lang="pt">exemplo ilustrativo</small><small lang="en">illustrative example</small><small lang="es">ejemplo ilustrativo</small></div>
-      <div class="rev"><code>alfa</code><span class="role" lang="pt">reprodutibilidade e FAIR</span><span class="role" lang="en">reproducibility &amp; FAIR</span><span class="role" lang="es">reproducibilidad y FAIR</span><span class="verdict">Major revision</span></div>
-      <div class="rev"><code>beta</code><span class="role" lang="pt">métodos e estatística</span><span class="role" lang="en">methods &amp; statistics</span><span class="role" lang="es">métodos y estadística</span><span class="verdict">Major revision</span></div>
-      <div class="rev"><code>gamma</code><span class="role" lang="pt">advogado do autor</span><span class="role" lang="en">author advocate</span><span class="role" lang="es">abogado del autor</span><span class="verdict">Minor revision</span></div>
-      <div class="rev"><code>delta</code><span class="role" lang="pt">crítico red-team</span><span class="role" lang="en">red-team critic</span><span class="role" lang="es">crítico red-team</span><span class="verdict">Major revision</span></div>
-      <div class="rev"><code>epsilon</code><span class="role" lang="pt">especialista de domínio</span><span class="role" lang="en">domain reviewer</span><span class="role" lang="es">revisor de dominio</span><span class="verdict">Major revision</span></div>
-      <div class="tiers">
-        <div class="tier t-block"><b>1</b><span lang="pt">bloqueante</span><span lang="en">blocking</span><span lang="es">bloqueante</span></div>
-        <div class="tier t-ess"><b>7</b><span lang="pt">essenciais</span><span lang="en">essential</span><span lang="es">esenciales</span></div>
-        <div class="tier t-opt"><b>4</b><span lang="pt">opcionais</span><span lang="en">optional</span><span lang="es">opcionales</span></div>
-      </div>
-      <div class="foot" lang="pt">✓ todos os DOIs resolvidos · 0 retratações · sem conteúdo oculto</div>
-      <div class="foot" lang="en">✓ all DOIs resolved · 0 retractions · no hidden content</div><div class="foot" lang="es">✓ todos los DOI resueltos · 0 retractaciones · sin contenido oculto</div>
-    </aside>
-  </div>
-</section>
-
-<section id="como" class="alt">
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="eyebrow"><span lang="pt">Como funciona</span><span lang="en">How it works</span><span lang="es">Cómo funciona</span></div>
-      <h2 lang="pt">Cinco etapas, do arquivo ao parecer.</h2>
-      <h2 lang="en">Five steps, from file to report.</h2><h2 lang="es">Cinco etapas, del archivo al dictamen.</h2>
-      <p lang="pt">As etapas de extração, auditoria e compilação são determinísticas e testadas. Os modelos de linguagem entram só onde o julgamento é necessário: nos pareceres e na metarrevisão.</p>
-      <p lang="en">Extraction, audit and compilation are deterministic and tested. Language models come in only where judgement is needed: the reviews and the meta-review.</p><p lang="es">La extracción, la auditoría y la compilación son deterministas y están probadas. Los modelos de lenguaje intervienen solo donde hace falta juicio: en los dictámenes y en la metarrevisión.</p>
-    </div>
-    <div class="pipeline">
-      <div class="step">
-        <h3 lang="pt">Extração</h3><h3 lang="en">Extraction</h3><h3 lang="es">Extracción</h3>
-        <p lang="pt">PDF, DOCX, LaTeX, Markdown ou HTML. Varre conteúdo oculto e classifica o manuscrito em 3 eixos.</p>
-        <p lang="en">PDF, DOCX, LaTeX, Markdown or HTML. Scans for hidden content and classifies the manuscript on 3 axes.</p><p lang="es">PDF, DOCX, LaTeX, Markdown o HTML. Busca contenido oculto y clasifica el manuscrito en 3 ejes.</p>
-      </div>
-      <div class="step">
-        <h3 lang="pt">Auditoria</h3><h3 lang="en">Audit</h3><h3 lang="es">Auditoría</h3>
-        <p lang="pt"><code>statcheck</code>, checagens do perfil, FAIR, uso de IA, DOIs e retratações, escopo do periódico.</p>
-        <p lang="en"><code>statcheck</code>, profile checks, FAIR, AI use, DOIs and retractions, journal scope.</p><p lang="es"><code>statcheck</code>, controles del perfil, FAIR, uso de IA, DOI y retractaciones, alcance de la revista.</p>
-      </div>
-      <div class="step llm">
-        <h3 lang="pt">Painel</h3><h3 lang="en">Panel</h3><h3 lang="es">Panel</h3>
-        <p lang="pt">3 a 8 pareceristas em paralelo, cada um com papel, semente e lente próprios. Ninguém lê o parecer dos outros.</p>
-        <p lang="en">3 to 8 reviewers in parallel, each with its own role, seed and lens. None reads the others' reports.</p><p lang="es">De 3 a 8 revisores en paralelo, cada uno con su propio rol, semilla y lente. Ninguno lee los dictámenes de los demás.</p>
-      </div>
-      <div class="step llm">
-        <h3 lang="pt">Metarrevisão</h3><h3 lang="en">Meta-review</h3><h3 lang="es">Metarrevisión</h3>
-        <p lang="pt">Cada bloqueante é verificado contra o texto antes de entrar no roteiro de correções em três níveis.</p>
-        <p lang="en">Every blocking concern is checked against the text before it enters the three-tier revision roadmap.</p><p lang="es">Cada punto bloqueante se contrasta con el texto antes de entrar en la hoja de ruta de correcciones en tres niveles.</p>
-      </div>
-      <div class="step">
-        <h3 lang="pt">Compilação</h3><h3 lang="en">Compilation</h3><h3 lang="es">Compilación</h3>
-        <p lang="pt">Confere as citações dos pareceristas e o contrato de severidade; gera a matriz, a carta aos autores e o PDF.</p>
-        <p lang="en">Checks reviewer citations and the severity contract; writes the matrix, the author letter and the PDF.</p><p lang="es">Comprueba las citas de los revisores y el contrato de severidad; genera la matriz, la carta a los autores y el PDF.</p>
-      </div>
-    </div>
-    <div class="legend">
-      <span><i></i><span lang="pt">determinístico (Python)</span><span lang="en">deterministic (Python)</span><span lang="es">determinista (Python)</span></span>
-      <span><i class="l-llm"></i><span lang="pt">modelo de linguagem</span><span lang="en">language model</span><span lang="es">modelo de lenguaje</span></span>
-    </div>
-  </div>
-</section>
-
-<section id="painel">
-  <div class="wrap grid-2">
-    <div>
-      <div class="sec-head" style="margin-bottom:24px">
-        <div class="eyebrow"><span lang="pt">O painel</span><span lang="en">The panel</span><span lang="es">El panel</span></div>
-        <h2 lang="pt">Papéis distintos, não cópias do mesmo parecer.</h2>
-        <h2 lang="en">Distinct roles, not copies of one review.</h2><h2 lang="es">Roles distintos, no copias del mismo dictamen.</h2>
-        <p lang="pt">Os papéis são preenchidos por prioridade e sorteados entre os codinomes gregos, para que a letra não revele o papel. Cada parecerista recebe uma semente que define sua lente de análise e sua postura.</p>
-        <p lang="en">Roles are filled by priority and shuffled across Greek codenames, so a letter does not reveal its role. Each reviewer gets a seed that sets its analytical lens and stance.</p><p lang="es">Los roles se asignan por prioridad y se barajan entre nombres en clave griegos, de modo que la letra no revela el rol. Cada revisor recibe una semilla que define su lente analítica y su postura.</p>
-      </div>
-      <table class="comp">
-        <thead><tr><th lang="pt">Pareceristas</th><th lang="en">Reviewers</th><th lang="es">Revisores</th><th lang="pt">Composição</th><th lang="en">Panel</th><th lang="es">Composición</th></tr></thead>
-        <tbody>
-          <tr><td>3</td><td><span lang="pt">red-team, advogado do autor, métodos e estatística</span><span lang="en">red-team, author advocate, methods &amp; statistics</span><span lang="es">red-team, abogado del autor, métodos y estadística</span></td></tr>
-          <tr><td>4</td><td><span lang="pt">+ reprodutibilidade, ética e FAIR</span><span lang="en">+ reproducibility, ethics &amp; FAIR</span><span lang="es">+ reproducibilidad, ética y FAIR</span></td></tr>
-          <tr><td>5 <span lang="pt">(padrão)</span><span lang="en">(default)</span><span lang="es">(por defecto)</span></td><td><span lang="pt">+ especialista de domínio</span><span lang="en">+ domain reviewer</span><span lang="es">+ revisor de dominio</span></td></tr>
-          <tr><td>6–8</td><td><span lang="pt">+ especialistas de domínio adicionais</span><span lang="en">+ further domain reviewers</span><span lang="es">+ otros revisores de dominio</span></td></tr>
-        </tbody>
-      </table>
-      <div class="note" lang="pt"><b>Painel com modelos misturados.</b> Pareceristas no mesmo modelo compartilham os mesmos pontos cegos. Com <code>panel_models=claude:opus,agy,claude:sonnet</code>, cada um roda num modelo, e só a concordância entre modelos diferentes ganha algum peso.</div>
-      <div class="note" lang="en"><b>Mixed-model panels.</b> Reviewers on one model share its blind spots. With <code>panel_models=claude:opus,agy,claude:sonnet</code> each runs on its own model, and only agreement across models carries any weight.</div><div class="note" lang="es"><b>Paneles con varios modelos.</b> Los revisores que usan el mismo modelo comparten sus puntos ciegos. Con <code>panel_models=claude:opus,agy,claude:sonnet</code>, cada uno se ejecuta en su propio modelo, y solo el acuerdo entre modelos distintos tiene algún peso.</div>
-    </div>
-    <div class="roles">
-      <div class="role-card">
-        <div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg></div>
-        <div><h3 lang="pt">Crítico red-team</h3><h3 lang="en">Red-team critic</h3><h3 lang="es">Crítico red-team</h3>
-        <p lang="pt">Procura a falha que derruba a conclusão principal, num eixo de ataque adaptado à área e ao tipo de artigo.</p>
-        <p lang="en">Looks for the flaw that brings down the main conclusion, along an attack axis adapted to the field and article type.</p><p lang="es">Busca el fallo que derriba la conclusión principal, siguiendo un eje de ataque adaptado al área y al tipo de artículo.</p></div>
-      </div>
-      <div class="role-card">
-        <div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></div>
-        <div><h3 lang="pt">Advogado do autor</h3><h3 lang="en">Author advocate</h3><h3 lang="es">Abogado del autor</h3>
-        <p lang="pt">Contrapeso do red-team: mostra, com citação, o que o texto já resolve e barra exigências desproporcionais.</p>
-        <p lang="en">The red-team's counterweight: shows, with quotes, what the text already addresses and blocks disproportionate demands.</p><p lang="es">El contrapeso del red-team: muestra, con citas, lo que el texto ya resuelve y frena las exigencias desproporcionadas.</p></div>
-      </div>
-      <div class="role-card">
-        <div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div>
-        <div><h3 lang="pt">Métodos e estatística</h3><h3 lang="en">Methods &amp; statistics</h3><h3 lang="es">Métodos y estadística</h3>
-        <p lang="pt">Desenho, validade dos indicadores, testes e inferência, segundo a microrrubrica do perfil do manuscrito.</p>
-        <p lang="en">Design, indicator validity, tests and inference, following the manuscript profile's micro-rubric.</p><p lang="es">Diseño, validez de los indicadores, pruebas e inferencia, según la microrrúbrica del perfil del manuscrito.</p></div>
-      </div>
-      <div class="role-card">
-        <div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h10"/><circle cx="19" cy="17" r="2.5"/></svg></div>
-        <div><h3 lang="pt">Reprodutibilidade, ética e FAIR</h3><h3 lang="en">Reproducibility, ethics &amp; FAIR</h3><h3 lang="es">Reproducibilidad, ética y FAIR</h3>
-        <p lang="pt">Confere números entre texto e tabelas, dados e código depositados, declarações e diretrizes de relato.</p>
-        <p lang="en">Cross-checks numbers between text and tables, deposited data and code, declarations and reporting guidelines.</p><p lang="es">Contrasta las cifras entre el texto y las tablas, los datos y el código depositados, las declaraciones y las guías de notificación.</p></div>
-      </div>
-      <div class="role-card">
-        <div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5V5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M8 7h7M8 11h5"/></svg></div>
-        <div><h3 lang="pt">Especialista de domínio</h3><h3 lang="en">Domain reviewer</h3><h3 lang="es">Revisor de dominio</h3>
-        <p lang="pt">Mérito na área: novidade, literatura relevante (com identificadores verificáveis) e adequação ao periódico.</p>
-        <p lang="en">Field-specific merit: novelty, relevant literature (with verifiable identifiers) and journal fit.</p><p lang="es">Mérito en el área: originalidad, literatura relevante (con identificadores verificables) y adecuación a la revista.</p></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="calibracao" class="alt">
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="eyebrow"><span lang="pt">Calibração</span><span lang="en">Calibration</span><span lang="es">Calibración</span></div>
-      <h2 lang="pt">Severidade proporcional, não uma lista de exigências.</h2>
-      <h2 lang="en">Proportionate severity, not a wish list.</h2><h2 lang="es">Severidad proporcional, no una lista de deseos.</h2>
-      <p lang="pt">Cada preocupação maior recebe um nível. O compilador confere o contrato e avisa quando ele não é cumprido.</p>
-      <p lang="en">Every major concern carries a tier. The compiler checks the contract and warns when it is broken.</p><p lang="es">Cada crítica principal tiene un nivel. El compilador verifica el contrato y avisa cuando no se cumple.</p>
-    </div>
-    <div class="cal">
-      <div class="cal-card">
-        <span class="lbl t-block" lang="pt">Bloqueante</span><span class="lbl t-block" lang="en">Blocking</span><span class="lbl t-block" lang="es">Bloqueante</span>
-        <p lang="pt">Uma conclusão publicada não se sustenta sem a correção. No máximo 5 por parecer, cada um com a frase em jogo citada.</p>
-        <p lang="en">A stated conclusion fails without the fix. At most 5 per report, each quoting the sentence at stake.</p><p lang="es">Una conclusión declarada no se sostiene sin la corrección. Como máximo 5 por dictamen, cada uno citando la frase en juego.</p>
-        <p class="ex" lang="pt">Ex.: tendência de métodos inferida de palavras-chave atribuídas por indexadores.</p>
-        <p class="ex" lang="en">E.g. a method trend inferred from indexer-assigned keywords.</p><p class="ex" lang="es">Ej.: una tendencia de métodos inferida de palabras clave asignadas por los indexadores.</p>
-      </div>
-      <div class="cal-card">
-        <span class="lbl t-ess" lang="pt">Essencial</span><span class="lbl t-ess" lang="en">Essential</span><span class="lbl t-ess" lang="es">Esencial</span>
-        <p lang="pt">Relato, transparência e declarações no padrão do tipo de artigo.</p>
-        <p lang="en">Reporting, transparency and declarations at the standard of the article type.</p><p lang="es">Notificación, transparencia y declaraciones al nivel exigido para el tipo de artículo.</p>
-        <p class="ex" lang="pt">Ex.: string de busca só num protocolo externo; regra de contagem por país não declarada.</p>
-        <p class="ex" lang="en">E.g. search string only in an external protocol; undeclared country counting rule.</p><p class="ex" lang="es">Ej.: cadena de búsqueda solo en un protocolo externo; regla de conteo por país no declarada.</p>
-      </div>
-      <div class="cal-card">
-        <span class="lbl t-opt" lang="pt">Opcional</span><span class="lbl t-opt" lang="en">Optional</span><span class="lbl t-opt" lang="es">Opcional</span>
-        <p lang="pt">Ampliações de escopo e análises novas que os autores podem recusar com uma justificativa.</p>
-        <p lang="en">Scope expansions and new analyses the authors may decline with a one-line justification.</p><p lang="es">Ampliaciones de alcance y análisis nuevos que los autores pueden rechazar con una justificación de una línea.</p>
-        <p class="ex" lang="pt">Ex.: incluir mais bases de dados ou outro idioma.</p>
-        <p class="ex" lang="en">E.g. adding databases or another language.</p><p class="ex" lang="es">Ej.: añadir bases de datos u otro idioma.</p>
-      </div>
-    </div>
-    <ul class="rules" lang="pt">
-      <li><b>Concordância não é evidência.</b> Pareceristas no mesmo modelo concordam por construção; o que conta é a verificação contra o texto.</li>
-      <li><b>Direção do viés conferida.</b> Um ano incompleto subconta, não infla; o parecerista confere antes de acusar.</li>
-      <li><b>A lente é uma hipótese.</b> Se o manuscrito não tem a falha que a lente sugere, o parecerista diz isso e segue para o que encontrou.</li>
-      <li><b>Números da auditoria vêm da auditoria.</b> O compilador insere os valores e avisa quando a metarrevisão os contradiz.</li>
-    </ul>
-    <ul class="rules" lang="en">
-      <li><b>Agreement is not evidence.</b> Reviewers on one model agree by construction; what counts is verification against the text.</li>
-      <li><b>Bias direction is checked.</b> An incomplete year undercounts, it does not inflate; reviewers check before alleging.</li>
-      <li><b>A lens is a hypothesis.</b> If the paper does not show the failure a lens suggests, the reviewer says so and moves on.</li>
-      <li><b>Audit figures come from the audit.</b> The compiler inserts them and warns when the meta-review contradicts them.</li>
-    </ul><ul class="rules" lang="es">
-      <li><b>El acuerdo no es evidencia.</b> Los revisores que usan el mismo modelo coinciden por construcción; lo que cuenta es la verificación contra el texto.</li>
-      <li><b>Se comprueba la dirección del sesgo.</b> Un año incompleto subestima el recuento, no lo infla; el revisor lo comprueba antes de alegarlo.</li>
-      <li><b>La lente es una hipótesis.</b> Si el manuscrito no presenta el fallo que sugiere la lente, el revisor lo dice y sigue con lo que encontró.</li>
-      <li><b>Las cifras de la auditoría vienen de la auditoría.</b> El compilador las inserta y avisa cuando la metarrevisión las contradice.</li>
-    </ul>
-  </div>
-</section>
-
-<section id="auditoria">
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="eyebrow"><span lang="pt">Auditoria determinística</span><span lang="en">Deterministic audit</span><span lang="es">Auditoría determinista</span></div>
-      <h2 lang="pt">O que pode ser verificado é verificado, não opinado.</h2>
-      <h2 lang="en">What can be checked is checked, not opined on.</h2><h2 lang="es">Lo que se puede verificar se verifica, no se opina.</h2>
-    </div>
-    <div class="audit">
-      <div class="a-card">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 19L19 5M7 5h.01M17 19h.01"/><circle cx="7" cy="5" r="2"/><circle cx="17" cy="19" r="2"/></svg>
-        <h3>statcheck</h3>
-        <p lang="pt">Recalcula valores-p a partir de t, F, r, χ² e z relatados e aponta inconsistências e valores frágeis.</p>
-        <p lang="en">Recomputes p-values from reported t, F, r, χ² and z, flagging inconsistencies and fragile values.</p><p lang="es">Recalcula valores p a partir de t, F, r, χ² y z notificados, y señala inconsistencias y valores frágiles.</p>
-      </div>
-      <div class="a-card">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.7-1.7"/></svg>
-        <h3 lang="pt">Citações e retratações</h3><h3 lang="en">Citations &amp; retractions</h3><h3 lang="es">Citas y retractaciones</h3>
-        <p lang="pt">DOIs do manuscrito e dos pareceristas conferidos no OpenAlex e no doi.org; arXiv na API do arXiv.</p>
-        <p lang="en">DOIs from the manuscript and the reviewers checked against OpenAlex and doi.org; arXiv IDs against arXiv.</p><p lang="es">Los DOI del manuscrito y de los revisores se contrastan con OpenAlex y doi.org; los identificadores de arXiv, con arXiv.</p>
-      </div>
-      <div class="a-card">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
-        <h3 lang="pt">Dados FAIR</h3><h3 lang="en">FAIR data</h3><h3 lang="es">Datos FAIR</h3>
-        <p lang="pt">Repositórios e identificadores persistentes, declarações evasivas, dependências travadas, sementes, RRIDs.</p>
-        <p lang="en">Repositories and persistent IDs, evasive statements, locked dependencies, seeds, RRIDs.</p><p lang="es">Repositorios e identificadores persistentes, declaraciones evasivas, dependencias fijadas, semillas, RRID.</p>
-      </div>
-      <div class="a-card">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6v6H9z"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/></svg>
-        <h3 lang="pt">IA generativa</h3><h3 lang="en">Generative AI</h3><h3 lang="es">IA generativa</h3>
-        <p lang="pt">Resíduos de chat no texto, coautoria atribuída a IA e declaração de uso (COPE, ICMJE, SciELO).</p>
-        <p lang="en">Leftover chat artifacts, AI co-authorship and AI-use statements (COPE, ICMJE, SciELO).</p><p lang="es">Restos de chat en el texto, coautoría atribuida a la IA y declaraciones de uso de IA (COPE, ICMJE, SciELO).</p>
-      </div>
-      <div class="a-card">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/></svg>
-        <h3 lang="pt">Conteúdo oculto</h3><h3 lang="en">Hidden content</h3><h3 lang="es">Contenido oculto</h3>
-        <p lang="pt">Texto branco, microscópico ou fora da página dirigido a revisores de IA. É denunciado ao editor e nunca decide o veredito.</p>
-        <p lang="en">White, microscopic or off-page text aimed at AI reviewers. It is reported to the editor and never decides the verdict.</p><p lang="es">Texto blanco, microscópico o fuera de página dirigido a revisores de IA. Se informa al editor y nunca decide el veredicto.</p>
-      </div>
-      <div class="a-card">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4h12l4 4v12H4z"/><path d="M8 12h8M8 16h5"/></svg>
-        <h3 lang="pt">Escopo do periódico</h3><h3 lang="en">Journal scope</h3><h3 lang="es">Alcance de la revista</h3>
-        <p lang="pt">Aderência aos tópicos do periódico-alvo (OpenAlex), requisitos formais e risco de <i>desk reject</i>.</p>
-        <p lang="en">Fit with the target journal's topics (OpenAlex), formal requirements and desk-reject risk.</p><p lang="es">Adecuación a los temas de la revista destino (OpenAlex), requisitos formales y riesgo de <i>desk reject</i>.</p>
+    <div class="term" aria-label="Exemplo de uso no terminal">
+      <div class="bar"><i></i><i></i><i></i><span>~/Documentos/revisoes — claude</span></div>
+      <div class="body">
+        <div lang="pt"><span class="u">&gt; Faça uma revisão por pares do arquivo artigo.pdf para a revista PLOS ONE.</span></div>
+        <div lang="en"><span class="u">&gt; Peer review the file paper.pdf for the journal PLOS ONE.</span></div>
+        <div lang="es"><span class="u">&gt; Haz una revisión por pares del archivo articulo.pdf para la revista PLOS ONE.</span></div>
+        <div class="gap"></div>
+        <div lang="pt"><span class="ok">✓</span> Texto extraído · 9.214 palavras · sem conteúdo oculto
+<span class="ok">✓</span> Classificação: Saúde × Artigo original × Observacional
+<span class="ok">✓</span> Auditoria: 41 DOIs conferidos · 0 retratações
+<span class="w">!</span> statcheck: 1 valor-p inconsistente com o teste
+<span class="d">… 5 pareceristas trabalhando em paralelo</span>
+<span class="ok">✓</span> Metarrevisão: Revisão maior · 1 bloqueante · 6 essenciais
+<span class="ok">✓</span> papers/artigo/editorial_peer_review_report.pdf</div>
+        <div lang="en"><span class="ok">✓</span> Text extracted · 9,214 words · no hidden content
+<span class="ok">✓</span> Classified: Health × Original research × Observational
+<span class="ok">✓</span> Audit: 41 DOIs checked · 0 retractions
+<span class="w">!</span> statcheck: 1 p-value inconsistent with its test
+<span class="d">… 5 reviewers working in parallel</span>
+<span class="ok">✓</span> Meta-review: Major revision · 1 blocking · 6 essential
+<span class="ok">✓</span> papers/paper/editorial_peer_review_report.pdf</div>
+        <div lang="es"><span class="ok">✓</span> Texto extraído · 9.214 palabras · sin contenido oculto
+<span class="ok">✓</span> Clasificación: Salud × Artículo original × Observacional
+<span class="ok">✓</span> Auditoría: 41 DOI verificados · 0 retractaciones
+<span class="w">!</span> statcheck: 1 valor p inconsistente con su prueba
+<span class="d">… 5 revisores trabajando en paralelo</span>
+<span class="ok">✓</span> Metarrevisión: Revisión mayor · 1 bloqueante · 6 esenciales
+<span class="ok">✓</span> papers/articulo/editorial_peer_review_report.pdf</div>
+        <div class="cap"><span lang="pt">exemplo ilustrativo, resumido</span><span lang="en">illustrative example, abridged</span><span lang="es">ejemplo ilustrativo, resumido</span></div>
       </div>
     </div>
   </div>
@@ -519,102 +363,556 @@ footer a { color: var(--ink-2); }
 <section class="alt">
   <div class="wrap">
     <div class="sec-head">
-      <div class="eyebrow"><span lang="pt">Classificação</span><span lang="en">Classification</span><span lang="es">Clasificación</span></div>
-      <h2 lang="pt">Cada manuscrito é julgado pelo padrão do seu gênero.</h2>
-      <h2 lang="en">Each manuscript is judged by the standard of its genre.</h2><h2 lang="es">Cada manuscrito se juzga según el estándar de su género.</h2>
-      <p lang="pt">A combinação dos três eixos define a rubrica, as checagens da auditoria e as lentes dos pareceristas. Uma revisão bibliométrica não é cobrada por réplicas biológicas; um ensaio clínico é cobrado por CONSORT.</p>
-      <p lang="en">The three axes together set the rubric, the audit checks and the reviewers' lenses. A bibliometric review is not asked for biological replicates; a clinical trial is held to CONSORT.</p><p lang="es">Los tres ejes juntos definen la rúbrica, los controles de la auditoría y las lentes de los revisores. A una revisión bibliométrica no se le piden réplicas biológicas; a un ensayo clínico se le exige CONSORT.</p>
+      <div class="eyebrow"><span lang="pt">Dois usos</span><span lang="en">Two uses</span><span lang="es">Dos usos</span></div>
+      <h2 lang="pt">Para quem escreve e para quem avalia.</h2>
+      <h2 lang="en">For those who write and those who review.</h2>
+      <h2 lang="es">Para quien escribe y para quien evalúa.</h2>
+    </div>
+    <div class="uses">
+      <div class="use">
+        <div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></div>
+        <h3 lang="pt">Rodada de revisão para o autor</h3><h3 lang="en">A review round for the author</h3><h3 lang="es">Ronda de revisión para el autor</h3>
+        <p lang="pt">Antes de submeter, passe o artigo pelo painel e adeque o texto de forma proativa: corrija o que um parecerista apontaria enquanto ainda há tempo. Como o texto é seu, não há questão de confidencialidade.</p>
+        <p lang="en">Before submitting, run the paper past the panel and adapt it proactively: fix what a referee would raise while there is still time. The text is yours, so confidentiality is not an issue.</p>
+        <p lang="es">Antes de enviar, pase el artículo por el panel y adecúe el texto de forma proactiva: corrija lo que señalaría un revisor mientras aún hay tiempo. Como el texto es suyo, no hay problema de confidencialidad.</p>
+        <ul lang="pt"><li>Lista de correções em três níveis: bloqueante, essencial, opcional</li><li>Conferência de estatística, DOIs, dados e declarações exigidas</li><li>Aderência ao escopo e aos requisitos da revista-alvo</li></ul>
+        <ul lang="en"><li>Three-tier list of fixes: blocking, essential, optional</li><li>Checks of statistics, DOIs, data and required statements</li><li>Fit with the target journal's scope and requirements</li></ul>
+        <ul lang="es"><li>Lista de correcciones en tres niveles: bloqueante, esencial, opcional</li><li>Verificación de estadística, DOI, datos y declaraciones exigidas</li><li>Adecuación al alcance y a los requisitos de la revista destino</li></ul>
+      </div>
+      <div class="use ref">
+        <div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></div>
+        <h3 lang="pt">Rascunho para o parecerista</h3><h3 lang="en">A draft for the referee</h3><h3 lang="es">Borrador para el revisor</h3>
+        <p lang="pt">Para pareceristas, editores e orientadores: um ponto de partida estruturado para verificar, editar e assinar. Use com manuscritos de terceiros só quando a política da revista permitir IA na revisão.</p>
+        <p lang="en">For referees, editors and supervisors: a structured starting point to verify, edit and sign. Use it on other people's manuscripts only when the journal's policy allows AI in peer review.</p>
+        <p lang="es">Para revisores, editores y directores: un punto de partida estructurado para verificar, editar y firmar. Úselo con manuscritos de terceros solo cuando la política de la revista permita IA en la revisión.</p>
+        <ul lang="pt"><li>Pareceres com papéis distintos, incluindo um advogado do autor</li><li>Críticas bloqueantes conferidas contra o texto</li><li>Carta aos autores pronta para editar</li></ul>
+        <ul lang="en"><li>Reports with distinct roles, including an author advocate</li><li>Blocking concerns checked against the text</li><li>Author letter ready to edit</li></ul>
+        <ul lang="es"><li>Dictámenes con roles distintos, incluido un abogado del autor</li><li>Críticas bloqueantes contrastadas con el texto</li><li>Carta a los autores lista para editar</li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ GUIDE -->
+<section id="guia">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow"><span lang="pt">Manual de uso</span><span lang="en">User manual</span><span lang="es">Manual de uso</span></div>
+      <h2 lang="pt">Do zero à primeira revisão, em oito passos.</h2>
+      <h2 lang="en">From zero to your first review, in eight steps.</h2>
+      <h2 lang="es">De cero a su primera revisión, en ocho pasos.</h2>
+      <p lang="pt">Escolha abaixo o seu sistema e a IA que vai usar. O guia mostra só os comandos certos para a sua escolha. Em cada caixa escura, clique em <b>copy</b> e cole no terminal.</p>
+      <p lang="en">Pick your system and the AI you will use below. The guide then shows only the commands for your choice. In each dark box, click <b>copy</b> and paste it into the terminal.</p>
+      <p lang="es">Elija abajo su sistema y la IA que va a usar. La guía muestra solo los comandos de su elección. En cada recuadro oscuro, haga clic en <b>copy</b> y péguelo en la terminal.</p>
+    </div>
+
+    <div class="pickers">
+      <div><label><span lang="pt">Sistema</span><span lang="en">System</span><span lang="es">Sistema</span></label>
+        <div class="seg" role="group" aria-label="Operating system"><button type="button" data-set="os" data-val="win">Windows</button><button type="button" data-set="os" data-val="mac">macOS</button><button type="button" data-set="os" data-val="linux">Linux</button></div></div>
+      <div><label>IA</label>
+        <div class="seg" role="group" aria-label="AI"><button type="button" data-set="ai" data-val="claude">Claude Code</button><button type="button" data-set="ai" data-val="agy">Antigravity</button></div></div>
+    </div>
+
+    <div class="needs">
+      <div><b lang="pt">Computador</b><b lang="en">Computer</b><b lang="es">Computadora</b>
+        <span lang="pt">Windows 10 ou 11, macOS 13 ou mais novo, ou Linux (Ubuntu 20.04+), com internet.</span><span lang="en">Windows 10 or 11, macOS 13 or later, or Linux (Ubuntu 20.04+), online.</span><span lang="es">Windows 10 u 11, macOS 13 o posterior, o Linux (Ubuntu 20.04+), con internet.</span></div>
+      <div class="ai-claude"><b lang="pt">Conta</b><b lang="en">Account</b><b lang="es">Cuenta</b>
+        <span lang="pt">Uma assinatura paga do Claude (Pro ou superior). O plano gratuito não inclui o Claude Code.</span><span lang="en">A paid Claude subscription (Pro or higher). The free plan does not include Claude Code.</span><span lang="es">Una suscripción de pago de Claude (Pro o superior). El plan gratuito no incluye Claude Code.</span></div>
+      <div class="ai-agy"><b lang="pt">Conta</b><b lang="en">Account</b><b lang="es">Cuenta</b>
+        <span lang="pt">Uma conta Google com acesso ao Antigravity.</span><span lang="en">A Google account with access to Antigravity.</span><span lang="es">Una cuenta de Google con acceso a Antigravity.</span></div>
+      <div><b lang="pt">Tempo</b><b lang="en">Time</b><b lang="es">Tiempo</b>
+        <span lang="pt">Uns 20 minutos para instalar, uma única vez. Depois, cada revisão leva alguns minutos.</span><span lang="en">About 20 minutes to install, once. After that, each review takes a few minutes.</span><span lang="es">Unos 20 minutos para instalar, una sola vez. Después, cada revisión tarda unos minutos.</span></div>
+      <div><b lang="pt">Manuscrito</b><b lang="en">Manuscript</b><b lang="es">Manuscrito</b>
+        <span lang="pt">Arquivo PDF, Word (.docx), LaTeX, Markdown ou texto. Arquivos .doc antigos: salve como .docx.</span><span lang="en">A PDF, Word (.docx), LaTeX, Markdown or text file. Old .doc files: save as .docx.</span><span lang="es">Archivo PDF, Word (.docx), LaTeX, Markdown o texto. Los .doc antiguos: guárdelos como .docx.</span></div>
+    </div>
+
+    <ol class="steps">
+      <li>
+        <h3 lang="pt">Abra o terminal</h3><h3 lang="en">Open the terminal</h3><h3 lang="es">Abra la terminal</h3>
+        <div class="txt">
+          <p lang="pt">O terminal é uma janela onde você digita comandos. Você vai usá-lo só para colar o que está nas caixas escuras deste guia.</p>
+          <p lang="en">The terminal is a window where you type commands. You will only use it to paste what is in this guide's dark boxes.</p>
+          <p lang="es">La terminal es una ventana donde se escriben comandos. Solo la usará para pegar lo que aparece en los recuadros oscuros de esta guía.</p>
+          <p class="os-win" lang="pt">No Windows, aperte a tecla <kbd>⊞ Win</kbd>, digite <b>PowerShell</b> e abra o programa <b>Windows PowerShell</b>. A linha começa com <code>PS C:\Users\…&gt;</code>.</p>
+          <p class="os-win" lang="en">On Windows, press the <kbd>⊞ Win</kbd> key, type <b>PowerShell</b> and open <b>Windows PowerShell</b>. The line starts with <code>PS C:\Users\…&gt;</code>.</p>
+          <p class="os-win" lang="es">En Windows, pulse la tecla <kbd>⊞ Win</kbd>, escriba <b>PowerShell</b> y abra <b>Windows PowerShell</b>. La línea empieza con <code>PS C:\Users\…&gt;</code>.</p>
+          <p class="os-mac" lang="pt">No Mac, aperte <kbd>⌘ Cmd</kbd> + <kbd>Espaço</kbd>, digite <b>Terminal</b> e aperte <kbd>Enter</kbd>.</p>
+          <p class="os-mac" lang="en">On a Mac, press <kbd>⌘ Cmd</kbd> + <kbd>Space</kbd>, type <b>Terminal</b> and press <kbd>Enter</kbd>.</p>
+          <p class="os-mac" lang="es">En Mac, pulse <kbd>⌘ Cmd</kbd> + <kbd>Espacio</kbd>, escriba <b>Terminal</b> y pulse <kbd>Enter</kbd>.</p>
+          <p class="os-linux" lang="pt">No Linux, aperte <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>T</kbd> ou procure <b>Terminal</b> no menu de aplicativos.</p>
+          <p class="os-linux" lang="en">On Linux, press <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>T</kbd> or look for <b>Terminal</b> in the applications menu.</p>
+          <p class="os-linux" lang="es">En Linux, pulse <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>T</kbd> o busque <b>Terminal</b> en el menú de aplicaciones.</p>
+          <div class="tip" lang="pt"><b>Para colar:</b> <span class="os-win">clique com o botão direito dentro da janela</span><span class="os-mac">use <kbd>⌘ Cmd</kbd> + <kbd>V</kbd></span><span class="os-linux">use <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd></span>. Depois aperte <kbd>Enter</kbd> para executar.</div>
+          <div class="tip" lang="en"><b>To paste:</b> <span class="os-win">right-click inside the window</span><span class="os-mac">use <kbd>⌘ Cmd</kbd> + <kbd>V</kbd></span><span class="os-linux">use <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd></span>. Then press <kbd>Enter</kbd> to run it.</div>
+          <div class="tip" lang="es"><b>Para pegar:</b> <span class="os-win">haga clic derecho dentro de la ventana</span><span class="os-mac">use <kbd>⌘ Cmd</kbd> + <kbd>V</kbd></span><span class="os-linux">use <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd></span>. Luego pulse <kbd>Enter</kbd> para ejecutarlo.</div>
+        </div>
+      </li>
+
+      <li>
+        <h3 lang="pt">Instale o uv</h3><h3 lang="en">Install uv</h3><h3 lang="es">Instale uv</h3>
+        <div class="txt">
+          <p lang="pt">O <b>uv</b> é um programa gratuito que baixa, sozinho, as peças em Python que a ferramenta usa para ler PDFs e conferir estatística. Cole o comando, aperte <kbd>Enter</kbd> e espere terminar.</p>
+          <p lang="en"><b>uv</b> is a free program that fetches, on its own, the Python pieces the tool uses to read PDFs and check statistics. Paste the command, press <kbd>Enter</kbd> and wait until it finishes.</p>
+          <p lang="es"><b>uv</b> es un programa gratuito que descarga por sí solo las piezas de Python que la herramienta usa para leer PDF y verificar la estadística. Pegue el comando, pulse <kbd>Enter</kbd> y espere a que termine.</p>
+          <div class="code os-win"><button class="copy" type="button">copy</button><pre>powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</pre></div>
+          <div class="code os-unix"><button class="copy" type="button">copy</button><pre>curl -LsSf https://astral.sh/uv/install.sh | sh</pre></div>
+          <div class="tip" lang="pt">Ao terminar, <b>feche o terminal e abra outro</b>. Isso vale para todos os passos de instalação.</div>
+          <div class="tip" lang="en">When it finishes, <b>close the terminal and open a new one</b>. This applies to every installation step.</div>
+          <div class="tip" lang="es">Al terminar, <b>cierre la terminal y abra otra</b>. Esto vale para todos los pasos de instalación.</div>
+        </div>
+      </li>
+
+      <li>
+        <h3 class="ai-claude" lang="pt">Instale o Claude Code</h3><h3 class="ai-claude" lang="en">Install Claude Code</h3><h3 class="ai-claude" lang="es">Instale Claude Code</h3>
+        <h3 class="ai-agy" lang="pt">Instale o Antigravity CLI</h3><h3 class="ai-agy" lang="en">Install the Antigravity CLI</h3><h3 class="ai-agy" lang="es">Instale Antigravity CLI</h3>
+        <div class="txt">
+          <p lang="pt">Este é o assistente de IA que vai conduzir a revisão. O instalador não mostra progresso enquanto baixa; espere a linha de comando voltar.</p>
+          <p lang="en">This is the AI assistant that will run the review. The installer shows no progress while it downloads; wait for the prompt to come back.</p>
+          <p lang="es">Este es el asistente de IA que realizará la revisión. El instalador no muestra el progreso mientras descarga; espere a que vuelva la línea de comandos.</p>
+          <div class="code ai-claude os-win"><button class="copy" type="button">copy</button><pre>irm https://claude.ai/install.ps1 | iex</pre></div>
+          <div class="code ai-claude os-unix"><button class="copy" type="button">copy</button><pre>curl -fsSL https://claude.ai/install.sh | bash</pre></div>
+          <div class="code ai-agy os-win"><button class="copy" type="button">copy</button><pre>irm https://antigravity.google/cli/install.ps1 | iex</pre></div>
+          <div class="code ai-agy os-unix"><button class="copy" type="button">copy</button><pre>curl -fsSL https://antigravity.google/cli/install.sh | bash</pre></div>
+          <p lang="pt" style="margin-top:12px">Abra um terminal novo e confira se a instalação deu certo. Deve aparecer um número de versão:</p>
+          <p lang="en" style="margin-top:12px">Open a new terminal and check the installation. It should print a version number:</p>
+          <p lang="es" style="margin-top:12px">Abra una terminal nueva y compruebe la instalación. Debe aparecer un número de versión:</p>
+          <div class="code ai-claude"><button class="copy" type="button">copy</button><pre>claude --version</pre></div>
+          <div class="code ai-agy"><button class="copy" type="button">copy</button><pre>agy --version</pre></div>
+          <div class="tip os-win ai-claude" lang="pt">Recomendado no Windows: instale também o <a href="https://git-scm.com/downloads/win">Git para Windows</a> (aceite as opções padrão). Ele dá ao Claude Code um terminal mais completo.</div>
+          <div class="tip os-win ai-claude" lang="en">Recommended on Windows: also install <a href="https://git-scm.com/downloads/win">Git for Windows</a> (accept the defaults). It gives Claude Code a fuller terminal.</div>
+          <div class="tip os-win ai-claude" lang="es">Recomendado en Windows: instale también <a href="https://git-scm.com/downloads/win">Git para Windows</a> (acepte las opciones predeterminadas). Le da a Claude Code una terminal más completa.</div>
+        </div>
+      </li>
+
+      <li>
+        <h3 lang="pt">Entre na sua conta</h3><h3 lang="en">Sign in</h3><h3 lang="es">Inicie sesión</h3>
+        <div class="txt">
+          <p lang="pt">Digite o comando abaixo. Na primeira vez, o navegador abre para você entrar na sua conta; volte ao terminal quando terminar.</p>
+          <p lang="en">Type the command below. The first time, your browser opens so you can sign in; come back to the terminal when done.</p>
+          <p lang="es">Escriba el comando de abajo. La primera vez se abre el navegador para que inicie sesión; vuelva a la terminal al terminar.</p>
+          <div class="code ai-claude"><button class="copy" type="button">copy</button><pre>claude</pre></div>
+          <div class="code ai-agy"><button class="copy" type="button">copy</button><pre>agy</pre></div>
+          <p class="ai-claude" lang="pt" style="margin-top:12px">Quando aparecer a pergunta sobre confiar na pasta, escolha <b>Yes</b>. Para sair do assistente, digite <code>/exit</code>.</p>
+          <p class="ai-claude" lang="en" style="margin-top:12px">When it asks whether you trust the folder, choose <b>Yes</b>. To leave the assistant, type <code>/exit</code>.</p>
+          <p class="ai-claude" lang="es" style="margin-top:12px">Cuando pregunte si confía en la carpeta, elija <b>Yes</b>. Para salir del asistente, escriba <code>/exit</code>.</p>
+          <p class="ai-agy" lang="pt" style="margin-top:12px">Para sair do assistente, aperte <kbd>Ctrl</kbd> + <kbd>C</kbd> duas vezes.</p>
+          <p class="ai-agy" lang="en" style="margin-top:12px">To leave the assistant, press <kbd>Ctrl</kbd> + <kbd>C</kbd> twice.</p>
+          <p class="ai-agy" lang="es" style="margin-top:12px">Para salir del asistente, pulse <kbd>Ctrl</kbd> + <kbd>C</kbd> dos veces.</p>
+        </div>
+      </li>
+
+      <li>
+        <h3 lang="pt">Instale o plugin</h3><h3 lang="en">Install the plugin</h3><h3 lang="es">Instale el plugin</h3>
+        <div class="txt">
+          <p class="ai-claude" lang="pt">Com o Claude Code aberto (passo 4), cole as duas linhas, <b>uma de cada vez</b>, apertando <kbd>Enter</kbd> depois de cada uma:</p>
+          <p class="ai-claude" lang="en">With Claude Code open (step 4), paste the two lines <b>one at a time</b>, pressing <kbd>Enter</kbd> after each:</p>
+          <p class="ai-claude" lang="es">Con Claude Code abierto (paso 4), pegue las dos líneas <b>una por vez</b>, pulsando <kbd>Enter</kbd> después de cada una:</p>
+          <div class="code ai-claude"><button class="copy" type="button">copy</button><pre><span class="p">&gt; </span>/plugin marketplace add LaBiOmicS/academic-peer-review</pre></div>
+          <div class="code ai-claude"><button class="copy" type="button">copy</button><pre><span class="p">&gt; </span>/plugin install academic-peer-review@labiomics</pre></div>
+          <p class="ai-claude" lang="pt" style="margin-top:12px">Depois digite <code>/exit</code>. O plugin passa a funcionar na próxima vez que você abrir o Claude Code.</p>
+          <p class="ai-claude" lang="en" style="margin-top:12px">Then type <code>/exit</code>. The plugin is active the next time you open Claude Code.</p>
+          <p class="ai-claude" lang="es" style="margin-top:12px">Luego escriba <code>/exit</code>. El plugin funciona la próxima vez que abra Claude Code.</p>
+
+          <p class="ai-agy" lang="pt">Baixe o plugin em <a href="https://github.com/LaBiOmicS/academic-peer-review/archive/refs/tags/v1.2.0.zip">academic-peer-review-1.2.0.zip</a> e extraia o arquivo (clique direito → <b>Extrair tudo</b> no Windows; dois cliques no Mac). Fica uma pasta chamada <code>academic-peer-review-1.2.0</code>.</p>
+          <p class="ai-agy" lang="en">Download the plugin from <a href="https://github.com/LaBiOmicS/academic-peer-review/archive/refs/tags/v1.2.0.zip">academic-peer-review-1.2.0.zip</a> and extract it (right-click → <b>Extract all</b> on Windows; double-click on a Mac). You get a folder named <code>academic-peer-review-1.2.0</code>.</p>
+          <p class="ai-agy" lang="es">Descargue el plugin desde <a href="https://github.com/LaBiOmicS/academic-peer-review/archive/refs/tags/v1.2.0.zip">academic-peer-review-1.2.0.zip</a> y extráigalo (clic derecho → <b>Extraer todo</b> en Windows; doble clic en Mac). Queda una carpeta llamada <code>academic-peer-review-1.2.0</code>.</p>
+          <p class="ai-agy" lang="pt">No terminal (fora do assistente), digite <code>agy plugin install </code> com um espaço no final, <b>arraste a pasta extraída para dentro da janela</b> do terminal e aperte <kbd>Enter</kbd>. Depois ative o plugin:</p>
+          <p class="ai-agy" lang="en">In the terminal (outside the assistant), type <code>agy plugin install </code> with a trailing space, <b>drag the extracted folder into the terminal window</b> and press <kbd>Enter</kbd>. Then enable the plugin:</p>
+          <p class="ai-agy" lang="es">En la terminal (fuera del asistente), escriba <code>agy plugin install </code> con un espacio al final, <b>arrastre la carpeta extraída a la ventana</b> de la terminal y pulse <kbd>Enter</kbd>. Después active el plugin:</p>
+          <div class="code ai-agy"><button class="copy" type="button">copy</button><pre><span class="c"># </span><span class="c" lang="pt">exemplo; o caminho é o da sua pasta</span><span class="c" lang="en">example; the path is your folder's</span><span class="c" lang="es">ejemplo; la ruta es la de su carpeta</span>
+agy plugin install <span class="ph os-win">C:\Users\Ana\Downloads\academic-peer-review-1.2.0</span><span class="ph os-mac">/Users/ana/Downloads/academic-peer-review-1.2.0</span><span class="ph os-linux">/home/ana/Downloads/academic-peer-review-1.2.0</span>
+agy plugin enable academic-peer-review</pre></div>
+        </div>
+      </li>
+
+      <li>
+        <h3 lang="pt">Prepare uma pasta para o manuscrito</h3><h3 lang="en">Prepare a folder for the manuscript</h3><h3 lang="es">Prepare una carpeta para el manuscrito</h3>
+        <div class="txt">
+          <p lang="pt">Crie uma pasta, por exemplo <b>revisoes</b> dentro de <b>Documentos</b>, e coloque nela o arquivo do manuscrito. Prefira um nome de arquivo curto e sem acentos, como <code>artigo.pdf</code>.</p>
+          <p lang="en">Create a folder, for example <b>reviews</b> inside <b>Documents</b>, and put the manuscript file in it. A short file name without accents works best, such as <code>paper.pdf</code>.</p>
+          <p lang="es">Cree una carpeta, por ejemplo <b>revisiones</b> dentro de <b>Documentos</b>, y coloque en ella el archivo del manuscrito. Es mejor un nombre corto y sin tildes, como <code>articulo.pdf</code>.</p>
+          <p lang="pt">No terminal, digite <code>cd </code> (com espaço), <b>arraste a pasta para a janela</b> e aperte <kbd>Enter</kbd>. Assim o terminal "entra" na pasta:</p>
+          <p lang="en">In the terminal, type <code>cd </code> (with a space), <b>drag the folder into the window</b> and press <kbd>Enter</kbd>. The terminal now "enters" the folder:</p>
+          <p lang="es">En la terminal, escriba <code>cd </code> (con espacio), <b>arrastre la carpeta a la ventana</b> y pulse <kbd>Enter</kbd>. Así la terminal "entra" en la carpeta:</p>
+          <div class="code"><button class="copy" type="button">copy</button><pre>cd <span class="ph os-win">C:\Users\Ana\Documents\revisoes</span><span class="ph os-mac">/Users/ana/Documents/revisoes</span><span class="ph os-linux">/home/ana/Documentos/revisoes</span></pre></div>
+        </div>
+      </li>
+
+      <li>
+        <h3 lang="pt">Peça a revisão</h3><h3 lang="en">Ask for the review</h3><h3 lang="es">Pida la revisión</h3>
+        <div class="txt">
+          <p lang="pt">Ainda nessa pasta, abra o assistente e escreva o pedido com as suas palavras, ou use um dos <a href="#prompts">prompts prontos</a>. Troque o nome do arquivo e da revista pelos seus.</p>
+          <p lang="en">Still in that folder, open the assistant and write your request in your own words, or use one of the <a href="#prompts">ready prompts</a>. Replace the file and journal names with yours.</p>
+          <p lang="es">Todavía en esa carpeta, abra el asistente y escriba su pedido con sus palabras, o use uno de los <a href="#prompts">prompts listos</a>. Cambie el nombre del archivo y de la revista por los suyos.</p>
+          <div class="code ai-claude"><button class="copy" type="button">copy</button><pre>claude</pre></div>
+          <div class="code ai-agy"><button class="copy" type="button">copy</button><pre>agy</pre></div>
+          <div class="code" lang="pt"><button class="copy" type="button">copy</button><pre><span class="p">&gt; </span>Faça uma revisão por pares do arquivo <span class="ph">artigo.pdf</span> para a revista <span class="ph">PLOS ONE</span>.</pre></div>
+          <div class="code" lang="en"><button class="copy" type="button">copy</button><pre><span class="p">&gt; </span>Peer review the file <span class="ph">paper.pdf</span> for the journal <span class="ph">PLOS ONE</span>.</pre></div>
+          <div class="code" lang="es"><button class="copy" type="button">copy</button><pre><span class="p">&gt; </span>Haz una revisión por pares del archivo <span class="ph">articulo.pdf</span> para la revista <span class="ph">PLOS ONE</span>.</pre></div>
+          <div class="tip warn" lang="pt"><b>O assistente vai pedir permissão</b> para rodar programas (por exemplo <code>uv run …</code>) e ler arquivos. Isso é esperado: escolha <b>Yes</b>. Para não ser perguntado de novo pelo mesmo tipo de comando, escolha a opção <b>"Yes, and don't ask again"</b>. Deixe a janela aberta até aparecer a mensagem final com o PDF.</div>
+          <div class="tip warn" lang="en"><b>The assistant will ask for permission</b> to run programs (such as <code>uv run …</code>) and read files. This is expected: choose <b>Yes</b>. To stop being asked about the same kind of command, choose <b>"Yes, and don't ask again"</b>. Keep the window open until the final message with the PDF appears.</div>
+          <div class="tip warn" lang="es"><b>El asistente pedirá permiso</b> para ejecutar programas (por ejemplo <code>uv run …</code>) y leer archivos. Es lo esperado: elija <b>Yes</b>. Para que no vuelva a preguntar por el mismo tipo de comando, elija <b>"Yes, and don't ask again"</b>. Deje la ventana abierta hasta que aparezca el mensaje final con el PDF.</div>
+        </div>
+      </li>
+
+      <li>
+        <h3 lang="pt">Abra e confira o resultado</h3><h3 lang="en">Open and check the result</h3><h3 lang="es">Abra y verifique el resultado</h3>
+        <div class="txt">
+          <p lang="pt">Os arquivos ficam numa nova pasta <code>papers/&lt;nome-do-arquivo&gt;</code> dentro da pasta do passo 6. Comece pelo <b>editorial_peer_review_report.pdf</b>: ele traz a decisão sugerida, a lista de correções em três níveis e os pareceres completos.</p>
+          <p lang="en">The files land in a new <code>papers/&lt;file-name&gt;</code> folder inside the step 6 folder. Start with <b>editorial_peer_review_report.pdf</b>: it has the suggested decision, the three-tier list of fixes and the full reports.</p>
+          <p lang="es">Los archivos quedan en una nueva carpeta <code>papers/&lt;nombre-del-archivo&gt;</code> dentro de la carpeta del paso 6. Empiece por <b>editorial_peer_review_report.pdf</b>: contiene la decisión sugerida, la lista de correcciones en tres niveles y los dictámenes completos.</p>
+          <ul lang="pt"><li><b>Bloqueante</b>: sem essa correção, uma conclusão do texto não se sustenta. Resolva primeiro.</li><li><b>Essencial</b>: relato, transparência e declarações que a revista espera.</li><li><b>Opcional</b>: sugestões que você pode recusar com uma justificativa curta.</li></ul>
+          <ul lang="en"><li><b>Blocking</b>: without this fix, a conclusion in the text does not stand. Address it first.</li><li><b>Essential</b>: reporting, transparency and declarations the journal expects.</li><li><b>Optional</b>: suggestions you may decline with a short justification.</li></ul>
+          <ul lang="es"><li><b>Bloqueante</b>: sin esta corrección, una conclusión del texto no se sostiene. Resuélvala primero.</li><li><b>Esencial</b>: notificación, transparencia y declaraciones que la revista espera.</li><li><b>Opcional</b>: sugerencias que puede rechazar con una justificación breve.</li></ul>
+          <div class="tip" lang="pt">A IA pode errar. Confira cada crítica no seu próprio texto antes de agir sobre ela: o relatório é um rascunho para um leitor humano, não um veredito.</div>
+          <div class="tip" lang="en">The AI can be wrong. Check each criticism against your own text before acting on it: the report is a draft for a human reader, not a verdict.</div>
+          <div class="tip" lang="es">La IA puede equivocarse. Verifique cada crítica en su propio texto antes de actuar: el informe es un borrador para un lector humano, no un veredicto.</div>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- ================================================================ PROMPTS -->
+<section id="prompts" class="alt">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow"><span lang="pt">Prompts prontos</span><span lang="en">Ready prompts</span><span lang="es">Prompts listos</span></div>
+      <h2 lang="pt">Copie, troque o que está sublinhado e envie.</h2>
+      <h2 lang="en">Copy, replace the underlined parts and send.</h2>
+      <h2 lang="es">Copie, cambie lo subrayado y envíe.</h2>
+      <p lang="pt">Os mesmos pedidos funcionam no Claude Code e no Antigravity: abra o assistente na pasta do manuscrito (passo 7 do guia) e cole o texto. A revisão sai no idioma do manuscrito.</p>
+      <p lang="en">The same requests work in Claude Code and in Antigravity: open the assistant in the manuscript's folder (guide step 7) and paste the text. The review is written in the manuscript's language.</p>
+      <p lang="es">Los mismos pedidos funcionan en Claude Code y en Antigravity: abra el asistente en la carpeta del manuscrito (paso 7 de la guía) y pegue el texto. La revisión se redacta en el idioma del manuscrito.</p>
+    </div>
+    <div class="prompts">
+      <div class="pcard">
+        <div class="when"><span lang="pt">Para autores</span><span lang="en">For authors</span><span lang="es">Para autores</span></div>
+        <h3 lang="pt">Rodada de revisão antes de submeter</h3><h3 lang="en">Review round before submission</h3><h3 lang="es">Ronda de revisión antes de enviar</h3>
+        <p lang="pt">A revisão completa e, no fim, uma lista de tarefas em linguagem simples.</p><p lang="en">The full review and, at the end, a plain-language to-do list.</p><p lang="es">La revisión completa y, al final, una lista de tareas en lenguaje sencillo.</p>
+        <div class="code"><button class="copy" type="button">copy</button>
+          <pre lang="pt">Sou autor do manuscrito <span class="ph">artigo.docx</span> e quero melhorá-lo antes de submeter à revista <span class="ph">Ecology and Evolution</span>. Faça a revisão por pares e, ao final, me dê uma lista de tarefas em linguagem simples: primeiro os itens bloqueantes, depois os essenciais, com a página ou seção de cada um.</pre>
+          <pre lang="en">I am the author of <span class="ph">paper.docx</span> and want to improve it before submitting to <span class="ph">Ecology and Evolution</span>. Run the peer review and, at the end, give me a plain-language to-do list: blocking items first, then essential ones, each with its page or section.</pre>
+          <pre lang="es">Soy autor del manuscrito <span class="ph">articulo.docx</span> y quiero mejorarlo antes de enviarlo a la revista <span class="ph">Ecology and Evolution</span>. Haz la revisión por pares y, al final, dame una lista de tareas en lenguaje sencillo: primero los puntos bloqueantes, después los esenciales, con la página o sección de cada uno.</pre></div>
+      </div>
+      <div class="pcard">
+        <div class="when"><span lang="pt">Para pareceristas</span><span lang="en">For referees</span><span lang="es">Para revisores</span></div>
+        <h3 lang="pt">Rascunho de parecer para uma revista</h3><h3 lang="en">Draft report for a journal</h3><h3 lang="es">Borrador de dictamen para una revista</h3>
+        <p lang="pt">Painel padrão de 5 pareceristas, auditoria completa e relatório em PDF.</p><p lang="en">Default 5-reviewer panel, full audit and PDF report.</p><p lang="es">Panel predeterminado de 5 revisores, auditoría completa e informe en PDF.</p>
+        <div class="code"><button class="copy" type="button">copy</button>
+          <pre lang="pt">Faça uma revisão por pares cega do arquivo <span class="ph">artigo.pdf</span>, submetido à revista <span class="ph">PLOS ONE</span>. Use o painel padrão de 5 pareceristas e gere o relatório em PDF.</pre>
+          <pre lang="en">Run a blind peer review of the file <span class="ph">paper.pdf</span>, submitted to <span class="ph">PLOS ONE</span>. Use the default panel of 5 reviewers and produce the PDF report.</pre>
+          <pre lang="es">Haz una revisión por pares ciega del archivo <span class="ph">articulo.pdf</span>, enviado a la revista <span class="ph">PLOS ONE</span>. Usa el panel predeterminado de 5 revisores y genera el informe en PDF.</pre></div>
+      </div>
+      <div class="pcard">
+        <div class="when"><span lang="pt">Gasta menos</span><span lang="en">Cheaper</span><span lang="es">Gasta menos</span></div>
+        <h3 lang="pt">Revisão rápida com 3 pareceristas</h3><h3 lang="en">Quick review with 3 reviewers</h3><h3 lang="es">Revisión rápida con 3 revisores</h3>
+        <p lang="pt">Usa menos da sua cota. O painel fica sem especialista de domínio e sem auditor de reprodutibilidade.</p><p lang="en">Uses less of your quota. The panel has no domain reviewer and no reproducibility auditor.</p><p lang="es">Consume menos de su cuota. El panel queda sin revisor de dominio ni auditor de reproducibilidad.</p>
+        <div class="code"><button class="copy" type="button">copy</button>
+          <pre lang="pt">Faça uma revisão por pares do arquivo <span class="ph">resumo_expandido.pdf</span> com apenas 3 pareceristas.</pre>
+          <pre lang="en">Peer review the file <span class="ph">extended_abstract.pdf</span> with only 3 reviewers.</pre>
+          <pre lang="es">Haz una revisión por pares del archivo <span class="ph">resumen_extendido.pdf</span> con solo 3 revisores.</pre></div>
+      </div>
+      <div class="pcard">
+        <div class="when"><span lang="pt">Tipo de artigo conhecido</span><span lang="en">Known article type</span><span lang="es">Tipo de artículo conocido</span></div>
+        <h3 lang="pt">Dizer qual é a tipologia do texto</h3><h3 lang="en">Tell it the article type</h3><h3 lang="es">Indicar la tipología del texto</h3>
+        <p lang="pt">Evita classificação errada em textos atípicos e garante as diretrizes certas (PRISMA, BIBLIO, CONSORT…).</p><p lang="en">Avoids misclassifying unusual texts and ensures the right guidelines (PRISMA, BIBLIO, CONSORT…).</p><p lang="es">Evita clasificaciones erróneas en textos atípicos y asegura las guías correctas (PRISMA, BIBLIO, CONSORT…).</p>
+        <div class="code"><button class="copy" type="button">copy</button>
+          <pre lang="pt">Revise o arquivo <span class="ph">revisao.pdf</span>. É uma <span class="ph">revisão sistemática</span> da área de <span class="ph">saúde</span>; use essa classificação em vez de tentar adivinhar.</pre>
+          <pre lang="en">Review the file <span class="ph">review.pdf</span>. It is a <span class="ph">systematic review</span> in <span class="ph">health sciences</span>; use that classification instead of guessing.</pre>
+          <pre lang="es">Revisa el archivo <span class="ph">revision.pdf</span>. Es una <span class="ph">revisión sistemática</span> del área de <span class="ph">salud</span>; usa esa clasificación en lugar de adivinarla.</pre></div>
+      </div>
+      <div class="pcard">
+        <div class="when"><span lang="pt">Depois da revisão</span><span lang="en">After the review</span><span lang="es">Después de la revisión</span></div>
+        <h3 lang="pt">Explicar o resultado em linguagem simples</h3><h3 lang="en">Explain the result in plain language</h3><h3 lang="es">Explicar el resultado en lenguaje sencillo</h3>
+        <p lang="pt">Na mesma conversa, peça que o assistente traduza o relatório em ações.</p><p lang="en">In the same conversation, ask the assistant to turn the report into actions.</p><p lang="es">En la misma conversación, pida al asistente que convierta el informe en acciones.</p>
+        <div class="code"><button class="copy" type="button">copy</button>
+          <pre lang="pt">Leia a metarrevisão que você acabou de gerar e me explique, sem jargão, a decisão sugerida e o que eu devo fazer em cada item bloqueante. Indique os trechos do meu texto que precisam mudar.</pre>
+          <pre lang="en">Read the meta-review you just produced and explain, without jargon, the suggested decision and what I should do about each blocking item. Point to the passages in my text that need to change.</pre>
+          <pre lang="es">Lee la metarrevisión que acabas de generar y explícame, sin jerga, la decisión sugerida y qué debo hacer con cada punto bloqueante. Señala los fragmentos de mi texto que deben cambiar.</pre></div>
+      </div>
+      <div class="pcard">
+        <div class="when"><span lang="pt">Se algo parar no meio</span><span lang="en">If something stops midway</span><span lang="es">Si algo se detiene a mitad</span></div>
+        <h3 lang="pt">Continuar uma revisão interrompida</h3><h3 lang="en">Resume an interrupted review</h3><h3 lang="es">Continuar una revisión interrumpida</h3>
+        <p lang="pt">Os pareceres prontos são mantidos; só os que faltam são refeitos.</p><p lang="en">Finished reports are kept; only the missing ones are redone.</p><p lang="es">Los dictámenes terminados se conservan; solo se rehacen los que faltan.</p>
+        <div class="code"><button class="copy" type="button">copy</button>
+          <pre lang="pt">A revisão do arquivo <span class="ph">artigo.pdf</span> foi interrompida. Continue de onde parou, sem refazer os pareceres que já estão prontos, e gere o relatório final.</pre>
+          <pre lang="en">The review of <span class="ph">paper.pdf</span> was interrupted. Resume where it stopped, without redoing the reports that are already finished, and produce the final report.</pre>
+          <pre lang="es">La revisión del archivo <span class="ph">articulo.pdf</span> se interrumpió. Continúa donde se detuvo, sin rehacer los dictámenes ya terminados, y genera el informe final.</pre></div>
+      </div>
+      <div class="pcard">
+        <div class="when"><span lang="pt">Avançado</span><span lang="en">Advanced</span><span lang="es">Avanzado</span><span class="badge">Claude Code</span></div>
+        <h3 lang="pt">Painel com modelos diferentes</h3><h3 lang="en">Panel on different models</h3><h3 lang="es">Panel con modelos distintos</h3>
+        <p lang="pt">Pareceristas em modelos diferentes erram de formas diferentes, e a concordância entre eles passa a valer mais. Com <code>agy</code> na lista, é preciso ter também o Antigravity instalado.</p><p lang="en">Reviewers on different models make different mistakes, so their agreement means more. With <code>agy</code> in the list, Antigravity must be installed too.</p><p lang="es">Los revisores en modelos distintos se equivocan de formas distintas, y su acuerdo vale más. Con <code>agy</code> en la lista, también debe estar instalado Antigravity.</p>
+        <div class="code"><button class="copy" type="button">copy</button>
+          <pre lang="pt">Revise o arquivo <span class="ph">artigo.pdf</span> com 5 pareceristas usando panel_models=<span class="ph">claude:opus,agy,claude:sonnet</span>.</pre>
+          <pre lang="en">Review the file <span class="ph">paper.pdf</span> with 5 reviewers using panel_models=<span class="ph">claude:opus,agy,claude:sonnet</span>.</pre>
+          <pre lang="es">Revisa el archivo <span class="ph">articulo.pdf</span> con 5 revisores usando panel_models=<span class="ph">claude:opus,agy,claude:sonnet</span>.</pre></div>
+      </div>
+      <div class="pcard">
+        <div class="when"><span lang="pt">Atalho</span><span lang="en">Shortcut</span><span lang="es">Atajo</span><span class="badge">Claude Code</span></div>
+        <h3 lang="pt">Comando direto, com parâmetros</h3><h3 lang="en">Direct command, with parameters</h3><h3 lang="es">Comando directo, con parámetros</h3>
+        <p lang="pt">Chama a skill pelo nome. Útil quando outro plugin também oferece revisão de artigos. A lista completa de parâmetros está no <a href="https://github.com/LaBiOmicS/academic-peer-review/blob/main/README.pt-BR.md#parâmetros">README</a>.</p>
+        <p lang="en">Calls the skill by name. Useful when another plugin also offers paper review. The full parameter list is in the <a href="https://github.com/LaBiOmicS/academic-peer-review#parameters">README</a>.</p>
+        <p lang="es">Llama a la skill por su nombre. Útil cuando otro plugin también ofrece revisión de artículos. La lista completa de parámetros está en el <a href="https://github.com/LaBiOmicS/academic-peer-review/blob/main/README.es.md#parámetros">README</a>.</p>
+        <div class="code"><button class="copy" type="button">copy</button><pre>/academic-peer-review:paper-review paper="<span class="ph">artigo.pdf</span>" target_journal="<span class="ph">PLOS ONE</span>" num_reviewers=5</pre></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ HOW IT WORKS -->
+<section id="como">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow"><span lang="pt">Como funciona</span><span lang="en">How it works</span><span lang="es">Cómo funciona</span></div>
+      <h2 lang="pt">Cinco etapas, do arquivo ao parecer.</h2><h2 lang="en">Five steps, from file to report.</h2><h2 lang="es">Cinco etapas, del archivo al dictamen.</h2>
+      <p lang="pt">Extração, auditoria e compilação são programas determinísticos e testados: dão sempre o mesmo resultado para o mesmo arquivo. Os modelos de linguagem entram só onde é preciso julgamento: nos pareceres e na metarrevisão.</p>
+      <p lang="en">Extraction, audit and compilation are deterministic, tested programs: the same file always gives the same result. Language models come in only where judgement is needed: the reviews and the meta-review.</p>
+      <p lang="es">La extracción, la auditoría y la compilación son programas deterministas y probados: el mismo archivo da siempre el mismo resultado. Los modelos de lenguaje intervienen solo donde hace falta juicio: en los dictámenes y en la metarrevisión.</p>
+    </div>
+    <div class="pipeline">
+      <div class="step"><h3 lang="pt">Extração</h3><h3 lang="en">Extraction</h3><h3 lang="es">Extracción</h3>
+        <p lang="pt">Lê PDF, DOCX, LaTeX, Markdown ou HTML, procura texto oculto e classifica o manuscrito em 3 eixos.</p><p lang="en">Reads PDF, DOCX, LaTeX, Markdown or HTML, looks for hidden text and classifies the manuscript on 3 axes.</p><p lang="es">Lee PDF, DOCX, LaTeX, Markdown o HTML, busca texto oculto y clasifica el manuscrito en 3 ejes.</p></div>
+      <div class="step"><h3 lang="pt">Auditoria</h3><h3 lang="en">Audit</h3><h3 lang="es">Auditoría</h3>
+        <p lang="pt"><code>statcheck</code>, itens de relato, dados FAIR, uso de IA, DOIs e retratações, escopo do periódico.</p><p lang="en"><code>statcheck</code>, reporting items, FAIR data, AI use, DOIs and retractions, journal scope.</p><p lang="es"><code>statcheck</code>, ítems de notificación, datos FAIR, uso de IA, DOI y retractaciones, alcance de la revista.</p></div>
+      <div class="step llm"><h3 lang="pt">Painel</h3><h3 lang="en">Panel</h3><h3 lang="es">Panel</h3>
+        <p lang="pt">3 a 8 pareceristas em paralelo, cada um com papel, semente e lente próprios. Ninguém lê o parecer dos outros.</p><p lang="en">3 to 8 reviewers in parallel, each with its own role, seed and lens. None reads the others' reports.</p><p lang="es">De 3 a 8 revisores en paralelo, cada uno con su propio rol, semilla y lente. Ninguno lee los dictámenes de los demás.</p></div>
+      <div class="step llm"><h3 lang="pt">Metarrevisão</h3><h3 lang="en">Meta-review</h3><h3 lang="es">Metarrevisión</h3>
+        <p lang="pt">Cada item bloqueante é conferido contra o texto antes de entrar no roteiro de correções em três níveis.</p><p lang="en">Every blocking item is checked against the text before it enters the three-tier revision roadmap.</p><p lang="es">Cada punto bloqueante se contrasta con el texto antes de entrar en la hoja de ruta en tres niveles.</p></div>
+      <div class="step"><h3 lang="pt">Compilação</h3><h3 lang="en">Compilation</h3><h3 lang="es">Compilación</h3>
+        <p lang="pt">Confere as citações dos pareceristas e o contrato de severidade; gera a matriz, a carta aos autores e o PDF.</p><p lang="en">Checks reviewer citations and the severity contract; writes the matrix, the author letter and the PDF.</p><p lang="es">Comprueba las citas de los revisores y el contrato de severidad; genera la matriz, la carta a los autores y el PDF.</p></div>
+    </div>
+    <div class="legend">
+      <span><i></i><span lang="pt">programa determinístico (Python)</span><span lang="en">deterministic program (Python)</span><span lang="es">programa determinista (Python)</span></span>
+      <span><i class="l-llm"></i><span lang="pt">modelo de linguagem</span><span lang="en">language model</span><span lang="es">modelo de lenguaje</span></span>
+    </div>
+  </div>
+</section>
+
+<section id="painel" class="alt">
+  <div class="wrap grid-2">
+    <div>
+      <div class="sec-head" style="margin-bottom:24px">
+        <div class="eyebrow"><span lang="pt">O painel</span><span lang="en">The panel</span><span lang="es">El panel</span></div>
+        <h2 lang="pt">Papéis distintos, não cópias do mesmo parecer.</h2><h2 lang="en">Distinct roles, not copies of one review.</h2><h2 lang="es">Roles distintos, no copias del mismo dictamen.</h2>
+        <p lang="pt">Os papéis são preenchidos por prioridade e sorteados entre codinomes gregos, para que a letra não revele o papel. Cada parecerista recebe uma semente que define sua lente de análise e sua postura.</p>
+        <p lang="en">Roles are filled by priority and shuffled across Greek codenames, so a letter does not reveal its role. Each reviewer gets a seed that sets its analytical lens and stance.</p>
+        <p lang="es">Los roles se asignan por prioridad y se barajan entre nombres en clave griegos, de modo que la letra no revela el rol. Cada revisor recibe una semilla que define su lente analítica y su postura.</p>
+      </div>
+      <table class="comp">
+        <thead><tr><th><span lang="pt">Pareceristas</span><span lang="en">Reviewers</span><span lang="es">Revisores</span></th><th><span lang="pt">Composição</span><span lang="en">Panel</span><span lang="es">Composición</span></th></tr></thead>
+        <tbody>
+          <tr><td>3</td><td><span lang="pt">red-team, advogado do autor, métodos e estatística</span><span lang="en">red-team, author advocate, methods &amp; statistics</span><span lang="es">red-team, abogado del autor, métodos y estadística</span></td></tr>
+          <tr><td>4</td><td><span lang="pt">+ reprodutibilidade, ética e FAIR</span><span lang="en">+ reproducibility, ethics &amp; FAIR</span><span lang="es">+ reproducibilidad, ética y FAIR</span></td></tr>
+          <tr><td>5 <span lang="pt">(padrão)</span><span lang="en">(default)</span><span lang="es">(por defecto)</span></td><td><span lang="pt">+ especialista de domínio</span><span lang="en">+ domain reviewer</span><span lang="es">+ revisor de dominio</span></td></tr>
+          <tr><td>6–8</td><td><span lang="pt">+ especialistas de domínio adicionais</span><span lang="en">+ further domain reviewers</span><span lang="es">+ otros revisores de dominio</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="roles">
+      <div class="role-card"><div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg></div>
+        <div><h3 lang="pt">Crítico red-team</h3><h3 lang="en">Red-team critic</h3><h3 lang="es">Crítico red-team</h3>
+        <p lang="pt">Procura a falha que derruba a conclusão principal, num eixo de ataque adaptado à área e ao tipo de artigo.</p><p lang="en">Looks for the flaw that brings down the main conclusion, along an attack axis adapted to the field and article type.</p><p lang="es">Busca el fallo que derriba la conclusión principal, siguiendo un eje de ataque adaptado al área y al tipo de artículo.</p></div></div>
+      <div class="role-card"><div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></div>
+        <div><h3 lang="pt">Advogado do autor</h3><h3 lang="en">Author advocate</h3><h3 lang="es">Abogado del autor</h3>
+        <p lang="pt">Contrapeso do red-team: mostra, com citação, o que o texto já resolve e barra exigências desproporcionais.</p><p lang="en">The red-team's counterweight: shows, with quotes, what the text already addresses and blocks disproportionate demands.</p><p lang="es">El contrapeso del red-team: muestra, con citas, lo que el texto ya resuelve y frena las exigencias desproporcionadas.</p></div></div>
+      <div class="role-card"><div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div>
+        <div><h3 lang="pt">Métodos e estatística</h3><h3 lang="en">Methods &amp; statistics</h3><h3 lang="es">Métodos y estadística</h3>
+        <p lang="pt">Desenho, validade dos indicadores, testes e inferência, segundo a rubrica do perfil do manuscrito.</p><p lang="en">Design, indicator validity, tests and inference, following the manuscript profile's rubric.</p><p lang="es">Diseño, validez de los indicadores, pruebas e inferencia, según la rúbrica del perfil del manuscrito.</p></div></div>
+      <div class="role-card"><div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h10"/><circle cx="19" cy="17" r="2.5"/></svg></div>
+        <div><h3 lang="pt">Reprodutibilidade, ética e FAIR</h3><h3 lang="en">Reproducibility, ethics &amp; FAIR</h3><h3 lang="es">Reproducibilidad, ética y FAIR</h3>
+        <p lang="pt">Confere números entre texto e tabelas, dados e código depositados, declarações e diretrizes de relato.</p><p lang="en">Cross-checks numbers between text and tables, deposited data and code, declarations and reporting guidelines.</p><p lang="es">Contrasta las cifras entre el texto y las tablas, los datos y el código depositados, las declaraciones y las guías de notificación.</p></div></div>
+      <div class="role-card"><div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5V5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M8 7h7M8 11h5"/></svg></div>
+        <div><h3 lang="pt">Especialista de domínio</h3><h3 lang="en">Domain reviewer</h3><h3 lang="es">Revisor de dominio</h3>
+        <p lang="pt">Mérito na área: novidade, literatura relevante (com identificadores verificáveis) e adequação ao periódico.</p><p lang="en">Field-specific merit: novelty, relevant literature (with verifiable identifiers) and journal fit.</p><p lang="es">Mérito en el área: originalidad, literatura relevante (con identificadores verificables) y adecuación a la revista.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="calibracao">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow"><span lang="pt">Calibração</span><span lang="en">Calibration</span><span lang="es">Calibración</span></div>
+      <h2 lang="pt">Severidade proporcional, não uma lista de exigências.</h2><h2 lang="en">Proportionate severity, not a wish list.</h2><h2 lang="es">Severidad proporcional, no una lista de deseos.</h2>
+      <p lang="pt">Cada crítica principal recebe um nível. O compilador confere esse contrato e avisa quando ele não é cumprido. A concordância entre pareceristas não conta como prova: o que conta é a verificação contra o texto.</p>
+      <p lang="en">Every major concern carries a tier. The compiler checks this contract and warns when it is broken. Agreement between reviewers does not count as proof: what counts is verification against the text.</p>
+      <p lang="es">Cada crítica principal tiene un nivel. El compilador verifica este contrato y avisa cuando no se cumple. El acuerdo entre revisores no cuenta como prueba: lo que cuenta es la verificación contra el texto.</p>
+    </div>
+    <div class="cal">
+      <div class="cal-card"><span class="lbl t-block"><span lang="pt">Bloqueante</span><span lang="en">Blocking</span><span lang="es">Bloqueante</span></span>
+        <p lang="pt">Uma conclusão do texto não se sustenta sem a correção. No máximo 5 por parecer, cada um citando a frase em jogo.</p><p lang="en">A stated conclusion fails without the fix. At most 5 per report, each quoting the sentence at stake.</p><p lang="es">Una conclusión del texto no se sostiene sin la corrección. Como máximo 5 por dictamen, cada uno citando la frase en juego.</p>
+        <p class="ex" lang="pt">Ex.: tendência de métodos inferida de palavras-chave atribuídas por indexadores.</p><p class="ex" lang="en">E.g. a method trend inferred from indexer-assigned keywords.</p><p class="ex" lang="es">Ej.: una tendencia de métodos inferida de palabras clave asignadas por los indexadores.</p></div>
+      <div class="cal-card"><span class="lbl t-ess"><span lang="pt">Essencial</span><span lang="en">Essential</span><span lang="es">Esencial</span></span>
+        <p lang="pt">Relato, transparência e declarações no padrão do tipo de artigo.</p><p lang="en">Reporting, transparency and declarations at the standard of the article type.</p><p lang="es">Notificación, transparencia y declaraciones al nivel exigido para el tipo de artículo.</p>
+        <p class="ex" lang="pt">Ex.: string de busca só num protocolo externo; regra de contagem por país não declarada.</p><p class="ex" lang="en">E.g. search string only in an external protocol; undeclared country counting rule.</p><p class="ex" lang="es">Ej.: cadena de búsqueda solo en un protocolo externo; regla de conteo por país no declarada.</p></div>
+      <div class="cal-card"><span class="lbl t-opt"><span lang="pt">Opcional</span><span lang="en">Optional</span><span lang="es">Opcional</span></span>
+        <p lang="pt">Ampliações de escopo e análises novas que os autores podem recusar com uma justificativa.</p><p lang="en">Scope expansions and new analyses the authors may decline with a one-line justification.</p><p lang="es">Ampliaciones de alcance y análisis nuevos que los autores pueden rechazar con una justificación.</p>
+        <p class="ex" lang="pt">Ex.: incluir mais bases de dados ou outro idioma.</p><p class="ex" lang="en">E.g. adding databases or another language.</p><p class="ex" lang="es">Ej.: añadir bases de datos u otro idioma.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="auditoria" class="alt">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow"><span lang="pt">Auditoria determinística</span><span lang="en">Deterministic audit</span><span lang="es">Auditoría determinista</span></div>
+      <h2 lang="pt">O que pode ser verificado é verificado, não opinado.</h2><h2 lang="en">What can be checked is checked, not opined on.</h2><h2 lang="es">Lo que se puede verificar se verifica, no se opina.</h2>
+    </div>
+    <div class="audit">
+      <div class="a-card"><h3>statcheck</h3>
+        <p lang="pt">Recalcula valores-p a partir de t, F, r, χ² e z relatados e aponta inconsistências e valores frágeis.</p><p lang="en">Recomputes p-values from reported t, F, r, χ² and z, flagging inconsistencies and fragile values.</p><p lang="es">Recalcula valores p a partir de t, F, r, χ² y z notificados, y señala inconsistencias y valores frágiles.</p></div>
+      <div class="a-card"><h3 lang="pt">Citações e retratações</h3><h3 lang="en">Citations &amp; retractions</h3><h3 lang="es">Citas y retractaciones</h3>
+        <p lang="pt">DOIs do manuscrito e dos pareceristas conferidos no OpenAlex e no doi.org; arXiv na API do arXiv.</p><p lang="en">DOIs from the manuscript and the reviewers checked against OpenAlex and doi.org; arXiv IDs against arXiv.</p><p lang="es">Los DOI del manuscrito y de los revisores se contrastan con OpenAlex y doi.org; los de arXiv, con arXiv.</p></div>
+      <div class="a-card"><h3 lang="pt">Dados FAIR</h3><h3 lang="en">FAIR data</h3><h3 lang="es">Datos FAIR</h3>
+        <p lang="pt">Repositórios e identificadores persistentes, declarações evasivas, dependências travadas, sementes, RRIDs.</p><p lang="en">Repositories and persistent IDs, evasive statements, locked dependencies, seeds, RRIDs.</p><p lang="es">Repositorios e identificadores persistentes, declaraciones evasivas, dependencias fijadas, semillas, RRID.</p></div>
+      <div class="a-card"><h3 lang="pt">IA generativa</h3><h3 lang="en">Generative AI</h3><h3 lang="es">IA generativa</h3>
+        <p lang="pt">Restos de chat no texto, coautoria atribuída a IA e declaração de uso (COPE, ICMJE, SciELO).</p><p lang="en">Leftover chat artifacts, AI co-authorship and AI-use statements (COPE, ICMJE, SciELO).</p><p lang="es">Restos de chat en el texto, coautoría atribuida a la IA y declaraciones de uso (COPE, ICMJE, SciELO).</p></div>
+      <div class="a-card"><h3 lang="pt">Conteúdo oculto</h3><h3 lang="en">Hidden content</h3><h3 lang="es">Contenido oculto</h3>
+        <p lang="pt">Texto branco, microscópico ou fora da página dirigido a revisores de IA. É denunciado ao editor e nunca decide o veredito.</p><p lang="en">White, microscopic or off-page text aimed at AI reviewers. It is reported to the editor and never decides the verdict.</p><p lang="es">Texto blanco, microscópico o fuera de página dirigido a revisores de IA. Se informa al editor y nunca decide el veredicto.</p></div>
+      <div class="a-card"><h3 lang="pt">Escopo do periódico</h3><h3 lang="en">Journal scope</h3><h3 lang="es">Alcance de la revista</h3>
+        <p lang="pt">Aderência aos tópicos do periódico-alvo (OpenAlex), requisitos formais e risco de <i>desk reject</i>.</p><p lang="en">Fit with the target journal's topics (OpenAlex), formal requirements and desk-reject risk.</p><p lang="es">Adecuación a los temas de la revista destino (OpenAlex), requisitos formales y riesgo de <i>desk reject</i>.</p></div>
     </div>
     <div class="axes">
       <div class="axis"><div class="n">5</div><h3 lang="pt">grandes áreas</h3><h3 lang="en">major areas</h3><h3 lang="es">grandes áreas</h3>
         <div class="chips" lang="pt"><span>Biológicas e Agrárias</span><span>Saúde</span><span>Exatas e da Terra</span><span>Engenharias</span><span>Humanas e Sociais</span></div>
-        <div class="chips" lang="en"><span>Life &amp; agricultural</span><span>Health</span><span>Physical &amp; earth</span><span>Engineering</span><span>Humanities &amp; social</span></div><div class="chips" lang="es"><span>Biológicas y agrarias</span><span>Salud</span><span>Exactas y de la tierra</span><span>Ingenierías</span><span>Humanidades y sociales</span></div>
-      </div>
+        <div class="chips" lang="en"><span>Life &amp; agricultural</span><span>Health</span><span>Physical &amp; earth</span><span>Engineering</span><span>Humanities &amp; social</span></div>
+        <div class="chips" lang="es"><span>Biológicas y agrarias</span><span>Salud</span><span>Exactas y de la tierra</span><span>Ingenierías</span><span>Humanidades y sociales</span></div></div>
       <div class="axis"><div class="n">15</div><h3 lang="pt">tipologias de artigo</h3><h3 lang="en">article types</h3><h3 lang="es">tipologías de artículo</h3>
-        <div class="chips" lang="pt"><span>Original</span><span>Revisão sistemática</span><span>Metanálise</span><span>Scoping</span><span>Integrativa</span><span>Narrativa</span><span>Bibliométrica</span><span>Diretriz / Delphi</span><span>Relato de caso</span><span>Data paper</span><span>Software paper</span><span>Protocolo</span><span>Ensaio teórico</span><span>Comunicação breve</span><span>…</span></div>
-        <div class="chips" lang="en"><span>Original</span><span>Systematic review</span><span>Meta-analysis</span><span>Scoping</span><span>Integrative</span><span>Narrative</span><span>Bibliometric</span><span>Guideline / Delphi</span><span>Case report</span><span>Data paper</span><span>Software paper</span><span>Protocol</span><span>Theoretical essay</span><span>Short communication</span><span>…</span></div><div class="chips" lang="es"><span>Original</span><span>Revisión sistemática</span><span>Metaanálisis</span><span>Scoping</span><span>Integradora</span><span>Narrativa</span><span>Bibliométrica</span><span>Guía / Delphi</span><span>Caso clínico</span><span>Data paper</span><span>Software paper</span><span>Protocolo</span><span>Ensayo teórico</span><span>Comunicación breve</span><span>…</span></div>
-      </div>
+        <div class="chips" lang="pt"><span>Original</span><span>Revisão sistemática</span><span>Metanálise</span><span>Scoping</span><span>Integrativa</span><span>Narrativa</span><span>Bibliométrica</span><span>Diretriz</span><span>Estudo de caso</span><span>Data paper</span><span>Software paper</span><span>Protocolo</span><span>Ensaio teórico</span><span>Comunicação breve</span><span>…</span></div>
+        <div class="chips" lang="en"><span>Original</span><span>Systematic review</span><span>Meta-analysis</span><span>Scoping</span><span>Integrative</span><span>Narrative</span><span>Bibliometric</span><span>Guideline</span><span>Case study</span><span>Data paper</span><span>Software paper</span><span>Protocol</span><span>Theoretical essay</span><span>Short communication</span><span>…</span></div>
+        <div class="chips" lang="es"><span>Original</span><span>Revisión sistemática</span><span>Metaanálisis</span><span>Scoping</span><span>Integradora</span><span>Narrativa</span><span>Bibliométrica</span><span>Guía</span><span>Estudio de caso</span><span>Data paper</span><span>Software paper</span><span>Protocolo</span><span>Ensayo teórico</span><span>Comunicación breve</span><span>…</span></div></div>
       <div class="axis"><div class="n">13</div><h3 lang="pt">abordagens de pesquisa</h3><h3 lang="en">research approaches</h3><h3 lang="es">enfoques de investigación</h3>
-        <div class="chips" lang="pt"><span>Ensaio clínico</span><span>Diagnóstico</span><span>Observacional</span><span>Campo / ecológico</span><span>Bancada</span><span>In silico</span><span>Quantitativa</span><span>Qualitativa</span><span>Métodos mistos</span><span>DSR / ação</span><span>Documental</span><span>Bibliométrica</span><span>Teórico-formal</span></div>
-        <div class="chips" lang="en"><span>Clinical trial</span><span>Diagnostic</span><span>Observational</span><span>Field / ecological</span><span>Bench</span><span>In silico</span><span>Quantitative</span><span>Qualitative</span><span>Mixed methods</span><span>DSR / action</span><span>Documentary</span><span>Bibliometric</span><span>Formal-theoretical</span></div><div class="chips" lang="es"><span>Ensayo clínico</span><span>Diagnóstico</span><span>Observacional</span><span>Campo / ecológico</span><span>Laboratorio</span><span>In silico</span><span>Cuantitativo</span><span>Cualitativo</span><span>Métodos mixtos</span><span>DSR / acción</span><span>Documental</span><span>Bibliométrico</span><span>Teórico-formal</span></div>
+        <div class="chips" lang="pt"><span>Ensaio clínico</span><span>Diagnóstico</span><span>Observacional</span><span>Campo / ecológico</span><span>Bancada</span><span>In silico</span><span>Quantitativa</span><span>Qualitativa</span><span>Métodos mistos</span><span>Pesquisa-ação</span><span>Documental</span><span>Bibliométrica</span><span>Teórico-formal</span></div>
+        <div class="chips" lang="en"><span>Clinical trial</span><span>Diagnostic</span><span>Observational</span><span>Field / ecological</span><span>Bench</span><span>In silico</span><span>Quantitative</span><span>Qualitative</span><span>Mixed methods</span><span>Action research</span><span>Documentary</span><span>Bibliometric</span><span>Formal-theoretical</span></div>
+        <div class="chips" lang="es"><span>Ensayo clínico</span><span>Diagnóstico</span><span>Observacional</span><span>Campo / ecológico</span><span>Laboratorio</span><span>In silico</span><span>Cuantitativo</span><span>Cualitativo</span><span>Métodos mixtos</span><span>Investigación-acción</span><span>Documental</span><span>Bibliométrico</span><span>Teórico-formal</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="saidas">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow"><span lang="pt">O que você recebe</span><span lang="en">What you get</span><span lang="es">Qué recibe</span></div>
+      <h2 lang="pt">Tudo o que um editor precisa, em arquivos abertos.</h2><h2 lang="en">Everything an editor needs, in open files.</h2><h2 lang="es">Todo lo que un editor necesita, en archivos abiertos.</h2>
+    </div>
+    <div class="out">
+      <aside class="report">
+        <div class="rhead"><b><span lang="pt">Metarrevisão editorial</span><span lang="en">Editorial meta-review</span><span lang="es">Metarrevisión editorial</span></b><small><span lang="pt">exemplo ilustrativo</span><span lang="en">illustrative example</span><span lang="es">ejemplo ilustrativo</span></small></div>
+        <div class="rev"><code>alfa</code><span class="role"><span lang="pt">reprodutibilidade e FAIR</span><span lang="en">reproducibility &amp; FAIR</span><span lang="es">reproducibilidad y FAIR</span></span><span class="verdict">Major revision</span></div>
+        <div class="rev"><code>beta</code><span class="role"><span lang="pt">métodos e estatística</span><span lang="en">methods &amp; statistics</span><span lang="es">métodos y estadística</span></span><span class="verdict">Major revision</span></div>
+        <div class="rev"><code>gamma</code><span class="role"><span lang="pt">advogado do autor</span><span lang="en">author advocate</span><span lang="es">abogado del autor</span></span><span class="verdict">Minor revision</span></div>
+        <div class="rev"><code>delta</code><span class="role"><span lang="pt">crítico red-team</span><span lang="en">red-team critic</span><span lang="es">crítico red-team</span></span><span class="verdict">Major revision</span></div>
+        <div class="rev"><code>epsilon</code><span class="role"><span lang="pt">especialista de domínio</span><span lang="en">domain reviewer</span><span lang="es">revisor de dominio</span></span><span class="verdict">Major revision</span></div>
+        <div class="tiers">
+          <div class="tier t-block"><b>1</b><span><span lang="pt">bloqueante</span><span lang="en">blocking</span><span lang="es">bloqueante</span></span></div>
+          <div class="tier t-ess"><b>7</b><span><span lang="pt">essenciais</span><span lang="en">essential</span><span lang="es">esenciales</span></span></div>
+          <div class="tier t-opt"><b>4</b><span><span lang="pt">opcionais</span><span lang="en">optional</span><span lang="es">opcionales</span></span></div>
+        </div>
+        <div class="foot"><span lang="pt">✓ todos os DOIs resolvidos · 0 retratações · sem conteúdo oculto</span><span lang="en">✓ all DOIs resolved · 0 retractions · no hidden content</span><span lang="es">✓ todos los DOI resueltos · 0 retractaciones · sin contenido oculto</span></div>
+      </aside>
+      <div>
+        <div class="file key"><code>editorial_peer_review_report.pdf</code><span lang="pt">Comece por aqui: relatório completo com decisão, roteiro, auditoria e pareceres. As tabelas largas saem em páginas paisagem.</span><span lang="en">Start here: full report with decision, roadmap, audit and reviews. Wide tables are printed on landscape pages.</span><span lang="es">Empiece aquí: informe completo con decisión, hoja de ruta, auditoría y dictámenes. Las tablas anchas salen en páginas apaisadas.</span></div>
+        <div class="file key"><code>author_letter.md</code><span lang="pt">Carta curta aos autores, só com os itens bloqueantes e essenciais.</span><span lang="en">Short letter to the authors with blocking and essential items only.</span><span lang="es">Carta breve a los autores, solo con los puntos bloqueantes y esenciales.</span></div>
+        <div class="file"><code>meta_review.md</code><span lang="pt">Vereditos, verificação dos bloqueantes e roteiro em 3 níveis.</span><span lang="en">Verdicts, blocking-item verification and three-tier roadmap.</span><span lang="es">Veredictos, verificación de los bloqueantes y hoja de ruta en 3 niveles.</span></div>
+        <div class="file"><code>review_&lt;codinome&gt;.md</code><span lang="pt">Um parecer por parecerista.</span><span lang="en">One report per reviewer.</span><span lang="es">Un dictamen por revisor.</span></div>
+        <div class="file"><code>pre_review_audit.md</code><span lang="pt">Auditoria automática legível (e <code>.json</code>).</span><span lang="en">Readable automatic audit (and <code>.json</code>).</span><span lang="es">Auditoría automática legible (y <code>.json</code>).</span></div>
+        <div class="file"><code>concerns_table.csv</code><span lang="pt">Planilha de críticas por severidade e parecerista (abre no Excel).</span><span lang="en">Spreadsheet of concerns by severity and reviewer (opens in Excel).</span><span lang="es">Planilla de críticas por severidad y revisor (se abre en Excel).</span></div>
+        <div class="file"><code>results.json</code><span lang="pt">Dados para quem quer analisar: vereditos, papéis, modelos, citações.</span><span lang="en">Data for analysis: verdicts, roles, models, citations.</span><span lang="es">Datos para análisis: veredictos, roles, modelos, citas.</span></div>
       </div>
     </div>
-    <p class="product">5 × 15 × 13 = <b>975</b> <span lang="pt">perfis de avaliação</span><span lang="en">evaluation profiles</span><span lang="es">perfiles de evaluación</span></p>
   </div>
 </section>
 
-<section>
+<!-- ================================================================ FAQ -->
+<section id="faq" class="alt">
   <div class="wrap">
     <div class="sec-head">
-      <div class="eyebrow"><span lang="pt">Saídas</span><span lang="en">Outputs</span><span lang="es">Salidas</span></div>
-      <h2 lang="pt">Tudo o que um editor precisa, em arquivos abertos.</h2>
-      <h2 lang="en">Everything an editor needs, in open files.</h2><h2 lang="es">Todo lo que un editor necesita, en archivos abiertos.</h2>
+      <div class="eyebrow"><span lang="pt">Dúvidas e problemas comuns</span><span lang="en">Questions and common problems</span><span lang="es">Preguntas y problemas comunes</span></div>
+      <h2 lang="pt">Se algo não funcionar.</h2><h2 lang="en">If something does not work.</h2><h2 lang="es">Si algo no funciona.</h2>
     </div>
-    <div class="files">
-      <div class="file"><code>editorial_peer_review_report.pdf</code><span lang="pt">Relatório consolidado: metarrevisão, matriz, auditoria e pareceres.</span><span lang="en">Consolidated report: meta-review, matrix, audit and reports.</span><span lang="es">Informe consolidado: metarrevisión, matriz, auditoría y dictámenes.</span></div>
-      <div class="file"><code>meta_review.md</code><span lang="pt">Vereditos, verificação dos bloqueantes, roteiro em 3 níveis.</span><span lang="en">Verdicts, blocking-concern verification, three-tier roadmap.</span><span lang="es">Veredictos, verificación de los bloqueantes, hoja de ruta en 3 niveles.</span></div>
-      <div class="file"><code>author_letter.md</code><span lang="pt">Carta curta aos autores com os itens bloqueantes e essenciais.</span><span lang="en">Short letter to the authors with blocking and essential items.</span><span lang="es">Carta breve a los autores con los puntos bloqueantes y esenciales.</span></div>
-      <div class="file"><code>review_&lt;codinome&gt;.md</code><span lang="pt">Um parecer por parecerista.</span><span lang="en">One report per reviewer.</span><span lang="es">Un dictamen por revisor.</span></div>
-      <div class="file"><code>pre_review_audit.md</code><span lang="pt">Auditoria determinística legível (e <code>.json</code>).</span><span lang="en">Readable deterministic audit (and <code>.json</code>).</span><span lang="es">Auditoría determinista legible (y <code>.json</code>).</span></div>
-      <div class="file"><code>concerns_table.csv</code><span lang="pt">Matriz de preocupações por severidade e parecerista.</span><span lang="en">Concerns matrix by severity and reviewer.</span><span lang="es">Matriz de críticas por severidad y revisor.</span></div>
-      <div class="file"><code>results.json</code><span lang="pt">Vereditos, papéis, modelos, citações verificadas e contrato de severidade.</span><span lang="en">Verdicts, roles, models, verified citations and severity contract.</span><span lang="es">Veredictos, roles, modelos, citas verificadas y contrato de severidad.</span></div>
-      <div class="file"><code>consolidated_editorial_report.md</code><span lang="pt">Versão Markdown do relatório.</span><span lang="en">Markdown version of the report.</span><span lang="es">Versión Markdown del informe.</span></div>
+    <div class="faq">
+      <details><summary><span lang="pt">O terminal diz que "claude", "agy" ou "uv" não foi encontrado.</span><span lang="en">The terminal says "claude", "agy" or "uv" was not found.</span><span lang="es">La terminal dice que no encuentra "claude", "agy" o "uv".</span></summary>
+        <div><p lang="pt">Quase sempre basta <b>fechar o terminal e abrir um novo</b>: o terminal antigo não sabe que o programa foi instalado. Se continuar, reinicie o computador. Se ainda assim falhar, repita o passo de instalação e leia a última mensagem que aparecer.</p>
+        <p lang="en">Usually you only need to <b>close the terminal and open a new one</b>: the old window does not know the program was installed. If it persists, restart the computer. If it still fails, repeat the installation step and read the last message it prints.</p>
+        <p lang="es">Casi siempre basta con <b>cerrar la terminal y abrir una nueva</b>: la ventana antigua no sabe que el programa se instaló. Si continúa, reinicie la computadora. Si aun así falla, repita el paso de instalación y lea el último mensaje que aparezca.</p></div></details>
+      <details><summary><span lang="pt">O assistente não parece usar o plugin.</span><span lang="en">The assistant does not seem to use the plugin.</span><span lang="es">El asistente no parece usar el plugin.</span></summary>
+        <div><p lang="pt">Feche o assistente e abra de novo: o plugin só carrega numa sessão nova. Confira com o comando abaixo se ele aparece como ativado. Você também pode chamar a skill pelo nome (prompt "Comando direto").</p>
+        <p lang="en">Close the assistant and open it again: the plugin only loads in a new session. Check with the command below that it shows as enabled. You can also call the skill by name (the "Direct command" prompt).</p>
+        <p lang="es">Cierre el asistente y ábralo de nuevo: el plugin solo se carga en una sesión nueva. Compruebe con el comando de abajo que aparece como activado. También puede llamar a la skill por su nombre (prompt "Comando directo").</p>
+        <div class="code ai-claude"><button class="copy" type="button">copy</button><pre>claude plugin list</pre></div>
+        <div class="code ai-agy"><button class="copy" type="button">copy</button><pre>agy plugin list</pre></div></div></details>
+      <details><summary><span lang="pt">A instalação do plugin no Claude Code deu erro.</span><span lang="en">Installing the plugin in Claude Code failed.</span><span lang="es">La instalación del plugin en Claude Code falló.</span></summary>
+        <div><p lang="pt">Confira se a internet está funcionando e tente de novo. Se a mensagem falar em <b>git</b>, instale o <a href="https://git-scm.com/downloads">Git</a>, abra um terminal novo e repita o passo 5. Como alternativa, baixe o <a href="https://github.com/LaBiOmicS/academic-peer-review/archive/refs/tags/v1.2.0.zip">ZIP do plugin</a>, extraia e rode no terminal <code>claude plugin marketplace add</code> seguido do caminho da pasta extraída; depois, <code>claude plugin install academic-peer-review@labiomics</code>.</p>
+        <p lang="en">Check that the internet connection works and try again. If the message mentions <b>git</b>, install <a href="https://git-scm.com/downloads">Git</a>, open a new terminal and repeat step 5. Alternatively, download the <a href="https://github.com/LaBiOmicS/academic-peer-review/archive/refs/tags/v1.2.0.zip">plugin ZIP</a>, extract it and run <code>claude plugin marketplace add</code> followed by the extracted folder's path; then <code>claude plugin install academic-peer-review@labiomics</code>.</p>
+        <p lang="es">Compruebe que la conexión a internet funciona e inténtelo de nuevo. Si el mensaje menciona <b>git</b>, instale <a href="https://git-scm.com/downloads">Git</a>, abra una terminal nueva y repita el paso 5. Como alternativa, descargue el <a href="https://github.com/LaBiOmicS/academic-peer-review/archive/refs/tags/v1.2.0.zip">ZIP del plugin</a>, extráigalo y ejecute <code>claude plugin marketplace add</code> seguido de la ruta de la carpeta extraída; luego, <code>claude plugin install academic-peer-review@labiomics</code>.</p></div></details>
+      <details><summary><span lang="pt">Quanto custa e quanto tempo leva?</span><span lang="en">How much does it cost and how long does it take?</span><span lang="es">¿Cuánto cuesta y cuánto tarda?</span></summary>
+        <div><p lang="pt">O plugin é gratuito. O uso da IA entra na sua assinatura: cada revisão consome um parecer por parecerista, mais a metarrevisão. Como referência, um texto curto com 3 pareceristas no Claude Sonnet custou cerca de US$ 1 em uso. Num artigo de ~9.000 palavras, cada parecerista leva de 3 a 5 minutos, todos em paralelo. Para gastar menos, use o prompt com 3 pareceristas.</p>
+        <p lang="en">The plugin is free. AI usage counts against your subscription: each review uses one report per reviewer plus the meta-review. For reference, a short text with 3 reviewers on Claude Sonnet cost about US$ 1 in usage. For a ~9,000-word paper, each reviewer takes 3 to 5 minutes, all in parallel. To spend less, use the 3-reviewer prompt.</p>
+        <p lang="es">El plugin es gratuito. El uso de la IA cuenta en su suscripción: cada revisión consume un dictamen por revisor, más la metarrevisión. Como referencia, un texto corto con 3 revisores en Claude Sonnet costó unos US$ 1 de uso. En un artículo de ~9.000 palabras, cada revisor tarda de 3 a 5 minutos, todos en paralelo. Para gastar menos, use el prompt con 3 revisores.</p></div></details>
+      <details><summary><span lang="pt">Meu manuscrito é confidencial. Posso usar?</span><span lang="en">My manuscript is confidential. Can I use it?</span><span lang="es">Mi manuscrito es confidencial. ¿Puedo usarlo?</span></summary>
+        <div><p lang="pt">Se o texto é <b>seu</b>, a decisão é sua. Se você recebeu o manuscrito <b>para avaliar</b>, confirme antes que a política de revisão da revista permite enviá-lo a um serviço de IA: COPE, ICMJE e muitas editoras restringem esse uso e exigem declaração. O PDF gerado traz um aviso de uso de IA.</p>
+        <p lang="en">If the text is <b>yours</b>, it is your decision. If you received the manuscript <b>to review</b>, first confirm that the journal's peer-review policy allows sending it to an AI service: COPE, ICMJE and many publishers restrict this and require disclosure. The generated PDF carries an AI-use notice.</p>
+        <p lang="es">Si el texto es <b>suyo</b>, la decisión es suya. Si recibió el manuscrito <b>para evaluarlo</b>, confirme antes que la política de revisión de la revista permite enviarlo a un servicio de IA: COPE, ICMJE y muchas editoriales lo restringen y exigen declararlo. El PDF generado incluye un aviso de uso de IA.</p></div></details>
+      <details><summary><span lang="pt">A revisão parou no meio ou demorou demais.</span><span lang="en">The review stopped midway or took too long.</span><span lang="es">La revisión se detuvo a mitad o tardó demasiado.</span></summary>
+        <div><p lang="pt">Abra o assistente na mesma pasta e use o prompt "Continuar uma revisão interrompida". Os pareceres já prontos são reaproveitados. Se a sua cota de uso acabou, espere ela renovar e continue.</p>
+        <p lang="en">Open the assistant in the same folder and use the "Resume an interrupted review" prompt. Finished reports are reused. If your usage quota ran out, wait for it to renew and continue.</p>
+        <p lang="es">Abra el asistente en la misma carpeta y use el prompt "Continuar una revisión interrumpida". Los dictámenes terminados se reutilizan. Si se agotó su cuota de uso, espere a que se renueve y continúe.</p></div></details>
+      <details><summary><span lang="pt">O PDF do relatório não foi gerado.</span><span lang="en">The report PDF was not created.</span><span lang="es">No se generó el PDF del informe.</span></summary>
+        <div><p lang="pt">O PDF depende do <b>uv</b> (passo 2). Confirme que <code>uv --version</code> mostra uma versão e peça ao assistente: "Gere de novo o relatório em PDF da revisão de <i>artigo.pdf</i>". Os arquivos <code>.md</code> da mesma pasta trazem o mesmo conteúdo e abrem em qualquer editor de texto.</p>
+        <p lang="en">The PDF needs <b>uv</b> (step 2). Check that <code>uv --version</code> prints a version and ask the assistant: "Regenerate the PDF report for the review of <i>paper.pdf</i>". The <code>.md</code> files in the same folder hold the same content and open in any text editor.</p>
+        <p lang="es">El PDF depende de <b>uv</b> (paso 2). Compruebe que <code>uv --version</code> muestra una versión y pida al asistente: "Genera de nuevo el informe en PDF de la revisión de <i>articulo.pdf</i>". Los archivos <code>.md</code> de la misma carpeta tienen el mismo contenido y se abren en cualquier editor de texto.</p></div></details>
+      <details><summary><span lang="pt">Como atualizo o plugin para uma versão nova?</span><span lang="en">How do I update the plugin to a new version?</span><span lang="es">¿Cómo actualizo el plugin a una versión nueva?</span></summary>
+        <div><p class="ai-claude" lang="pt">No Claude Code, rode no terminal:</p><p class="ai-claude" lang="en">In Claude Code, run in the terminal:</p><p class="ai-claude" lang="es">En Claude Code, ejecute en la terminal:</p>
+        <div class="code ai-claude"><button class="copy" type="button">copy</button><pre>claude plugin marketplace update labiomics
+claude plugin update academic-peer-review@labiomics</pre></div>
+        <p class="ai-agy" lang="pt">No Antigravity, baixe o ZIP da versão mais nova na <a href="https://github.com/LaBiOmicS/academic-peer-review/releases">página de releases</a> e repita o passo 5.</p><p class="ai-agy" lang="en">In Antigravity, download the newest ZIP from the <a href="https://github.com/LaBiOmicS/academic-peer-review/releases">releases page</a> and repeat step 5.</p><p class="ai-agy" lang="es">En Antigravity, descargue el ZIP más reciente desde la <a href="https://github.com/LaBiOmicS/academic-peer-review/releases">página de versiones</a> y repita el paso 5.</p></div></details>
     </div>
   </div>
 </section>
 
-<section id="instalar" class="alt">
+<!-- ================================================================ ADVANCED -->
+<section id="instalar">
   <div class="wrap">
     <div class="sec-head">
-      <div class="eyebrow"><span lang="pt">Instalação</span><span lang="en">Installation</span><span lang="es">Instalación</span></div>
-      <h2 lang="pt">Dois comandos no Claude Code.</h2>
-      <h2 lang="en">Two commands in Claude Code.</h2><h2 lang="es">Dos comandos en Claude Code.</h2>
+      <div class="eyebrow"><span lang="pt">Para usuários técnicos</span><span lang="en">For technical users</span><span lang="es">Para usuarios técnicos</span></div>
+      <h2 lang="pt">Instalação a partir do código e uso headless.</h2><h2 lang="en">Install from source and headless use.</h2><h2 lang="es">Instalación desde el código y uso headless.</h2>
+      <p lang="pt">Parâmetros, scripts e o fluxo sem interface estão documentados no <a href="https://github.com/LaBiOmicS/academic-peer-review/blob/main/README.pt-BR.md">README</a>.</p>
+      <p lang="en">Parameters, scripts and the headless workflow are documented in the <a href="https://github.com/LaBiOmicS/academic-peer-review">README</a>.</p>
+      <p lang="es">Los parámetros, los scripts y el flujo sin interfaz están documentados en el <a href="https://github.com/LaBiOmicS/academic-peer-review/blob/main/README.es.md">README</a>.</p>
     </div>
     <div class="tabs" role="tablist">
-      <button class="tab" role="tab" aria-selected="true" data-tab="cc">Claude Code</button>
-      <button class="tab" role="tab" aria-selected="false" data-tab="script">install.sh</button>
+      <button class="tab" role="tab" aria-selected="true" data-tab="script">install.sh</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="agy">Antigravity</button>
-      <button class="tab" role="tab" aria-selected="false" data-tab="use"><span lang="pt">Uso</span><span lang="en">Usage</span><span lang="es">Uso</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="cli">Headless</button>
     </div>
-    <div class="panel on" id="tab-cc"><div class="code"><button class="copy" type="button">copy</button><pre><span class="p">&gt; </span>/plugin marketplace add LaBiOmicS/academic-peer-review
-<span class="p">&gt; </span>/plugin install academic-peer-review@labiomics</pre></div></div>
-    <div class="panel" id="tab-script"><div class="code"><button class="copy" type="button">copy</button><pre><span class="c"># Claude Code + Antigravity, whichever is installed</span>
-<span class="p">$ </span>git clone https://github.com/LaBiOmicS/academic-peer-review.git
-<span class="p">$ </span>cd academic-peer-review
-<span class="p">$ </span>./install.sh</pre></div></div>
-    <div class="panel" id="tab-agy"><div class="code"><button class="copy" type="button">copy</button><pre><span class="p">$ </span>agy plugin validate ./academic-peer-review --strict
-<span class="p">$ </span>agy plugin install ./academic-peer-review
-<span class="p">$ </span>agy plugin enable academic-peer-review</pre></div></div>
-    <div class="panel" id="tab-use"><div class="code"><button class="copy" type="button">copy</button><pre><span class="c"># In a Claude Code or Antigravity session</span>
-<span class="p">&gt; </span>/paper-review paper="./manuscript.pdf" target_journal="Bioinformatics" num_reviewers=5
-
-<span class="c"># or just ask</span>
-<span class="p">&gt; </span>Run a blind peer review of ./manuscript.pdf for PLOS ONE</pre></div></div>
-    <div class="req">
-      <div><b lang="pt">Requisitos</b><b lang="en">Requirements</b><b lang="es">Requisitos</b><span lang="pt">Python 3.10+, <code>uv</code> e Claude Code ou Antigravity autenticado.</span><span lang="en">Python 3.10+, <code>uv</code> and an authenticated Claude Code or Antigravity.</span><span lang="es">Python 3.10+, <code>uv</code> y Claude Code o Antigravity autenticado.</span></div>
-      <div><b lang="pt">Opcionais</b><b lang="en">Optional</b><b lang="es">Opcional</b><span lang="pt"><code>pandoc</code> e LaTeX para o PDF tipográfico; <code>pdftotext</code> para PDFs em duas colunas.</span><span lang="en"><code>pandoc</code> and LaTeX for the typeset PDF; <code>pdftotext</code> for two-column PDFs.</span><span lang="es"><code>pandoc</code> y LaTeX para el PDF tipografiado; <code>pdftotext</code> para PDF a dos columnas.</span></div>
-      <div><b lang="pt">Custo</b><b lang="en">Cost</b><b lang="es">Coste</b><span lang="pt">Um parecer por parecerista mais a metarrevisão. Um manuscrito curto com 3 pareceristas no Sonnet custou cerca de US$ 1.</span><span lang="en">One report per reviewer plus the meta-review. A short manuscript with 3 reviewers on Sonnet cost about US$ 1.</span><span lang="es">Un dictamen por revisor más la metarrevisión. Un manuscrito corto con 3 revisores en Sonnet costó unos US$ 1.</span></div>
-    </div>
+    <div class="panel on" id="tab-script"><div class="code"><button class="copy" type="button">copy</button><pre><span class="c"># Claude Code + Antigravity, whichever is installed (macOS / Linux / WSL)</span>
+git clone https://github.com/LaBiOmicS/academic-peer-review.git
+cd academic-peer-review
+./install.sh</pre></div></div>
+    <div class="panel" id="tab-agy"><div class="code"><button class="copy" type="button">copy</button><pre>agy plugin validate ./academic-peer-review --strict
+agy plugin install ./academic-peer-review
+agy plugin enable academic-peer-review</pre></div></div>
+    <div class="panel" id="tab-cli"><div class="code"><button class="copy" type="button">copy</button><pre><span class="c"># prompts + panel_manifest.json only, for hosts with native subagents</span>
+uv run skills/paper-review/scripts/spawn_reviewers.py --paper-text-file out/paper_text.txt \
+  --audit-file out/pre_review_audit.md --output-dir out --skill-dir skills/paper-review \
+  --num-reviewers 5 --panel-models "claude:opus,agy,claude:sonnet" --prepare-only</pre></div></div>
   </div>
 </section>
 
-<section>
+<section class="alt">
   <div class="wrap">
     <div class="sec-head">
       <div class="eyebrow"><span lang="pt">Uso responsável</span><span lang="en">Responsible use</span><span lang="es">Uso responsable</span></div>
-      <h2 lang="pt">Um rascunho para o parecerista, não um substituto.</h2>
-      <h2 lang="en">A draft for the referee, not a replacement.</h2><h2 lang="es">Un borrador para el revisor, no un sustituto.</h2>
+      <h2 lang="pt">Apoio à decisão humana, não um substituto.</h2><h2 lang="en">Support for human judgement, not a replacement.</h2><h2 lang="es">Apoyo a la decisión humana, no un sustituto.</h2>
     </div>
     <div class="resp">
       <div><h3 lang="pt">Responsabilidade humana</h3><h3 lang="en">Human responsibility</h3><h3 lang="es">Responsabilidad humana</h3>
-        <p lang="pt">Os pareceres são rascunhos assistidos por IA. Um parecerista ou editor humano verifica, edita e assina. O PDF traz uma declaração de uso de IA por padrão.</p>
-        <p lang="en">Reports are AI-assisted drafts. A human referee or editor verifies, edits and signs them. The PDF carries an AI-assistance disclosure by default.</p><p lang="es">Los dictámenes son borradores asistidos por IA. Un revisor o editor humano los verifica, edita y firma. El PDF incluye por defecto una declaración de asistencia por IA.</p></div>
+        <p lang="pt">Os pareceres são rascunhos assistidos por IA. Quem assina, seja o parecerista ou o autor que revisa o próprio texto, verifica e decide cada mudança. O PDF traz uma declaração de uso de IA por padrão.</p><p lang="en">Reports are AI-assisted drafts. Whoever signs off, the referee or the author revising their own text, verifies and decides every change. The PDF carries an AI-assistance disclosure by default.</p><p lang="es">Los dictámenes son borradores asistidos por IA. Quien firma, sea el revisor o el autor que revisa su propio texto, verifica y decide cada cambio. El PDF incluye por defecto una declaración de asistencia por IA.</p></div>
       <div><h3 lang="pt">Confidencialidade</h3><h3 lang="en">Confidentiality</h3><h3 lang="es">Confidencialidad</h3>
-        <p lang="pt">Antes de enviar um manuscrito inédito a um serviço de IA, confirme que a política de revisão do periódico permite. COPE, ICMJE e várias editoras restringem esse uso.</p>
-        <p lang="en">Before uploading an unpublished manuscript to an AI service, confirm that the journal's peer-review policy allows it. COPE, ICMJE and many publishers restrict this.</p><p lang="es">Antes de enviar un manuscrito inédito a un servicio de IA, confirme que la política de revisión de la revista lo permite. COPE, ICMJE y muchas editoriales restringen este uso.</p></div>
-      <div><h3 lang="pt">Uso pelos autores</h3><h3 lang="en">Use by authors</h3><h3 lang="es">Uso por los autores</h3>
-        <p lang="pt">O uso mais seguro é o dos próprios autores, antes da submissão: encontrar as falhas que um parecerista encontraria, a tempo de corrigi-las.</p>
-        <p lang="en">The safest use is by the authors themselves, before submission: finding the flaws a referee would find, in time to fix them.</p><p lang="es">El uso más seguro es el de los propios autores, antes del envío: encontrar los fallos que encontraría un revisor, a tiempo de corregirlos.</p></div>
+        <p lang="pt">Antes de enviar um manuscrito inédito de terceiros a um serviço de IA, confirme que a política de revisão do periódico permite. COPE, ICMJE e várias editoras restringem esse uso.</p><p lang="en">Before sending someone else's unpublished manuscript to an AI service, confirm that the journal's peer-review policy allows it. COPE, ICMJE and many publishers restrict this.</p><p lang="es">Antes de enviar un manuscrito inédito de terceros a un servicio de IA, confirme que la política de revisión de la revista lo permite. COPE, ICMJE y muchas editoriales restringen este uso.</p></div>
+      <div><h3 lang="pt">Limites</h3><h3 lang="en">Limits</h3><h3 lang="es">Límites</h3>
+        <p lang="pt">A IA pode ler mal um trecho, e pareceristas no mesmo modelo podem errar juntos. A classificação automática pode falhar em textos atípicos; nesses casos, informe a tipologia.</p><p lang="en">The AI can misread a passage, and reviewers on the same model can be wrong together. Automatic classification can fail on unusual texts; in that case, state the article type.</p><p lang="es">La IA puede leer mal un fragmento, y los revisores en el mismo modelo pueden equivocarse juntos. La clasificación automática puede fallar en textos atípicos; en esos casos, indique la tipología.</p></div>
     </div>
   </div>
 </section>
@@ -624,8 +922,7 @@ footer a { color: var(--ink-2); }
   <div class="wrap">
     <div>
       <b>academic-peer-review</b><br>
-      <span lang="pt">Desenvolvido no LaBiOmicS — Laboratório de Bioinformática e Ciências Ômicas, Universidade de Mogi das Cruzes.</span>
-      <span lang="en">Developed at LaBiOmicS — Laboratory of Bioinformatics and Omics Sciences, University of Mogi das Cruzes.</span><span lang="es">Desarrollado en LaBiOmicS — Laboratorio de Bioinformática y Ciencias Ómicas, Universidade de Mogi das Cruzes.</span><br>
+      <span lang="pt">Desenvolvido no LaBiOmicS — Laboratório de Bioinformática e Ciências Ômicas, Universidade de Mogi das Cruzes.</span><span lang="en">Developed at LaBiOmicS — Laboratory of Bioinformatics and Omics Sciences, University of Mogi das Cruzes.</span><span lang="es">Desarrollado en LaBiOmicS — Laboratorio de Bioinformática y Ciencias Ómicas, Universidade de Mogi das Cruzes.</span><br>
       <span lang="pt">Coordenação</span><span lang="en">Lead</span><span lang="es">Coordinación</span>: Prof. Dr. Fabiano Bezerra Menegidio · <a href="mailto:fabianomenegidio@umc.br">fabianomenegidio@umc.br</a>
     </div>
     <div>
@@ -644,19 +941,26 @@ footer a { color: var(--ink-2); }
   function store(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
 
-  var LANGS = { pt: "pt-BR", en: "en", es: "es" };
-  var langButtons = document.querySelectorAll("[data-set-lang]");
-  function setLang(lang) {
-    if (!LANGS[lang]) lang = "en";
-    root.setAttribute("data-lang", lang);
-    root.setAttribute("lang", LANGS[lang]);
-    langButtons.forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.setLang === lang ? "true" : "false"); });
-    store("apr-lang", lang);
+  // Three independent choices (language, operating system, AI), each a data-* attribute on <html>.
+  var CHOICES = { lang: ["pt", "en", "es"], os: ["win", "mac", "linux"], ai: ["claude", "agy"] };
+  var HTML_LANG = { pt: "pt-BR", en: "en", es: "es" };
+  function set(kind, val) {
+    if (CHOICES[kind].indexOf(val) < 0) val = CHOICES[kind][0];
+    root.setAttribute("data-" + kind, val);
+    if (kind === "lang") root.setAttribute("lang", HTML_LANG[val]);
+    document.querySelectorAll('[data-set="' + kind + '"]').forEach(function (b) {
+      b.setAttribute("aria-pressed", b.dataset.val === val ? "true" : "false");
+    });
+    store("apr-" + kind, val);
   }
-  var browser = (navigator.language || "").toLowerCase().slice(0, 2);
-  setLang(read("apr-lang") || (LANGS[browser] ? browser : "en"));
-  langButtons.forEach(function (b) {
-    b.addEventListener("click", function () { setLang(b.dataset.setLang); });
+  var browserLang = (navigator.language || "").toLowerCase().slice(0, 2);
+  var ua = (navigator.userAgent || "").toLowerCase();
+  var browserOs = ua.indexOf("win") >= 0 ? "win" : (ua.indexOf("mac") >= 0 ? "mac" : (ua.indexOf("linux") >= 0 ? "linux" : "win"));
+  set("lang", read("apr-lang") || (HTML_LANG[browserLang] ? browserLang : "en"));
+  set("os", read("apr-os") || browserOs);
+  set("ai", read("apr-ai") || "claude");
+  document.querySelectorAll("[data-set]").forEach(function (b) {
+    b.addEventListener("click", function () { set(b.dataset.set, b.dataset.val); });
   });
 
   var theme = read("apr-theme");
@@ -676,12 +980,21 @@ footer a { color: var(--ink-2); }
     });
   });
 
+  // Copies only what is visible: the current language, system and AI variant, without prompt marks or comments.
+  function visibleText(node) {
+    if (node.nodeType === 3) return node.textContent;
+    if (node.nodeType !== 1 || getComputedStyle(node).display === "none") return "";
+    if (node.classList.contains("p") || node.classList.contains("c")) return "";
+    var out = "";
+    node.childNodes.forEach(function (c) { out += visibleText(c); });
+    return out;
+  }
   document.querySelectorAll(".copy").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      var pre = btn.parentElement.querySelector("pre").cloneNode(true);
-      pre.querySelectorAll(".p, .c").forEach(function (n) { n.remove(); });
-      var text = pre.textContent.split("\n").map(function (l) { return l.trim(); }).filter(Boolean).join("\n");
-      var done = function () { btn.textContent = "copied"; setTimeout(function () { btn.textContent = "copy"; }, 1400); };
+      var text = "";
+      btn.parentElement.querySelectorAll("pre").forEach(function (pre) { text += visibleText(pre); });
+      text = text.split("\n").map(function (l) { return l.trim(); }).filter(Boolean).join("\n");
+      var done = function () { btn.textContent = "✓"; setTimeout(function () { btn.textContent = "copy"; }, 1400); };
       if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {});
     });
   });

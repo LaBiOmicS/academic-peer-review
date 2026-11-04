@@ -10,7 +10,7 @@
 
 Plugin para **Claude Code** y **Antigravity (`agy`)** que produce una revisión por pares de manuscritos científicos asistida por IA. Primero se ejecuta una auditoría determinista. Luego, un panel de agentes revisores independientes, cada uno con un rol distinto, redacta los dictámenes, y una metarrevisión editorial los sintetiza con severidad calibrada. El resultado es un conjunto de archivos Markdown, CSV y JSON y un informe en PDF.
 
-Los informes son borradores para un revisor o editor humano, responsable de verificarlos, editarlos y firmarlos.
+La herramienta tiene dos usos: **borrador para el revisor o editor**, que verifica, edita y firma el dictamen, y **ronda de revisión para el propio autor**, que adecúa su manuscrito de forma proactiva antes de enviarlo. En ambos casos, una persona verifica cada punto antes de actuar.
 
 ---
 
@@ -216,7 +216,7 @@ Cada revisión cuesta una llamada al modelo por revisor, más la metarrevisión.
 
 | Archivo | Contenido |
 |---|---|
-| `editorial_peer_review_report.pdf` | Informe consolidado: metarrevisión, matriz de críticas, auditoría, dictámenes individuales |
+| `editorial_peer_review_report.pdf` | Informe consolidado: metarrevisión, matriz de críticas, auditoría, dictámenes individuales. Las tablas anchas salen en páginas apaisadas |
 | `meta_review.md` | Veredictos, críticas comunes y únicas, verificación de los bloqueantes, hoja de ruta en tres niveles, decisión |
 | `author_letter.md` | Decisión con solo los puntos bloqueantes y esenciales |
 | `review_<nombre>.md` | Un dictamen por revisor |

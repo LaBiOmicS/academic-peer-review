@@ -10,7 +10,7 @@
 
 A plugin for **Claude Code** and **Antigravity (`agy`)** that produces an AI-assisted peer review of a scientific manuscript. A deterministic pre-review audit runs first. A panel of independent reviewer agents with distinct roles then writes the reviews, and an editorial meta-review synthesizes them with calibrated severity. The output is a set of Markdown, CSV and JSON files and a PDF report.
 
-The reports are drafts for a human referee or editor, who is responsible for verifying, editing and signing them.
+It serves two uses: a **draft for a referee or editor**, who verifies, edits and signs it, and a **review round for authors**, who can adapt their own manuscript proactively before submission. Either way, a human checks every point before acting on it.
 
 ---
 
@@ -216,7 +216,7 @@ Each review costs one model call per reviewer plus the meta-review. As a referen
 
 | File | Content |
 |---|---|
-| `editorial_peer_review_report.pdf` | Consolidated report: meta-review, concerns matrix, audit, individual reviews |
+| `editorial_peer_review_report.pdf` | Consolidated report: meta-review, concerns matrix, audit, individual reviews. Wide tables are set on landscape pages |
 | `meta_review.md` | Verdicts, common and unique concerns, blocking-concern verification, three-tier roadmap, decision |
 | `author_letter.md` | Decision with the blocking and essential items only |
 | `review_<codename>.md` | One report per reviewer |

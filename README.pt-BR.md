@@ -10,7 +10,7 @@
 
 Plugin para **Claude Code** e **Antigravity (`agy`)** que produz uma revisão por pares de manuscritos científicos assistida por IA. Primeiro roda uma auditoria determinística. Em seguida, um painel de agentes pareceristas independentes, cada um com um papel distinto, escreve os pareceres, e uma metarrevisão editorial os sintetiza com severidade calibrada. O resultado é um conjunto de arquivos Markdown, CSV e JSON e um relatório em PDF.
 
-Os relatórios são rascunhos para um parecerista ou editor humano, que é responsável por verificá-los, editá-los e assiná-los.
+A ferramenta tem dois usos: **rascunho para o parecerista ou editor**, que verifica, edita e assina o parecer, e **rodada de revisão para o próprio autor**, que adequa o manuscrito de forma proativa antes de submeter. Nos dois casos, uma pessoa confere cada ponto antes de agir.
 
 ---
 
@@ -216,7 +216,7 @@ Cada revisão custa uma chamada de modelo por parecerista, mais a metarrevisão.
 
 | Arquivo | Conteúdo |
 |---|---|
-| `editorial_peer_review_report.pdf` | Relatório consolidado: metarrevisão, matriz de críticas, auditoria, pareceres individuais |
+| `editorial_peer_review_report.pdf` | Relatório consolidado: metarrevisão, matriz de críticas, auditoria, pareceres individuais. Tabelas largas saem em páginas paisagem |
 | `meta_review.md` | Vereditos, críticas comuns e únicas, verificação dos bloqueantes, roteiro em três níveis, decisão |
 | `author_letter.md` | Decisão com apenas os itens bloqueantes e essenciais |
 | `review_<codinome>.md` | Um parecer por parecerista |

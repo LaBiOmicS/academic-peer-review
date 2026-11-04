@@ -2,6 +2,16 @@
 
 Todas as mudanças relevantes deste plugin. O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [SemVer](https://semver.org/lang/pt-BR/).
 
+## [Não lançado]
+
+### Adicionado
+- Página do projeto refeita para quem não tem experiência com IA ou terminal: manual de oito passos com seletores de sistema (Windows, macOS, Linux) e de IA (Claude Code, Antigravity), que mostram só os comandos da escolha; prompts prontos para os casos mais comuns (rodada de revisão do autor, rascunho de parecer, revisão econômica, tipologia informada, retomada, explicação do resultado, painel com vários modelos, comando direto); perguntas frequentes e solução de problemas. O botão de copiar leva só a variante visível, sem marcas de prompt nem comentários.
+- A página e os READMEs apresentam os dois usos da ferramenta: rascunho para o parecerista e rodada de revisão proativa para o próprio autor.
+
+### Corrigido
+- Tabelas largas do relatório em PDF (como a de verificação dos bloqueantes, com várias colunas de texto) eram ilegíveis na página retrato. Agora vão para páginas paisagem, no LaTeX (`pdflscape`) e no ReportLab. As colunas passam a ter largura proporcional ao conteúdo: antes, todas tinham a mesma largura no pandoc, e a coluna da crítica ficava espremida. No ReportLab, as tabelas deixaram de sair como texto corrido separado por `|`.
+- A Parte II do PDF afirmava que todos os pareceristas usam o mesmo modelo mesmo num painel com modelos diferentes; o texto agora segue o `results.json`.
+
 ## [1.2.0] — 2026-11-04
 
 ### Documentação
