@@ -5,7 +5,7 @@ Todas as mudanças relevantes deste plugin. O formato segue o [Keep a Changelog]
 ## [Não lançado]
 
 ### Adicionado
-- Selo e aviso de versão beta no topo da página do projeto, nos três idiomas, com link para relatar problemas.
+- Selo e aviso de versão beta no topo da página do projeto e dos três READMEs, com link para relatar problemas.
 
 ## [1.3.2] — 2026-11-04
 

@@ -1,5 +1,6 @@
 # academic-peer-review
 
+[![Status: beta](https://img.shields.io/badge/status-beta-orange.svg)](https://github.com/LaBiOmicS/academic-peer-review/issues)
 [![CI](https://github.com/LaBiOmicS/academic-peer-review/actions/workflows/ci.yml/badge.svg)](https://github.com/LaBiOmicS/academic-peer-review/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/LaBiOmicS/academic-peer-review)](https://github.com/LaBiOmicS/academic-peer-review/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -7,6 +8,9 @@
 [![Página del proyecto](https://img.shields.io/badge/docs-GitHub%20Pages-0b6e4f.svg)](https://labiomics.github.io/academic-peer-review/)
 
 [English](README.md) · [Português](README.pt-BR.md) · **Español**
+
+> [!WARNING]
+> **Beta.** La herramienta todavía está en versión beta y puede presentar errores, tanto de funcionamiento como en las críticas que genera. Verifique cada resultado e [informe los problemas](https://github.com/LaBiOmicS/academic-peer-review/issues).
 
 Plugin para **Claude Code** y **Antigravity (`agy`)** que produce una revisión por pares de manuscritos científicos asistida por IA. Primero se ejecuta una auditoría determinista. Luego, un panel de agentes revisores independientes, cada uno con un rol distinto, redacta los dictámenes, y una metarrevisión editorial los sintetiza con severidad calibrada. El resultado es un conjunto de archivos Markdown, CSV y JSON y un informe en PDF.
 
