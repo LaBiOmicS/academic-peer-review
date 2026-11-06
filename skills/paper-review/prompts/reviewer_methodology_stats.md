@@ -65,7 +65,7 @@ Review the deterministic area-aware audit below and verify any flagged inconsist
 
 Produce a single Markdown document with these exact sections.
 
-**Language Directive**: Write your review in the **same language as the manuscript** (Portuguese, English, or Spanish). If the paper is written in English, write in formal academic English. If the paper is in Portuguese, write in academic Portuguese. If in Spanish, write in academic Spanish. Keep the exact section heading names below in English (Summary, Major concerns, Minor concerns, Verdict) for deterministic parsing.
+**Language Directive**: Write your review in formal academic **{output_language}**: the report language, which follows the manuscript's language (Portuguese, English or Spanish; English for a manuscript in any other language). Keep the exact section heading names below in English (Summary, Major concerns, Minor concerns, Verdict), the verdict labels (Reject / Major revision / Minor revision / Accept) and the severity tiers (Blocking / Essential / Optional) in English, for deterministic parsing; the final report translates them.
 
 ### Summary
 One paragraph summarizing the paper's claims and overall methodological soundness within `{area_name}` (`{study_design}`).

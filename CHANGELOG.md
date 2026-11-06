@@ -2,6 +2,17 @@
 
 Todas as mudanças relevantes deste plugin. O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.4.0] — 2026-11-06
+
+### Adicionado
+- O relatório inteiro sai no idioma do manuscrito: português, inglês ou espanhol, e inglês para qualquer outro idioma. Antes só o texto escrito pelos pareceristas seguia o manuscrito; o que o código gera (auditoria pré-revisão, matriz de questões, números da auditoria na metarrevisão, carta aos autores, PDF e nomes da classificação) saía sempre em inglês, com nomes de área e tipo em português. A extração detecta o idioma e grava `language` e `report_language` em `paper_structure.json`; `--language pt|en|es` força outro idioma.
+- Os prompts dos pareceristas dizem o idioma pelo nome (`{output_language}`), e o da metarrevisão manda usar o `report_language`.
+- Títulos de seção, pareceres (Reject, Major revision…) e níveis de severidade (Blocking, Essential, Optional) continuam em inglês nos arquivos de trabalho, para a leitura automática, e são traduzidos no PDF e na carta aos autores.
+
+### Corrigido
+- A matriz de questões aparecia duas vezes no PDF (na Parte I e na Parte II): o filtro que a tira da metarrevisão não previa a legenda entre o título e a tabela.
+- Ao recompilar, a matriz já gravada na metarrevisão é refeita, e assim acompanha o idioma do relatório.
+
 ## [1.3.3] — 2026-11-04
 
 ### Adicionado

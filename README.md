@@ -44,7 +44,7 @@ It serves two uses: a **draft for a referee or editor**, who verifies, edits and
 |---|---|
 | **Hosts** | Claude Code (native subagents) · Antigravity CLI · headless subprocesses (`claude -p`, `agy -p`, `gemini -p`) |
 | **Input formats** | PDF, DOCX, LaTeX, Markdown, plain text, reStructuredText; ODT, RTF, HTML and EPUB through pandoc |
-| **Report language** | Same as the manuscript (English, Portuguese or Spanish) |
+| **Report language** | Same as the manuscript (English, Portuguese or Spanish; English for any other language), in every file: reviews, meta-review, author letter, audit and PDF |
 | **Panel size** | 3–8 reviewers (default 5), optionally on different models |
 | **Classification** | 5 areas × 15 article types × 13 research approaches = 975 profiles |
 | **External services** | OpenAlex, doi.org, arXiv, Europe PMC, Crossref (read-only, HTTPS) |
@@ -267,7 +267,7 @@ Changes are listed in [CHANGELOG.md](CHANGELOG.md).
   author  = {Menegidio, Fabiano Bezerra},
   title   = {academic-peer-review: AI-assisted academic peer review with deterministic audits},
   year    = {2026},
-  version = {1.3.3},
+  version = {1.4.0},
   url     = {https://github.com/LaBiOmicS/academic-peer-review},
   note    = {LaBiOmicS, Universidade de Mogi das Cruzes}
 }

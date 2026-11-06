@@ -22,8 +22,9 @@ import urllib.request
 from typing import Any
 
 from area_profiles import strip_reference_list
+from i18n import status_label, t
 
-USER_AGENT = "academic-peer-review/1.3.3 (LaBiOmicS - UMC; mailto:fabianomenegidio@umc.br; https://github.com/LaBiOmicS/academic-peer-review)"
+USER_AGENT = "academic-peer-review/1.4.0 (LaBiOmicS - UMC; mailto:fabianomenegidio@umc.br; https://github.com/LaBiOmicS/academic-peer-review)"
 
 MAX_JOURNAL_NAME_LEN = 120
 _JOURNAL_NAME_ALLOWED = re.compile(r"[^\w\s&:,.()'/+-]")
@@ -421,12 +422,12 @@ def query_openalex_journal(journal_name: str, timeout: float = 8.0) -> dict[str,
     best = next((r for r in results if _normalize_key(r.get("display_name") or "") == wanted), results[0])
 
     topics_data = []
-    for t in (best.get("topics") or [])[:10]:
+    for topic in (best.get("topics") or [])[:10]:
         topics_data.append({
-            "name": t.get("display_name", ""),
-            "subfield": t.get("subfield", {}).get("display_name", "") if isinstance(t.get("subfield"), dict) else "",
-            "field": t.get("field", {}).get("display_name", "") if isinstance(t.get("field"), dict) else "",
-            "domain": t.get("domain", {}).get("display_name", "") if isinstance(t.get("domain"), dict) else "",
+            "name": topic.get("display_name", ""),
+            "subfield": topic.get("subfield", {}).get("display_name", "") if isinstance(topic.get("subfield"), dict) else "",
+            "field": topic.get("field", {}).get("display_name", "") if isinstance(topic.get("field"), dict) else "",
+            "domain": topic.get("domain", {}).get("display_name", "") if isinstance(topic.get("domain"), dict) else "",
         })
 
     return {
@@ -825,55 +826,58 @@ def audit_journal_scope(
     }
 
 
-def format_scope_markdown(scope: dict[str, Any]) -> str:
-    """Format the journal scope and desk-reject audit into clean Markdown."""
+def format_scope_markdown(scope: dict[str, Any], lang: str = "en") -> str:
+    """Format the journal scope and desk-reject audit into clean Markdown (pt, en or es)."""
+    def b(key: str, value: Any) -> str:
+        return f"- **{t(lang, key)}**: {value}"
+
     lines: list[str] = [
-        "## Target Journal Scope Adherence & Desk-Reject Risk Audit",
-        f"- **Target Journal**: **{scope['target_journal']}** ({scope.get('publisher', 'Unknown Publisher')})",
-        f"- **Resolution Source**: {scope.get('source', 'Auditor')}",
+        t(lang, "j_title"),
+        b("j_target", f"**{scope['target_journal']}** ({scope.get('publisher') or t(lang, 'j_unknown_publisher')})"),
+        b("j_source", scope.get("source", "Auditor")),
     ]
     if scope.get("scope_summary"):
-        lines.append(f"- **Scope Summary**: {scope['scope_summary']}")
+        lines.append(b("j_summary", scope["scope_summary"]))
     if scope.get("issn"):
         lines.append(f"- **ISSN**: `{scope['issn']}`" + (f" | **Homepage**: [{scope['target_journal']}]({scope['homepage_url']})" if scope.get("homepage_url") else ""))
     if scope.get("apc_usd") is not None or scope.get("is_oa"):
         if scope.get("is_in_doaj"):
-            access = "Fully Open Access (indexed in DOAJ)"
+            access = t(lang, "j_doaj")
         elif scope.get("is_oa"):
-            access = "Open Access"
+            access = t(lang, "j_oa")
         else:
-            access = "Subscription / Hybrid"
+            access = t(lang, "j_hybrid")
         apc = f" | **APC**: ${scope['apc_usd']:,} USD" if scope.get("apc_usd") is not None else ""
-        lines.append(f"- **Access Model**: {access}{apc}")
+        lines.append(b("j_access", f"{access}{apc}"))
 
     score = scope.get("adherence_score_pct")
-    score_txt = f"{score}%" if score is not None else "n/a"
+    score_txt = f"{score}%" if score is not None else t(lang, "na")
     lines.extend([
-        f"- **Aims & Scope Adherence Score**: **{score_txt}** (`{scope['fit_category']}`)",
-        f"- **Desk-Reject Risk Assessment**: **{scope['desk_reject_risk']}**",
+        b("j_score", f"**{score_txt}** (`{status_label(scope['fit_category'], lang)}`)"),
+        b("j_risk", f"**{status_label(scope['desk_reject_risk'], lang)}**"),
     ])
 
     if scope.get("matched_topics"):
-        lines.append(f"- **Matched Journal Topics/Keywords**: {', '.join(f'`{t}`' for t in scope['matched_topics'])}")
+        lines.append(b("j_topics", ", ".join(f"`{x}`" for x in scope["matched_topics"])))
 
     if scope.get("desk_reject_flags"):
-        lines.append("\n### ⚠️ Critical Desk-Reject Red Flags")
+        lines.append("\n" + t(lang, "j_flags"))
         for flag in scope["desk_reject_flags"]:
             lines.append(f"- 🔴 **{flag}**")
 
     if scope.get("guideline_warnings"):
-        lines.append("\n### 📋 Author Guidelines & Formal Submission Warnings")
+        lines.append("\n" + t(lang, "j_warnings"))
         for warn in scope["guideline_warnings"]:
             lines.append(f"- 🟡 {warn}")
 
     if scope.get("common_pitfalls_to_avoid"):
-        lines.append(f"\n### 💡 Editorial Nuances & Desk Pitfalls for {scope['target_journal']}")
+        lines.append("\n" + t(lang, "j_pitfalls", j=scope["target_journal"]))
         for pit in scope["common_pitfalls_to_avoid"]:
             lines.append(f"- {pit}")
 
     if scope.get("alternative_journal_recommendations"):
-        lines.append("\n### 🔄 Recommended Alternative / Cascading Journals")
+        lines.append("\n" + t(lang, "j_alternatives"))
         for alt in scope["alternative_journal_recommendations"]:
-            lines.append(f"- **{alt['name']}**: {alt.get('focus', 'Good scope match for this profile.')}")
+            lines.append(f"- **{alt['name']}**: {alt.get('focus') or t(lang, 'j_alt_default')}")
 
     return "\n".join(lines) + "\n"

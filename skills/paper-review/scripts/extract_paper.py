@@ -41,6 +41,7 @@ from area_profiles import (  # noqa: E402
     RESEARCH_APPROACH_DEFINITIONS,
     classify_manuscript,
     sanitize_and_scan_manuscript,
+    strip_reference_list,
 )
 from hidden_content import (  # noqa: E402
     merge_into_security_scan,
@@ -52,6 +53,7 @@ from hidden_content import (  # noqa: E402
     scan_pdf,
     scan_tex,
 )
+from i18n import detect_language, report_language  # noqa: E402
 from journal_scope import clean_journal_name  # noqa: E402
 
 SECTION_PATTERNS = {
@@ -357,6 +359,12 @@ def main() -> int:
     )
     parser.add_argument("--domain", default="", help="Optional specific domain hint.")
     parser.add_argument("--journal", "--target-journal", dest="journal", default="", help="Optional target journal name.")
+    parser.add_argument(
+        "--language",
+        choices=["auto", "pt", "en", "es"],
+        default="auto",
+        help="Language of the report (default: auto = the manuscript's language; en when it is not pt, en or es).",
+    )
     parser.add_argument("--max-file-mb", type=float, default=100.0, help="Maximum allowed input file size in MB (default: 100).")
     args = parser.parse_args()
 
@@ -444,6 +452,10 @@ def main() -> int:
         explicit_research_approach=args.research_approach,
         target_journal=args.journal,
     )
+    detected = detect_language(strip_reference_list(text))
+    structure["language"] = detected["code"]
+    structure["language_confidence"] = detected["confidence"]
+    structure["report_language"] = report_language(args.language, detected["code"])
     if args.output_meta:
         out_meta = Path(args.output_meta).resolve()
         out_meta.parent.mkdir(parents=True, exist_ok=True)
@@ -456,6 +468,8 @@ def main() -> int:
         "pages": structure.get("pages", 0),
         "backend": structure.get("backend"),
         "is_likely_academic_paper": structure["is_likely_academic_paper"],
+        "language": structure["language"],
+        "report_language": structure["report_language"],
         "target_journal": structure["target_journal"],
         "target_journal_source": structure["target_journal_source"],
         "security_scan": security_scan,

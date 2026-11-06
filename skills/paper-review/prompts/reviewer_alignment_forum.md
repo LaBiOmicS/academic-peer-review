@@ -95,7 +95,7 @@ Adapt each check to **{area_name}** (`{study_design}`):
 
 Produce a single Markdown document with these sections, in this exact order.
 
-**Language Directive**: Write your review in the **same language as the manuscript** (Portuguese, English, or Spanish). If the paper is written in English, write in formal academic English. If the paper is in Portuguese, write in academic Portuguese. If in Spanish, write in academic Spanish. Keep the exact section heading names below in English (Summary, Major concerns, Minor concerns, Belief update, Verdict) for deterministic parsing.
+**Language Directive**: Write your review in formal academic **{output_language}**: the report language, which follows the manuscript's language (Portuguese, English or Spanish; English for a manuscript in any other language). Keep the exact section heading names below in English (Summary, Major concerns, Minor concerns, Belief update, Verdict), the verdict labels (Reject / Major revision / Minor revision / Accept) and the severity tiers (Blocking / Essential / Optional) in English, for deterministic parsing; the final report translates them.
 
 ### Summary
 One paragraph: the claims, the evidence/argumentation, and your overall epistemic stance within `{area_name}`.

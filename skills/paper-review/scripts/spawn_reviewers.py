@@ -47,6 +47,7 @@ from area_profiles import (  # noqa: E402
     get_research_approach_profile,
     sanitize_and_scan_manuscript,
 )
+from i18n import LANGUAGE_NAMES, detect_language, report_language  # noqa: E402
 from journal_scope import clean_journal_name  # noqa: E402
 
 GREEK = ["alfa", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta"]
@@ -317,6 +318,7 @@ def build_prompt(
     audit_text: str,
     entropy_hint: str,
     target_journal: str = "",
+    output_language: str = "en",
 ) -> str:
     type_code = area_info["article_type"]["type_code"]
     type_profile = get_article_type_profile(type_code)
@@ -363,6 +365,7 @@ def build_prompt(
         "repro_lens_normative": repro_normative,
         "area_rubric": composed_rubric,
         "severity_rubric": SEVERITY_RUBRIC,
+        "output_language": LANGUAGE_NAMES.get(output_language, LANGUAGE_NAMES["en"]),
         "entropy_hint": entropy_hint,
         "pre_review_audit": audit_text,
         "paper_text": paper_text,
@@ -401,6 +404,12 @@ def main() -> int:
         help="Leave out the author-advocate reviewer, which checks the panel's likely critiques for proportionality.",
     )
     p.add_argument("--audit-file", help="Optional path to pre_review_audit.md to include as context.")
+    p.add_argument(
+        "--language",
+        choices=["auto", "pt", "en", "es"],
+        default="auto",
+        help="Language the reviewers write in (default: auto = report_language of --paper-meta, else the manuscript's).",
+    )
     p.add_argument(
         "--area",
         choices=["auto", "biologicas", "saude", "exatas", "engenharias", "humanas"],
@@ -487,13 +496,17 @@ def main() -> int:
         else f"{area_info['area_name']} — {area_info['article_type']['type_name']} ({area_info['research_approach']['approach_name']})"
     )
 
-    target_journal = clean_journal_name(args.journal)
-    if not target_journal and args.paper_meta and Path(args.paper_meta).is_file():
+    paper_meta: dict[str, Any] = {}
+    if args.paper_meta and Path(args.paper_meta).is_file():
         try:
-            meta = json.loads(Path(args.paper_meta).read_text(encoding="utf-8"))
-            target_journal = clean_journal_name(meta.get("target_journal"))
+            paper_meta = json.loads(Path(args.paper_meta).read_text(encoding="utf-8"))
         except (OSError, ValueError):
-            pass
+            paper_meta = {}
+    target_journal = clean_journal_name(args.journal) or clean_journal_name(paper_meta.get("target_journal"))
+    output_language = report_language(
+        args.language if args.language != "auto" else paper_meta.get("report_language"),
+        paper_meta.get("language") or detect_language(paper_text)["code"],
+    )
 
     audit_text = "No pre-review automated audit was supplied."
     if args.audit_file and Path(args.audit_file).exists():
@@ -517,6 +530,7 @@ def main() -> int:
     manifest: dict[str, Any] = {
         "domain": effective_domain,
         "target_journal": target_journal or None,
+        "report_language": output_language,
         "security_scan": security_scan,
         "scientific_area": area_info,
         "num_reviewers": n,
@@ -551,6 +565,7 @@ def main() -> int:
             audit_text=audit_text,
             entropy_hint=entropy_hint,
             target_journal=target_journal,
+            output_language=output_language,
         )
         prompt_file = prompts_out_dir / f"prompt_{code}.md"
         prompt_file.write_text(prompt, encoding="utf-8")

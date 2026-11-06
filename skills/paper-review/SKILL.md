@@ -48,6 +48,7 @@ For detailed notes on the 3-Axis Matrix, String Seed of Thought (SSoT), and audi
 | `domain` | no | inferred | Specific scientific field (e.g. `"bioinformatics and genomics"`, `"constitutional law"`). |
 | `target_journal` | no | `""` | Target academic journal name (e.g. `"Bioinformatics"`, `"The Lancet"`) for aims & scope validation, author guidelines compliance, and desk-reject risk evaluation. If empty, a `Submitted to: <journal>` line in the manuscript is used (via `--paper-meta`). |
 | `num_reviewers` | no | `5` | Number of independent reviewers (`alfa`, `beta`, `gamma`, `delta`, …) to spawn (`3` to `8`). |
+| `language` | no | `auto` | Report language: `auto` (the manuscript's: `pt`, `en` or `es`; `en` for any other language), or `pt` / `en` / `es` only when the user asks for a different one. Pass it as `--language` to Step 1; later steps read it from `paper_structure.json`. |
 | `output_dir` | no | `./papers/<paper-stem>/` | Directory where all review artifacts are written. |
 | `alignment_critic` | no | `true` | Includes an Area- and Genre-Adapted Epistemic Red-Team Critic in the panel. |
 | `specialist_panel` | no | `true` | Includes specialized Methodological/Analytical and Reproducibility/Normative auditors alongside Domain Reviewers. |
@@ -76,8 +77,11 @@ $PY {skill_dir}/scripts/extract_paper.py \
   --article-type "<article_type>" \
   --research-approach "<research_approach>" \
   --domain "<domain>" \
-  --journal "<target_journal>"
+  --journal "<target_journal>" \
+  --language "<language>"
 ```
+
+The output reports `language` (detected) and `report_language`, also saved in `paper_structure.json`. Every later step writes in `report_language`: the reviewers' prompts name it, the audit, the concerns matrix, the author letter and the PDF are rendered in it, and the meta-review (Step 4) must be written in it.
 
 ### Step 1b. Confirm an Uncertain Classification
 
@@ -156,7 +160,7 @@ $PY {skill_dir}/scripts/spawn_reviewers.py \
 
 ### Step 4. Synthesize the Editorial Meta-Review
 
-Read all `<output_dir>/review_<codename>.md` files, `<output_dir>/pre_review_audit.md`, and [metareview.md](./prompts/metareview.md), then write the synthesized editorial meta-review to `<output_dir>/meta_review.md`.
+Read all `<output_dir>/review_<codename>.md` files, `<output_dir>/pre_review_audit.md`, and [metareview.md](./prompts/metareview.md), then write the synthesized editorial meta-review to `<output_dir>/meta_review.md`, in the `report_language` of `paper_structure.json`. Keep the headings, verdict labels and severity tiers in English as the prompt says: `compile_results.py` and the PDF translate them.
 
 Follow the prompt's calibration rules: the reviewers share one model, so how many of them raised a concern is attribution, not evidence; every candidate `Blocking` concern goes through the `## Blocking-concern verification` table (conclusion at stake, what the authors already say, direction of the alleged bias, proportionate remedy) before it reaches the roadmap; and audit figures are described, not copied, because Step 5 inserts them from the audit file. Write the meta-review only after the final `pre_review_audit.md`: if the audit is re-run, rewrite the meta-review.
 
@@ -172,7 +176,7 @@ Add `--no-ai-disclosure` only when the user explicitly asks to remove the AI-ass
 
 ### Step 6. Present Results & Verdict Table to the User
 
-State the detected (or confirmed, see Step 1b) **Major Scientific Area**, **Article Type**, and **Research Approach**, display the compact per-reviewer verdict table (`alfa`, `beta`, `gamma`, `delta`, …), remind the user that the reports are AI-assisted drafts to be verified before use, **prominently warn the user if `pre_review_audit.md` reports hidden-content `MANIPULATION ATTEMPT` findings** (hidden text aimed at manipulating AI-assisted review — the editor should handle it as a possible integrity case), and provide clickable links to:
+Write to the user in the language of the conversation; the files are in the report language. State the detected (or confirmed, see Step 1b) **Major Scientific Area**, **Article Type**, and **Research Approach**, the report language, display the compact per-reviewer verdict table (`alfa`, `beta`, `gamma`, `delta`, …), remind the user that the reports are AI-assisted drafts to be verified before use, **prominently warn the user if `pre_review_audit.md` reports hidden-content `MANIPULATION ATTEMPT` findings** (hidden text aimed at manipulating AI-assisted review — the editor should handle it as a possible integrity case), and provide clickable links to:
 - Official PDF Report: `<output_dir>/editorial_peer_review_report.pdf`
 - Editorial Meta-Review: `<output_dir>/meta_review.md`
 - Decision Letter to the Authors (short version): `<output_dir>/author_letter.md`

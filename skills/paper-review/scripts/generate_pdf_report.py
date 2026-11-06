@@ -30,13 +30,21 @@ import re
 import shutil
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 from typing import Any
 from xml.sax.saxutils import escape as xml_escape
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from i18n import class_name, language_of, localize_markdown, long_date, status_label, t, tier_label, verdict_label  # noqa: E402
+
+# The matrix compile_results embeds in the meta-review: heading, optional legend paragraph, table.
+MATRIX_SECTION_REGEX = re.compile(r"#+[ \t]*Major Concerns Matrix[ \t]*\n+(?:[^|#\n][^\n]*\n+)?(?:\|[^\n]*(?:\n|$))+")
+
 GREEK_ORDER = ["alfa", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta"]
 
 
+# English text of the notice (kept for callers); the report uses t(lang, "ai_notice").
 AI_ASSISTANCE_NOTICE = (
     "**AI-assistance disclosure.** This report was drafted with the assistance of AI language models "
     "and automated checks (statistical recalculation, citation lookup, reporting-guideline screening). "
@@ -118,6 +126,10 @@ def _metadata_list(match: re.Match[str]) -> str:
     return "\n".join(items) + "\n"
 
 
+def _yaml_quote(text: str) -> str:
+    return "'" + text.replace("'", "''") + "'"
+
+
 def assemble_consolidated_markdown(output_dir: Path, ai_disclosure: bool = True) -> tuple[str, dict[str, Any]]:
     """Assemble all review artifacts into a single standardized Markdown document.
 
@@ -133,24 +145,25 @@ def assemble_consolidated_markdown(output_dir: Path, ai_disclosure: bool = True)
         except Exception:
             pass
 
+    lang = results.get("report_language") or language_of(output_dir)
     pre_audit = results.get("pre_review_audit") or {}
     sa = pre_audit.get("scientific_area") or {}
-    area_name = sa.get("area_name", "General Scientific")
     area_code = sa.get("area_code", "multidisciplinary")
+    area_name = class_name(area_code, sa.get("area_name", "General Scientific"), lang)
     at = sa.get("article_type") or {}
-    type_name = at.get("type_name", "Original Research")
+    type_name = class_name(at.get("type_code", ""), at.get("type_name", "Original Research"), lang)
     ra = sa.get("research_approach") or {}
-    approach_name = ra.get("approach_name", "Standard")
+    approach_name = class_name(ra.get("approach_code", ""), ra.get("approach_name", "Standard"), lang)
     consensus = results.get("verdict_summary", {}).get("consensus", "Under Review")
     rev_meta = results.get("reviewer_metadata") or {}
 
-    # Header with YAML frontmatter (use single quotes to avoid YAML escape collision on \today)
+    # Header with YAML frontmatter (single-quoted scalars; the date is written out in the report language)
     doc = [
         "---",
-        "title: 'ACADEMIC PEER REVIEW & EDITORIAL REPORT'",
-        "subtitle: 'Consolidated Blind Panel Evaluation & Scientific Integrity Audit'",
-        f"author: '{'Editorial Review Panel (AI-assisted draft)' if ai_disclosure else 'Editorial Review Panel'}'",
-        "date: '\\today'",
+        f"title: {_yaml_quote(t(lang, 'pdf_title'))}",
+        f"subtitle: {_yaml_quote(t(lang, 'pdf_subtitle'))}",
+        f"author: {_yaml_quote(t(lang, 'pdf_author_ai' if ai_disclosure else 'pdf_author'))}",
+        f"date: {_yaml_quote(long_date(date.today(), lang))}",
         "geometry: 'margin=2.2cm'",
         "header-includes:",
         "  - '\\usepackage{booktabs}'",
@@ -159,33 +172,33 @@ def assemble_consolidated_markdown(output_dir: Path, ai_disclosure: bool = True)
         "  - '\\pagestyle{fancy}'",
         # Clear the default left/right marks (section titles), which overlap the centred header.
         "  - '\\fancyhf{}'",
-        "  - '\\fancyhead[CO,CE]{CONFIDENTIAL ACADEMIC PEER REVIEW}'",
+        f"  - '\\fancyhead[CO,CE]{{{t(lang, 'pdf_header')}}}'",
         "  - '\\fancyfoot[C]{\\thepage}'",
         "---",
         "",
-        "# Executive Summary & Panel Recommendation",
+        f"# {t(lang, 'exec_summary')}",
         "",
-        f"- **Consensus Editorial Verdict**: **{consensus.upper()}**",
-        f"- **Major Scientific Area**: **{area_name}** (`{area_code}`)",
-        f"- **Academic Article Type**: **{type_name}** (`{at.get('type_code', 'original')}`)",
-        f"- **Research Approach**: **{approach_name}** (`{ra.get('approach_code', 'general')}`)",
+        f"- **{t(lang, 'consensus')}**: **{verdict_label(consensus, lang).upper()}**",
+        f"- **{t(lang, 'area')}**: **{area_name}** (`{area_code}`)",
+        f"- **{t(lang, 'article_type')}**: **{type_name}** (`{at.get('type_code', 'original')}`)",
+        f"- **{t(lang, 'approach')}**: **{approach_name}** (`{ra.get('approach_code', 'general')}`)",
     ]
 
     scope = pre_audit.get("journal_scope_audit")
     if scope:
         score = scope.get("adherence_score_pct")
-        score_txt = f"{score}%" if score is not None else "n/a"
+        score_txt = f"{score}%" if score is not None else t(lang, "na")
         doc.append(
-            f"- **Target Journal & Scope Fit**: **{scope.get('target_journal')}** "
-            f"({score_txt} — `{scope.get('fit_category')}` | "
-            f"Desk-Reject Risk: **{scope.get('desk_reject_risk')}**)"
+            f"- **{t(lang, 'scope_fit')}**: **{scope.get('target_journal')}** "
+            f"({score_txt} — `{status_label(scope.get('fit_category'), lang)}` | "
+            f"{t(lang, 'desk_risk')}: **{status_label(scope.get('desk_reject_risk'), lang)}**)"
         )
 
     doc.extend([
         "",
-        "### Reviewer Panel Overview",
+        f"### {t(lang, 'panel_overview')}",
         "",
-        "| Reviewer | Recommendation | Dominant Analytical Lens | External Citations | Unresolvable IDs |",
+        t(lang, "panel_header"),
         "|---|---|---|---|---|",
     ])
 
@@ -194,20 +207,20 @@ def assemble_consolidated_markdown(output_dir: Path, ai_disclosure: bool = True)
     for code in GREEK_ORDER:
         if code in rev_meta:
             m = rev_meta[code]
-            v = m.get("verdict", "Under Review")
-            lens = _md_cell(m.get("lens_or_axis") or "General")
+            v = verdict_label(m.get("verdict", "Under Review"), lang)
+            lens = _md_cell(m.get("lens_or_axis") or t(lang, "lens_general"))
             cits = len(m.get("external_citations", []))
             bad = len(flagged.get(code, []))
-            doc.append(f"| **Reviewer {code.capitalize()}** | **{v}** | {lens} | {cits} cited | {bad} |")
+            doc.append(f"| **{t(lang, 'reviewer')} {code.capitalize()}** | **{v}** | {lens} | {cits} {t(lang, 'cited')} | {bad} |")
 
     if flagged:
-        doc.extend(["", "**Unresolvable identifiers cited by reviewers** (DOIs unknown to OpenAlex and doi.org, or arXiv IDs unknown to arXiv — verify before relying on them):", ""])
+        doc.extend(["", t(lang, "unresolvable_ids"), ""])
         for code in GREEK_ORDER:
             for doi in flagged.get(code, []):
-                doc.append(f"- Reviewer {code.capitalize()}: `{_md_cell(doi)}`")
+                doc.append(f"- {t(lang, 'reviewer')} {code.capitalize()}: `{_md_cell(doi)}`")
 
     if ai_disclosure:
-        doc.extend(["", AI_ASSISTANCE_NOTICE])
+        doc.extend(["", t(lang, "ai_notice")])
     doc.extend(["", "---", ""])
 
     # Part 1: Editorial Meta-Review
@@ -215,10 +228,10 @@ def assemble_consolidated_markdown(output_dir: Path, ai_disclosure: bool = True)
     if meta_path.exists():
         raw_meta = meta_path.read_text(encoding="utf-8", errors="replace")
         # compile_results.py embeds the concerns matrix in the meta-review; Part II renders it once.
-        raw_meta = re.sub(r"#+\s*Major Concerns Matrix\s*\n+(?:\|[^\n]*(?:\n|$))+", "", raw_meta)
-        cleaned_meta = _clean_markdown_for_pdf(raw_meta)
+        raw_meta = MATRIX_SECTION_REGEX.sub("", raw_meta)
+        cleaned_meta = localize_markdown(_clean_markdown_for_pdf(raw_meta), lang)
         doc.extend([
-            "# Part I: Editorial Synthesis & Meta-Review",
+            f"# {t(lang, 'part1')}",
             "",
             cleaned_meta,
             "",
@@ -235,29 +248,24 @@ def assemble_consolidated_markdown(output_dir: Path, ai_disclosure: bool = True)
                 rows = list(reader)
             if rows:
                 doc.extend([
-                    "# Part II: Consolidated Major Concerns Matrix",
+                    f"# {t(lang, 'part2')}",
                     "",
-                    "The table below cross-tabulates the Blocking and Essential concerns across referees "
-                    "(X = raised as a major concern; (m) = mentioned only in passing). "
-                    + (
-                        "Referees ran on different models, so agreement across models carries some weight:"
-                        if (results.get("severity_contract") or {}).get("single_model_panel") is False
-                        else "All referees share one underlying model, so agreement is attribution, not "
-                        "independent corroboration:"
-                    ),
+                    t(lang, "part2_intro")
+                    + t(lang, "part2_mixed" if (results.get("severity_contract") or {}).get("single_model_panel") is False else "part2_single"),
                     "",
                 ])
                 header = rows[0]
                 # Older bundles have no severity column: every column after the concern is a reviewer.
                 first_reviewer_col = 2 if len(header) > 1 and header[1] == "severity" else 1
-                doc.append("| " + " | ".join(_md_cell(h.capitalize() if h == "severity" else h) for h in header) + " |")
+                labels = {"concern": t(lang, "matrix_concern"), "severity": t(lang, "matrix_tier")}
+                doc.append("| " + " | ".join(_md_cell(labels.get(h, h)) for h in header) + " |")
                 doc.append("| " + " | ".join(["---"] * len(header)) + " |")
                 for r in rows[1:]:
                     if not r:
                         continue
                     cells = [_md_cell(r[0].removeprefix("'"))]
                     if first_reviewer_col == 2:
-                        cells.append(_md_cell((r[1] if len(r) > 1 else "").capitalize() or "-"))
+                        cells.append(_md_cell(localize_tier(r[1] if len(r) > 1 else "", lang) or "-"))
                     for c in r[first_reviewer_col:]:
                         v = c.strip().lower()
                         cells.append("✓" if v in ("true", "major") else "(m)" if v == "minor" else "·")
@@ -271,7 +279,7 @@ def assemble_consolidated_markdown(output_dir: Path, ai_disclosure: bool = True)
     if audit_md_path.exists():
         audit_md = audit_md_path.read_text(encoding="utf-8", errors="replace")
         doc.extend([
-            "# Part III: Deterministic Pre-Review Integrity Audit",
+            f"# {t(lang, 'part3')}",
             "",
             audit_md.strip(),
             "",
@@ -280,16 +288,16 @@ def assemble_consolidated_markdown(output_dir: Path, ai_disclosure: bool = True)
         ])
 
     # Part 4: Individual Blind Referee Reports
-    doc.extend(["# Part IV: Individual Independent Referee Reports", ""])
+    doc.extend([f"# {t(lang, 'part4')}", ""])
     # Only the panel compiled into results.json (stale review files from older runs are skipped).
     panel = [c for c in GREEK_ORDER if c in rev_meta] if rev_meta else GREEK_ORDER
     for code in panel:
         rf = output_dir / f"review_{code}.md"
         if rf.exists():
             r_text = rf.read_text(encoding="utf-8", errors="replace")
-            cleaned_r = _clean_markdown_for_pdf(r_text)
+            cleaned_r = localize_markdown(_clean_markdown_for_pdf(r_text), lang)
             doc.extend([
-                f"## Confidential Evaluation: Reviewer {code.capitalize()}",
+                f"## {t(lang, 'confidential_eval', code=code.capitalize())}",
                 "",
                 cleaned_r,
                 "",
@@ -298,7 +306,12 @@ def assemble_consolidated_markdown(output_dir: Path, ai_disclosure: bool = True)
             ])
 
     full_md = _pdf_safe_symbols("\n".join(doc))
+    results.setdefault("report_language", lang)
     return full_md, results
+
+
+def localize_tier(tier: str, lang: str) -> str:
+    return tier_label(tier, lang) if tier else ""
 
 
 # A table with several prose columns (e.g. the blocking-concern verification table) or very many
@@ -500,9 +513,10 @@ def render_with_reportlab(markdown_content: str, output_pdf_path: Path, results:
         textColor=dark_text,
     )
 
+    lang = results.get("report_language", "en")
     story = [
-        Paragraph("ACADEMIC PEER REVIEW & EDITORIAL REPORT", title_style),
-        Paragraph("Confidential Blind Panel Evaluation & Scientific Integrity Audit", subtitle_style),
+        Paragraph(xml_escape(t(lang, "pdf_title")), title_style),
+        Paragraph(xml_escape(t(lang, "pdf_subtitle")), subtitle_style),
         Spacer(1, 10),
         HRFlowable(width="100%", thickness=1.5, color=primary_color, spaceAfter=14),
     ]

@@ -42,6 +42,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from arxiv_lookup import lookup_arxiv_ids, normalize_arxiv_id  # noqa: E402
+from i18n import language_of, localize_markdown, status_label, t, tier_label, verdict_label  # noqa: E402
 from openalex_lookup import lookup_dois, normalize_doi  # noqa: E402
 
 try:
@@ -314,30 +315,31 @@ def _load_previous_concerns(json_path: Path, csv_path: Path) -> list[Any]:
 
 
 CELL_MARKS = {"major": "✓", "minor": "(m)", "": "·"}
+MATRIX_SECTION_REGEX = re.compile(r"##[ \t]*Major Concerns Matrix[ \t]*\n+(?:[^|#\n][^\n]*\n+)?(?:\|[^\n]*(?:\n|$))+")
 
 
-def _concerns_markdown(rows: list[dict[str, Any]], codenames: list[str]) -> str:
+def _concerns_markdown(rows: list[dict[str, Any]], codenames: list[str], lang: str = "en") -> str:
     # Reviewers share one model, so the count is attribution, not corroboration: the legend says so.
+    # The heading stays in English (generate_pdf_report finds the matrix by it).
     lines = [
         "## Major Concerns Matrix",
         "",
-        "✓ = raised as a major concern; (m) = mentioned only in passing or as a minor point. "
-        "Reviewers share one underlying model, so agreement is attribution, not independent corroboration.",
+        t(lang, "matrix_legend"),
         "",
-        "| Concern | Tier | " + " | ".join(codenames) + " | Raised as major |",
+        f"| {t(lang, 'matrix_concern')} | {t(lang, 'matrix_tier')} | " + " | ".join(codenames) + f" | {t(lang, 'matrix_major')} |",
         "|---|:---:|" + "|".join([":---:" for _ in codenames]) + "|:---:|",
     ]
     for r in rows:
         marks = [CELL_MARKS[r[c]] for c in codenames]
         count = sum(1 for c in codenames if r[c] == "major")
         safe_concern = r["concern"].replace("|", "\\|")
-        tier = (r.get("severity") or "—").capitalize()
+        tier = tier_label(r["severity"], lang) if r.get("severity") else "—"
         lines.append(f"| {safe_concern} | {tier} | " + " | ".join(marks) + f" | {count}/{len(codenames)} |")
     return "\n".join(lines) + "\n"
 
 
 def extract_and_clean_concerns(
-    meta_text: str, codenames: list[str], csv_path: Path, json_path: Path | None = None
+    meta_text: str, codenames: list[str], csv_path: Path, json_path: Path | None = None, lang: str = "en"
 ) -> tuple[str, list[dict[str, Any]]]:
     """Parse CONCERNS_TABLE_DATA, write CSV/JSON, and swap the raw JSON for a Markdown matrix.
 
@@ -350,6 +352,9 @@ def extract_and_clean_concerns(
     if not match:
         rows = _normalize_concern_rows(_load_previous_concerns(json_path, csv_path), codenames)
         _write_concerns_csv(rows, codenames, csv_path)
+        # Re-render the matrix of an earlier run, so it follows the current report language.
+        if rows and MATRIX_SECTION_REGEX.search(meta_text):
+            meta_text = MATRIX_SECTION_REGEX.sub(lambda _: _concerns_markdown(rows, codenames, lang), meta_text, count=1)
         return meta_text, rows
 
     raw_items: list[Any] = []
@@ -369,7 +374,7 @@ def extract_and_clean_concerns(
 
     cleaned_meta = meta_text[: match.start()].rstrip()
     if rows:
-        cleaned_meta += "\n\n" + _concerns_markdown(rows, codenames)
+        cleaned_meta += "\n\n" + _concerns_markdown(rows, codenames, lang)
     suffix = meta_text[match.end() :].strip()
     if suffix:
         cleaned_meta += "\n" + suffix + "\n"
@@ -387,48 +392,52 @@ ADHERENCE_PCT_REGEX = re.compile(
 )
 
 
-def audit_figures_lines(pre_audit: dict[str, Any]) -> list[str]:
+def audit_figures_lines(pre_audit: dict[str, Any], lang: str = "en") -> list[str]:
     """Authoritative audit figures, rendered from pre_review_audit.json."""
     lines: list[str] = []
+    na = t(lang, "na")
     scope = pre_audit.get("journal_scope_audit") or {}
     if scope:
         score = scope.get("adherence_score_pct")
-        lines.append(
-            f"- **Journal scope ({scope.get('target_journal') or 'target journal'})**: "
-            f"{score if score is not None else 'n/a'}% adherence, {scope.get('fit_category') or 'n/a'}; "
-            f"desk-reject risk: {scope.get('desk_reject_risk') or 'n/a'} (automated estimate)."
-        )
+        lines.append(t(
+            lang, "fig_scope",
+            j=scope.get("target_journal") or t(lang, "fig_target_journal"),
+            s=score if score is not None else na,
+            fit=status_label(scope.get("fit_category"), lang) if scope.get("fit_category") else na,
+            risk=status_label(scope.get("desk_reject_risk"), lang) if scope.get("desk_reject_risk") else na,
+        ))
     cit = pre_audit.get("citation_audit") or {}
     if cit:
-        lines.append(
-            f"- **Manuscript DOIs**: {cit.get('verified_count', 0)} of {cit.get('checked_count', 0)} resolved; "
-            f"{len(cit.get('unresolvable_dois') or [])} unresolvable; {len(cit.get('retracted_works') or [])} retracted."
-        )
+        lines.append(t(
+            lang, "fig_dois",
+            v=cit.get("verified_count", 0), c=cit.get("checked_count", 0),
+            u=len(cit.get("unresolvable_dois") or []), r=len(cit.get("retracted_works") or []),
+        ))
     stat = pre_audit.get("statcheck") or {}
     if stat:
-        lines.append(
-            f"- **Statistical recalculation**: {stat.get('tests_checked', 0)} tests checked; "
-            f"{stat.get('inconsistencies_count', 0)} inconsistencies; {stat.get('decision_errors_count', 0)} decision errors."
-        )
+        lines.append(t(
+            lang, "fig_stat",
+            n=stat.get("tests_checked", 0), i=stat.get("inconsistencies_count", 0), d=stat.get("decision_errors_count", 0),
+        ))
     ai = pre_audit.get("ai_provenance_audit") or {}
     if ai:
-        lines.append(
-            f"- **AI provenance**: disclosure {'present' if ai.get('has_ai_disclosure') else 'absent'}; "
-            f"{ai.get('uncleaned_llm_artifacts_count', 0)} uncleaned LLM artifacts."
-        )
+        lines.append(t(
+            lang, "fig_ai",
+            d=t(lang, "present" if ai.get("has_ai_disclosure") else "absent"), n=ai.get("uncleaned_llm_artifacts_count", 0),
+        ))
     fair = pre_audit.get("reproducibility_and_fair_audit") or {}
     if fair.get("data_status"):
-        lines.append(f"- **Data/code availability**: {fair['data_status']}.")
+        lines.append(t(lang, "fig_data", s=status_label(fair["data_status"], lang)))
     return lines
 
 
-def inject_audit_figures(meta_text: str, pre_audit: dict[str, Any] | None) -> str:
+def inject_audit_figures(meta_text: str, pre_audit: dict[str, Any] | None, lang: str = "en") -> str:
     """Insert (or refresh) the audit-figures block at the end of the audit-highlights section."""
     meta_text = AUDIT_BLOCK_REGEX.sub("", meta_text)
-    lines = audit_figures_lines(pre_audit or {})
+    lines = audit_figures_lines(pre_audit or {}, lang)
     if not lines or AUDIT_SECTION not in meta_text:
         return meta_text
-    block = "\n".join([AUDIT_START, "", "**Audit figures (from the automated audit file):**", "", *lines, "", AUDIT_END]) + "\n"
+    block = "\n".join([AUDIT_START, "", t(lang, "fig_title"), "", *lines, "", AUDIT_END]) + "\n"
     start = meta_text.index(AUDIT_SECTION) + len(AUDIT_SECTION)
     nxt = meta_text.find("\n## ", start)
     end = len(meta_text) if nxt == -1 else nxt + 1
@@ -497,8 +506,12 @@ def _tier_key(heading: str) -> str:
     return "optional"
 
 
-def build_author_letter(meta_text: str, consensus: str) -> str | None:
-    """Short author-facing letter: the decision, its rationale and the Blocking/Essential items only."""
+def build_author_letter(meta_text: str, consensus: str, lang: str = "en") -> str | None:
+    """Short author-facing letter: the decision, its rationale and the Blocking/Essential items only.
+
+    The meta-review keeps English headings, verdicts and tiers for parsing; the letter is in the
+    report language.
+    """
     tiers = roadmap_tiers(meta_text)
     if not tiers:
         return None
@@ -506,21 +519,19 @@ def build_author_letter(meta_text: str, consensus: str) -> str | None:
     rationale = verdict_m.group(1).strip() if verdict_m else ""
     decision_m = VERDICT_LABEL_REGEX.search(rationale)
     decision = " ".join(decision_m.group(1).split()).capitalize() if decision_m else consensus
-    out = ["# Decision letter to the authors", "", f"**Editorial recommendation: {decision}**", ""]
+    out = [f"# {t(lang, 'letter_title')}", "", f"**{t(lang, 'letter_decision', d=verdict_label(decision, lang))}**", ""]
     if rationale:
-        out += [rationale, ""]
+        out += [localize_markdown(rationale, lang), ""]
     optional_items = 0
     for heading, body in tiers:
-        if _tier_key(heading) == "optional":
+        key = _tier_key(heading)
+        if key == "optional":
             optional_items += len(re.findall(r"^\s*[-*]\s", body, re.MULTILINE))
             continue
-        out += [f"## {heading}", "", textwrap.dedent(body.strip("\n")).strip(), ""]
+        title = tier_label(key, lang) if heading.lower().startswith(key) else heading
+        out += [f"## {title}", "", localize_markdown(textwrap.dedent(body.strip("\n")).strip(), lang), ""]
     if optional_items:
-        out += [
-            f"*{optional_items} optional suggestion(s) are listed in the full editorial report. "
-            "The authors may decline any of them with a one-line justification.*",
-            "",
-        ]
+        out += [t(lang, "letter_optional", n=optional_items), ""]
     return "\n".join(out).rstrip() + "\n"
 
 
@@ -657,6 +668,7 @@ def main() -> int:
         except Exception:
             pass
 
+    lang = language_of(out_dir)
     audit_warnings: list[str] = []
     if meta_path.exists():
         raw_meta = meta_path.read_text(encoding="utf-8", errors="replace")
@@ -668,8 +680,8 @@ def main() -> int:
             meta_mtime=meta_path.stat().st_mtime if first_compile else None,
             audit_mtime=audit_path.stat().st_mtime if audit_path.exists() else None,
         )
-        cleaned_meta, concerns_matrix = extract_and_clean_concerns(raw_meta, codenames, csv_path)
-        cleaned_meta = inject_audit_figures(cleaned_meta, pre_audit)
+        cleaned_meta, concerns_matrix = extract_and_clean_concerns(raw_meta, codenames, csv_path, lang=lang)
+        cleaned_meta = inject_audit_figures(cleaned_meta, pre_audit, lang)
         if cleaned_meta != raw_meta:
             meta_path.write_text(cleaned_meta, encoding="utf-8")
 
@@ -690,11 +702,12 @@ def main() -> int:
             contract_issues["meta_review"] = meta_issues
     panel_models = sorted({f"{m.get('runner') or 'default'}:{m.get('model') or 'default'}" for m in reviewer_metadata.values()})
 
-    author_letter = build_author_letter(cleaned_meta, consensus) if cleaned_meta else None
+    author_letter = build_author_letter(cleaned_meta, consensus, lang) if cleaned_meta else None
     if author_letter:
         (out_dir / "author_letter.md").write_text(author_letter, encoding="utf-8")
 
     results_payload = {
+        "report_language": lang,
         "individual_reviews": individual_reviews,
         "meta_review": cleaned_meta,
         "reviewer_mapping": reviewer_mapping,

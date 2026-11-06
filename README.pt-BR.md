@@ -44,7 +44,7 @@ A ferramenta tem dois usos: **rascunho para o parecerista ou editor**, que verif
 |---|---|
 | **Ambientes** | Claude Code (subagentes nativos) · Antigravity CLI · subprocessos headless (`claude -p`, `agy -p`, `gemini -p`) |
 | **Formatos de entrada** | PDF, DOCX, LaTeX, Markdown, texto puro, reStructuredText; ODT, RTF, HTML e EPUB via pandoc |
-| **Idioma do relatório** | O do manuscrito (português, inglês ou espanhol) |
+| **Idioma do relatório** | O do manuscrito (português, inglês ou espanhol; inglês para qualquer outro idioma), em todos os arquivos: pareceres, metarrevisão, carta aos autores, auditoria e PDF |
 | **Tamanho do painel** | 3 a 8 pareceristas (padrão 5), opcionalmente em modelos diferentes |
 | **Classificação** | 5 áreas × 15 tipologias × 13 abordagens = 975 perfis |
 | **Serviços externos** | OpenAlex, doi.org, arXiv, Europe PMC, Crossref (somente leitura, HTTPS) |
@@ -267,7 +267,7 @@ As mudanças estão registradas em [CHANGELOG.md](CHANGELOG.md).
   author  = {Menegidio, Fabiano Bezerra},
   title   = {academic-peer-review: AI-assisted academic peer review with deterministic audits},
   year    = {2026},
-  version = {1.3.3},
+  version = {1.4.0},
   url     = {https://github.com/LaBiOmicS/academic-peer-review},
   note    = {LaBiOmicS, Universidade de Mogi das Cruzes}
 }
