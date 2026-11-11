@@ -2,6 +2,12 @@
 
 Todas as mudanças relevantes deste plugin. O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.4.1] — 2026-11-11
+
+### Alterado
+- Marketplace `labiomics` com todos os plugins LaBiOmicS: além do academic-peer-review, lista o
+  congress-abstract-review e o whoqol-toolkit (pelos repositórios no GitHub).
+
 ## [1.4.0] — 2026-11-06
 
 ### Adicionado

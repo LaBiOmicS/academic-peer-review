@@ -24,7 +24,7 @@ from typing import Any
 from area_profiles import strip_reference_list
 from i18n import status_label, t
 
-USER_AGENT = "academic-peer-review/1.4.0 (LaBiOmicS - UMC; mailto:fabianomenegidio@umc.br; https://github.com/LaBiOmicS/academic-peer-review)"
+USER_AGENT = "academic-peer-review/1.4.1 (LaBiOmicS - UMC; mailto:fabianomenegidio@umc.br; https://github.com/LaBiOmicS/academic-peer-review)"
 
 MAX_JOURNAL_NAME_LEN = 120
 _JOURNAL_NAME_ALLOWED = re.compile(r"[^\w\s&:,.()'/+-]")

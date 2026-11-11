@@ -1,7 +1,7 @@
 {
   "name": "academic-peer-review",
   "displayName": "Academic Peer Review",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "AI-assisted academic peer review: a panel of 3–8 independent reviewer agents with distinct roles (red-team critic, author advocate, methods & statistics, reproducibility & FAIR, domain), optionally on different models, after a deterministic audit (statcheck, OpenAlex/doi.org citations and retractions, FAIR, AI provenance, hidden content, target-journal scope) and a 3-axis classification (5 areas × 15 article types × 13 research approaches). Calibrated editorial meta-review and PDF report; output is a draft for human referees.",
   "logo": "assets/logo.jpg",
   "author": {
